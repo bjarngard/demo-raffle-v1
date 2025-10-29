@@ -1,0 +1,20 @@
+-- CreateTable
+CREATE TABLE "weight_settings" (
+    "id" TEXT NOT NULL,
+    "baseWeight" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    "subMonthsMultiplier" DOUBLE PRECISION NOT NULL DEFAULT 0.1,
+    "subMonthsCap" INTEGER NOT NULL DEFAULT 10,
+    "resubMultiplier" DOUBLE PRECISION NOT NULL DEFAULT 0.2,
+    "resubCap" INTEGER NOT NULL DEFAULT 5,
+    "cheerBitsDivisor" DOUBLE PRECISION NOT NULL DEFAULT 1000.0,
+    "cheerBitsCap" DOUBLE PRECISION NOT NULL DEFAULT 5.0,
+    "donationsDivisor" DOUBLE PRECISION NOT NULL DEFAULT 1000.0,
+    "donationsCap" DOUBLE PRECISION NOT NULL DEFAULT 5.0,
+    "giftedSubsMultiplier" DOUBLE PRECISION NOT NULL DEFAULT 0.1,
+    "giftedSubsCap" DOUBLE PRECISION NOT NULL DEFAULT 5.0,
+    "carryOverMultiplier" DOUBLE PRECISION NOT NULL DEFAULT 0.5,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "weight_settings_pkey" PRIMARY KEY ("id")
+);

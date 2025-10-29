@@ -1,22 +1,30 @@
 # Demo Raffle v1
 
-En webbapplikation för att hantera utlottningar byggd med Next.js, Prisma och PostgreSQL.
+En webbapplikation för Twitch streamers som låter tittare anmäla sig för att få sina demos spelade. Systemet använder en viktad lottning baserad på användares Twitch-engagement (subscriptions, bits, donations, etc.).
+
+**📖 Se [ARCHITECTURE.md](./ARCHITECTURE.md) för komplett teknisk dokumentation.**  
+**⚠️ Se [DOCUMENTATION_VERSIONS.md](./DOCUMENTATION_VERSIONS.md) för version-specifik dokumentation och vanliga fallgropar.**
 
 ## Funktioner
 
-- ✅ Användare kan anmäla sig via ett formulär på startsidan
-- ✅ Admin kan dra en slumpmässig vinnare via admin-panelen
-- ✅ Automatisk vinnarvisning när en vinnare har utsetts
-- ✅ Validering och hantering av dubbla e-postregistreringar
-- ✅ Säker admin-autentisering via token
+- ✅ **Twitch OAuth Login** - Användare måste logga in med Twitch och följa kanalen
+- ✅ **Viktad Lottning** - Win probability baserad på Twitch-engagement (subs, bits, donations, gifted subs)
+- ✅ **Realtidsuppdateringar** - Live updates via Twitch EventSub webhooks
+- ✅ **Leaderboard** - Top 20 submissions med live win probability %
+- ✅ **Status-indikator** - Visar om submissions är öppna/stängda
+- ✅ **Anti-Whale System** - Caps på weights och återställning vid vinst
+- ✅ **Carry-over Weight** - Non-winners får bonus-weight till nästa stream
+- ✅ **Admin Panel** - Dra vinnare, hantera streams
 
 ## Teknikstack
 
-- **Next.js 16** - React-ramverk med App Router
-- **Prisma** - ORM för databashantering
-- **PostgreSQL** - Databas (via Prisma Data Platform eller egen instans)
+- **Next.js 16** (App Router) - React-ramverk med serverless functions
+- **NextAuth.js v5** - Twitch OAuth-autentisering
+- **Prisma 6** - ORM för databashantering
+- **PostgreSQL** - Relationsdatabas
 - **TypeScript** - Typsäkerhet
-- **Tailwind CSS** - Styling
+- **Tailwind CSS 4** - Utility-first CSS
+- **Twitch API (Helix + EventSub)** - Användardata och real-time events
 
 ## Kom igång
 
@@ -31,8 +39,23 @@ npm install
 Du behöver skapa en `.env`-fil i projektroten med följande innehåll:
 
 ```env
+# Database
 DATABASE_URL="postgresql://user:password@host:port/database"
+
+# Admin
 ADMIN_TOKEN="ditt-hemliga-admin-token"
+
+# Twitch OAuth
+TWITCH_CLIENT_ID="your_twitch_client_id"
+TWITCH_CLIENT_SECRET="your_twitch_client_secret"
+TWITCH_BROADCASTER_ID="your_broadcaster_user_id"
+
+# Twitch Webhooks
+TWITCH_WEBHOOK_SECRET="your_webhook_secret"
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your_nextauth_secret"
 ```
 
 **För att skapa en molndatabas via Prisma:**
@@ -103,20 +126,46 @@ model Entry {
 
 ## API Routes
 
-- `POST /api/enter` - Registrera en ny deltagare
-- `POST /api/pick-winner` - Dra en vinnare (kräver admin-token)
-- `GET /api/winner` - Hämta information om vinnaren
+### Publika
+- `GET /api/winner` - Hämta nuvarande vinnare
+- `GET /api/leaderboard` - Top 20 submissions med win probability
 
-## Driftsättning på Vercel
+### Autentiserade (Twitch login krävs)
+- `POST /api/enter` - Anmäl sig till raffle (kräver Twitch login + follow)
+- `POST /api/twitch/sync` - Synka användares Twitch-data
+
+### Admin (ADMIN_TOKEN krävs)
+- `POST /api/pick-winner` - Dra en vinnare (weighted random)
+- `POST /api/demo-played` - Markera att demo spelats
+- `POST /api/twitch/update-weights` - Uppdatera alla weights
+- `POST /api/twitch/carry-over` - Carry over weights till nästa stream
+
+### Webhooks
+- `POST /api/twitch/webhook` - Twitch EventSub webhook handler
+
+## Driftsättning
+
+**📖 Se [DEPLOYMENT.md](./DEPLOYMENT.md) för komplett deployment-guide med alla steg.**
+
+### Snabbstart till Vercel
 
 1. Pusha koden till GitHub
-2. Importera projektet i Vercel
-3. Lägg till miljövariabler i Vercel Project Settings:
-   - `DATABASE_URL` - Din databasanslutningssträng
-   - `ADMIN_TOKEN` - Ditt hemliga admin-token
-4. Deploya projektet
+2. Skapa konto på [Vercel](https://vercel.com) och logga in med GitHub
+3. Importera projekt från GitHub (Vercel auto-detekterar Next.js)
+4. Lägg till alla miljövariabler i Vercel Project Settings:
+   - `DATABASE_URL` - PostgreSQL connection string
+   - `ADMIN_TOKEN` - Hemligt admin-token
+   - `TWITCH_CLIENT_ID` - Din Twitch app Client ID
+   - `TWITCH_CLIENT_SECRET` - Din Twitch app Client Secret
+   - `TWITCH_BROADCASTER_ID` - Din Twitch User ID
+   - `TWITCH_WEBHOOK_SECRET` - Hemligt webhook secret
+   - `NEXTAUTH_URL` - Din produktion URL (t.ex. `https://projekt.vercel.app`)
+   - `NEXTAUTH_SECRET` - Hemligt NextAuth secret
+5. Deploya projektet
 
-Vercel kommer automatiskt köra `prisma generate` vid varje deployment.
+**Viktigt**: 
+- Efter deployment måste du registrera Twitch EventSub webhooks för real-time updates
+- Se `DEPLOYMENT.md` för detaljerade instruktioner om webhooks, troubleshooting och security
 
 ## Säkerhet
 

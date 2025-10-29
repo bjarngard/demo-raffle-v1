@@ -13,10 +13,110 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                String   @id
+  twitchId          String   @unique
+  username          String
+  displayName       String
+  email             String?
+  image             String?
+  accessToken       String?
+  refreshToken      String?
+  tokenExpiresAt    DateTime?
+  
+  // Twitch subscription data
+  isSubscriber      Boolean  @default(false)
+  isFollower        Boolean  @default(false) // Must follow channel
+  subMonths         Int      @default(0)
+  totalSubs         Int      @default(0) // Cumulative subscription months
+  
+  // Twitch engagement data
+  totalCheerBits    Int      @default(0) // Total bits cheered
+  totalDonations    Int      @default(0) // Total donation amount (in cents)
+  resubCount        Int      @default(0) // Number of resubs
+  totalGiftedSubs   Int      @default(0) // Total number of gifted subscriptions
+  
+  // Weight system
+  currentWeight     Float    @default(1.0) // Base weight
+  carryOverWeight   Float    @default(0.0) // Weight carried over from previous stream
+  totalWeight       Float    @default(1.0) // Calculated total weight for this stream
+  
+  // Metadata
+  lastUpdated       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  lastActive        DateTime @default(now())
+  
+  // Relations
+  entries           Entry[]
+  sessions          Session[]
+  accounts          Account[]
+}
+
 model Entry {
   id        Int      @id @default(autoincrement())
+  userId    String? // Twitch user ID
+  user      User?    @relation(fields: [userId], references: [id])
   name      String
-  email     String   @unique
+  email     String?  @unique
+  demoLink  String?  // Demo link (SoundCloud, Drive, etc.)
   createdAt DateTime @default(now())
   isWinner  Boolean  @default(false)
+  streamId  String? // Identifier for which stream this entry belongs to
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+}
+
+model ProcessedWebhookEvent {
+  id          String   @id @default(cuid())
+  messageId   String   @unique // Twitch-Eventsub-Message-Id
+  eventType   String   // subscription.type
+  twitchUserId String? // user_id from event
+  processedAt DateTime @default(now())
+  
+  @@index([messageId])
+  @@index([processedAt])
+}
+
+model WeightSettings {
+  id                   String   @id @default(cuid())
+  baseWeight           Float    @default(1.0)
+  subMonthsMultiplier  Float    @default(0.1)
+  subMonthsCap         Int      @default(10)
+  resubMultiplier      Float    @default(0.2)
+  resubCap             Int      @default(5)
+  cheerBitsDivisor     Float    @default(1000.0)
+  cheerBitsCap         Float    @default(5.0)
+  donationsDivisor     Float    @default(1000.0)
+  donationsCap         Float    @default(5.0)
+  giftedSubsMultiplier Float    @default(0.1)
+  giftedSubsCap        Float    @default(5.0)
+  carryOverMultiplier  Float    @default(0.5)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  @@map("weight_settings")
 }
