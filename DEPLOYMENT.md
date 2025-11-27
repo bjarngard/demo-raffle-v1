@@ -14,33 +14,41 @@ Innan du börjar, se till att du har:
 
 ## 🗄️ Steg 1: Databas Setup
 
-### Alternativ A: Prisma Data Platform (Enklast)
+**📖 Se [DATABASE_RECOMMENDATIONS.md](./DATABASE_RECOMMENDATIONS.md) för detaljerad jämförelse av alla alternativ.**
 
-1. Gå till https://prisma.io/data-platform
-2. Skapa ett konto och nytt projekt
-3. Följ instruktionerna för att skapa en PostgreSQL-databas
-4. Kopiera `DATABASE_URL` från projektet
-
-### Alternativ B: Supabase (Gratis tier)
+### ⭐ Rekommenderat: Supabase (Gratis, Enkelt)
 
 1. Gå till https://supabase.com
-2. Skapa nytt projekt
-3. Gå till Project Settings > Database
-4. Kopiera `Connection string` (URI-format)
-5. Formatera som: `postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres`
+2. Skapa konto (gratis)
+3. Klicka "New Project"
+4. Fyll i:
+   - **Name**: `demo-raffle-db`
+   - **Database Password**: Skapa starkt lösenord (spara det!)
+   - **Region**: Närmast dig
+5. Vänta 2 minuter (projekt skapas)
+6. Gå till **Project Settings** → **Database**
+7. Scrolla ner till "Connection string"
+8. Välj **"URI"** tab
+9. Kopiera connection string och ersätt `[YOUR-PASSWORD]` med ditt lösenord
 
-### Alternativ C: Railway / Render
+**Format**: `postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres`
 
-1. Skapa konto på Railway.app eller Render.com
-2. Skapa ny PostgreSQL-databas
-3. Kopiera connection string
+### Alternativ: Railway (För produktion)
 
-### Alternativ D: Egen PostgreSQL
+1. Gå till https://railway.app
+2. Skapa konto (gratis med $5 credit)
+3. Klicka "New Project" → "Provision PostgreSQL"
+4. Vänta 1 minut
+5. Klicka på PostgreSQL-servern → "Variables" tab
+6. Kopiera `DATABASE_URL` (automatiskt formaterad)
 
-Om du har egen PostgreSQL-server:
-```
-postgresql://user:password@host:5432/database
-```
+### Andra Alternativ
+
+- **Neon**: https://neon.tech (modern, serverless, gratis tier)
+- **Render**: https://render.com (90 dagar gratis trial)
+- **Vercel Postgres**: Om du använder Vercel (integrerat)
+
+Se `DATABASE_RECOMMENDATIONS.md` för fullständig jämförelse.
 
 ### Kör Migrations
 
