@@ -36,6 +36,10 @@ export async function GET() {
       secretLength: env?.NEXTAUTH_SECRET?.length || 0,
     }
     
+    if (!authFn) {
+      return Response.json({ ok: false, error: 'auth function not available' }, { status: 500 })
+    }
+
     try {
       const session = await authFn()
       return Response.json({ ok: true, session, envCheck })
