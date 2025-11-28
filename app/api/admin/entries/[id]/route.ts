@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin token
@@ -23,7 +23,8 @@ export async function DELETE(
       )
     }
 
-    const entryId = parseInt(params.id)
+    const { id } = await params
+    const entryId = parseInt(id)
 
     if (isNaN(entryId)) {
       return NextResponse.json(
