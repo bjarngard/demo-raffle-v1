@@ -217,6 +217,8 @@ All data migreras automatiskt.
 
 ## 📝 Snabb Start Guide
 
+**📖 Se [../setup/SUPABASE_SETUP.md](../setup/SUPABASE_SETUP.md) för komplett steg-för-steg guide med alla detaljer.**
+
 ### Supabase (5 minuter)
 
 1. **Skapa projekt:**
@@ -241,21 +243,74 @@ All data migreras automatiskt.
    - **Undvik "Postgres with OrioleDB"** (Alpha, experimentell)
    - Klicka "Continue" eller "Next"
 
-4. **Hämta connection string:**
+4. **Hämta connection strings (VIKTIGT!):**
    - Gå till Project Settings → Database
    - Scrolla ner till "Connection string"
+   - Du behöver **TVÅ** connection strings:
+   
+   **a) Direct Connection (för migrations):**
    - Välj "URI" tab
+   - Välj "Direct connection" (port 5432)
    - Kopiera connection string
    - **Ersätt `[YOUR-PASSWORD]` med ditt lösenord**
-
-3. **Testa connection:**
-   ```bash
-   # Lägg till i .env
-   DATABASE_URL="postgresql://postgres:ditt-lösenord@db.xxxxx.supabase.co:5432/postgres"
+   - Format: `postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres`
+   - **Spara som `DIRECT_URL` i `.env`**
    
-   # Testa
-   npx prisma db push
+   **b) Pooled Connection (för applikationen - Vercel/Serverless):**
+   - Välj **"Transaction mode"** (port 6543) - rätt för serverless/Vercel
+   - Kopiera connection string
+   - **Ersätt `[YOUR-PASSWORD]` med ditt lösenord**
+   - Format: `postgres://postgres:[PASSWORD]@db.xxxxx.supabase.co:6543/postgres`
+   - **Spara som `DATABASE_URL` i `.env`**
+   - ⚠️ Transaction mode stödjer INTE prepared statements - Prisma hanterar detta automatiskt
+   
+   **Varför två connection strings?**
+   - Direct connection (5432): Används av Prisma Migrate för att skapa tabeller
+   - Transaction mode (6543): Används av applikationen i serverless (Vercel) för bättre prestanda och connection pooling
+
+5. **Uppdatera Prisma Schema:**
+   - Öppna `prisma/schema.prisma`
+   - Uppdatera `datasource`-blocket:
+   ```prisma
+   datasource db {
+     provider  = "postgresql"
+     url       = env("DATABASE_URL")      // Pooled connection (för appen)
+     directUrl = env("DIRECT_URL")        // Direct connection (för migrations) - endast för Supabase
+   }
    ```
+   **OBS**: `directUrl` är valfritt och används bara för Supabase. För andra databaser (Railway, Neon, etc.) behöver du bara `DATABASE_URL`.
+
+6. **Lägg till i `.env`-filen:**
+   ```env
+   # Supabase Connection Strings
+   # Transaction mode (för applikationen - Vercel/Serverless)
+   DATABASE_URL="postgres://postgres:[PASSWORD]@db.xxxxx.supabase.co:6543/postgres"
+   # Direct connection (för migrations)
+   DIRECT_URL="postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres"
+   ```
+   **OBS**: Ersätt `[PASSWORD]` och `xxxxx` med dina värden!
+
+7. **Kör migrations:**
+   ```bash
+   # Generera Prisma Client
+   npx prisma generate
+   
+   # Kör migrations (använder DIRECT_URL automatiskt)
+   npx prisma migrate deploy
+   ```
+   
+   **OBS**: För första gången, använd:
+   ```bash
+   npx prisma migrate dev --name init
+   ```
+
+8. **Testa connection:**
+   ```bash
+   # Testa att Prisma kan ansluta
+   npx prisma db pull
+   ```
+   
+   Om det fungerar, ser du alla tabeller i din databas!
 
 **Klart!** 🎉
 
@@ -265,10 +320,22 @@ All data migreras automatiskt.
 
 1. **Backups**: Supabase, Railway, Neon har alla automatiska backups - inget du behöver tänka på.
 
-2. **Connection Pooling**: För Vercel (serverless), använd connection pooling om tillgängligt:
-   - Supabase: Använd "Session mode" connection string (inte Transaction)
-   - Railway: Har PgBouncer inbyggt
-   - Neon: Har connection pooling inbyggt
+2. **Connection Pooling (VIKTIGT för Vercel/Serverless):**
+   Supabase erbjuder connection pooling via Supavisor:
+   - **Direct Connection (port 5432)**: Används av Prisma Migrate för att skapa tabeller
+   - **Transaction Mode (port 6543)**: Används av applikationen i serverless (Vercel) för bättre prestanda
+   - **Välj "Transaction mode"** för serverless/Vercel deployment
+   - Du behöver **BÅDA** connection strings i `.env`:
+     - `DATABASE_URL` = Transaction mode (6543) - för applikationen
+     - `DIRECT_URL` = Direct (5432) - för migrations
+   - Uppdatera `prisma/schema.prisma` med `directUrl = env("DIRECT_URL")`
+   - ⚠️ Transaction mode stödjer INTE prepared statements - Prisma hanterar detta automatiskt
+   
+   **Varför?** Serverless-funktioner (Vercel) kan skapa många transient connections. Transaction mode pooler delar connections mellan queries och förbättrar prestanda.
+   
+   **Andra tjänster:**
+   - Railway: Har PgBouncer inbyggt (använd samma connection string)
+   - Neon: Har connection pooling inbyggt (använd pooler-URL)
 
 3. **Security**: 
    - Använd **ALDRIG** database password i kod
@@ -287,5 +354,5 @@ All data migreras automatiskt.
 Välj en tjänst och följ stegen ovan. Om du fastnar, se:
 - Supabase docs: https://supabase.com/docs
 - Railway docs: https://docs.railway.app
-- DEPLOYMENT.md för mer information
+- [DEPLOYMENT.md](./DEPLOYMENT.md) för mer information
 

@@ -319,8 +319,8 @@ ADMIN_TOKEN=
 ## 📚 Dokumentation
 
 - `README.md` - Projektöversikt
-- `TWITCH_SETUP.md` - Detaljerad Twitch setup-guide
-- `ARCHITECTURE.md` - Denna fil
+- `docs/setup/TWITCH_SETUP.md` - Detaljerad Twitch setup-guide
+- `docs/architecture/ARCHITECTURE.md` - Denna fil
 
 ---
 

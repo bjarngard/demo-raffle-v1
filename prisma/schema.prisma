@@ -9,8 +9,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // directUrl is REQUIRED by Prisma when this line is present
+  // For Supabase: Set DIRECT_URL to direct connection (port 5432) - see docs/setup/SUPABASE_SETUP.md
+  // For other providers (Railway, Neon, etc.): Set DIRECT_URL to the same value as DATABASE_URL
+  // If DIRECT_URL is not set, lib/env.ts will auto-fallback to DATABASE_URL, but it's recommended to set it explicitly
+  directUrl = env("DIRECT_URL")
 }
 
 model User {

@@ -231,7 +231,7 @@ npm install
 ```
 
 ### 2. Set Up Environment
-Create `.env` file with all required variables (see `TWITCH_SETUP.md`):
+Create `.env` file with all required variables (see `docs/setup/TWITCH_SETUP.md`):
 ```env
 TWITCH_CLIENT_ID=...
 TWITCH_CLIENT_SECRET=...

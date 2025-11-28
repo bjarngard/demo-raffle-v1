@@ -2,8 +2,9 @@
 
 En webbapplikation för Twitch streamers som låter tittare anmäla sig för att få sina demos spelade. Systemet använder en viktad lottning baserad på användares Twitch-engagement (subscriptions, bits, donations, etc.).
 
-**📖 Se [ARCHITECTURE.md](./ARCHITECTURE.md) för komplett teknisk dokumentation.**  
-**⚠️ Se [DOCUMENTATION_VERSIONS.md](./DOCUMENTATION_VERSIONS.md) för version-specifik dokumentation och vanliga fallgropar.**
+**📖 Se [docs/architecture/ARCHITECTURE.md](./docs/architecture/ARCHITECTURE.md) för komplett teknisk dokumentation.**  
+**⚠️ Se [docs/reference/DOCUMENTATION_VERSIONS.md](./docs/reference/DOCUMENTATION_VERSIONS.md) för version-specifik dokumentation och vanliga fallgropar.**  
+**📚 All dokumentation finns i [docs/](./docs/) mappen.**
 
 ## Funktioner
 
@@ -41,6 +42,9 @@ Du behöver skapa en `.env`-fil i projektroten med följande innehåll:
 ```env
 # Database
 DATABASE_URL="postgresql://user:password@host:port/database"
+# DIRECT_URL is required by Prisma schema. For non-Supabase users, set it to the same value as DATABASE_URL.
+# For Supabase users, set DIRECT_URL to the direct connection (port 5432) - see docs/setup/SUPABASE_SETUP.md
+DIRECT_URL="postgresql://user:password@host:port/database"
 
 # Admin
 ADMIN_TOKEN="ditt-hemliga-admin-token"
@@ -57,6 +61,11 @@ TWITCH_WEBHOOK_SECRET="your_webhook_secret"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your_nextauth_secret"
 ```
+
+**Viktigt om DIRECT_URL:**
+- **För Supabase**: Se [docs/setup/SUPABASE_SETUP.md](./docs/setup/SUPABASE_SETUP.md) för instruktioner om att hämta både `DATABASE_URL` (pooled) och `DIRECT_URL` (direct connection).
+- **För andra databaser** (Railway, Neon, etc.): Sätt `DIRECT_URL` till samma värde som `DATABASE_URL`.
+- Om `DIRECT_URL` inte är satt, kommer appen automatiskt använda `DATABASE_URL` som fallback (men det rekommenderas att sätta det explicit).
 
 **För att skapa en molndatabas via Prisma:**
 ```bash
@@ -145,7 +154,7 @@ model Entry {
 
 ## Driftsättning
 
-**📖 Se [DEPLOYMENT.md](./DEPLOYMENT.md) för komplett deployment-guide med alla steg.**
+**📖 Se [docs/deployment/DEPLOYMENT.md](./docs/deployment/DEPLOYMENT.md) för komplett deployment-guide med alla steg.**
 
 ### Snabbstart till Vercel
 
@@ -165,7 +174,7 @@ model Entry {
 
 **Viktigt**: 
 - Efter deployment måste du registrera Twitch EventSub webhooks för real-time updates
-- Se `DEPLOYMENT.md` för detaljerade instruktioner om webhooks, troubleshooting och security
+- Se [docs/deployment/DEPLOYMENT.md](./docs/deployment/DEPLOYMENT.md) för detaljerade instruktioner om webhooks, troubleshooting och security
 
 ## Säkerhet
 

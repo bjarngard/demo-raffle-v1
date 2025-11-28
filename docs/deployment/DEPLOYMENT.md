@@ -14,24 +14,70 @@ Innan du börjar, se till att du har:
 
 ## 🗄️ Steg 1: Databas Setup
 
-**📖 Se [DATABASE_RECOMMENDATIONS.md](./DATABASE_RECOMMENDATIONS.md) för detaljerad jämförelse av alla alternativ.**
+**📖 Se [DATABASE_RECOMMENDATIONS.md](./DATABASE_RECOMMENDATIONS.md) för detaljerad jämförelse av alla alternativ.**  
+**📖 Se [../setup/SUPABASE_SETUP.md](../setup/SUPABASE_SETUP.md) för komplett Supabase setup guide.**
 
 ### ⭐ Rekommenderat: Supabase (Gratis, Enkelt)
 
-1. Gå till https://supabase.com
-2. Skapa konto (gratis)
-3. Klicka "New Project"
-4. Fyll i:
-   - **Name**: `demo-raffle-db`
-   - **Database Password**: Skapa starkt lösenord (spara det!)
-   - **Region**: Närmast dig
-5. Vänta 2 minuter (projekt skapas)
-6. Gå till **Project Settings** → **Database**
-7. Scrolla ner till "Connection string"
-8. Välj **"URI"** tab
-9. Kopiera connection string och ersätt `[YOUR-PASSWORD]` med ditt lösenord
+**📖 Se [DATABASE_RECOMMENDATIONS.md](./DATABASE_RECOMMENDATIONS.md) för komplett steg-för-steg guide.**
 
-**Format**: `postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres`
+#### Snabb Setup:
+
+1. **Skapa projekt:**
+   - Gå till https://supabase.com → Sign up
+   - Klicka "New Project"
+   - Namn: `demo-raffle-db`
+   - Region: Närmast dig
+   - Password: Skapa starkt lösenord (spara det!)
+   - Välj "Only Connection String" (INTE Data API)
+   - Välj "Postgres" (standard, inte OrioleDB)
+   - Vänta 2 minuter (projekt skapas)
+
+2. **Hämta connection strings:**
+   - Gå till **Project Settings** → **Database**
+   - Scrolla ner till "Connection string"
+   - Du behöver **TVÅ** connection strings:
+   
+   **a) Direct Connection (för migrations):**
+   - Välj "URI" tab → "Direct connection" (port 5432)
+   - Kopiera och ersätt `[YOUR-PASSWORD]`
+   - Format: `postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres`
+   - **Spara som `DIRECT_URL`**
+   
+   **b) Pooled Connection (för applikationen):**
+   - Välj **"Transaction mode"** (port 6543) - ✅ Rätt för Vercel/serverless
+   - Kopiera och ersätt `[YOUR-PASSWORD]`
+   - Format: `postgres://postgres:[PASSWORD]@db.xxxxx.supabase.co:6543/postgres`
+   - **Spara som `DATABASE_URL`**
+
+3. **Uppdatera Prisma Schema:**
+   - Öppna `prisma/schema.prisma`
+   - Uppdatera `datasource`-blocket:
+   ```prisma
+   datasource db {
+     provider  = "postgresql"
+     url       = env("DATABASE_URL")      // Pooled (för appen)
+     directUrl = env("DIRECT_URL")        // Direct (för migrations)
+   }
+   ```
+
+4. **Lägg till i `.env`:**
+   ```env
+   # Transaction mode (för applikationen - Vercel/Serverless)
+   DATABASE_URL="postgres://postgres:[PASSWORD]@db.xxxxx.supabase.co:6543/postgres"
+   # Direct connection (för migrations)
+   DIRECT_URL="postgresql://postgres:[PASSWORD]@db.xxxxx.supabase.co:5432/postgres"
+   ```
+
+5. **Kör migrations:**
+   ```bash
+   npx prisma generate
+   npx prisma migrate deploy
+   ```
+
+**Varför två connection strings?**
+- Direct (5432): Prisma Migrate behöver direktanslutning för att skapa tabeller
+- Pooled (6543): Applikationen använder connection pooling för bättre prestanda i serverless (Vercel)
 
 ### Alternativ: Railway (För produktion)
 
@@ -52,13 +98,20 @@ Se `DATABASE_RECOMMENDATIONS.md` för fullständig jämförelse.
 
 ### Kör Migrations
 
-När du har `DATABASE_URL`, kör migrations lokalt först för att testa:
+När du har `DATABASE_URL` och `DIRECT_URL` (för Supabase), kör migrations lokalt först:
 
 ```bash
+# Generera Prisma Client
+npx prisma generate
+
+# Kör migrations (använder DIRECT_URL automatiskt)
 npx prisma migrate deploy
 ```
 
-**OBS**: Vid första deployment kommer Vercel köra migrations automatiskt om du har `postinstall` script (vilket du har).
+**OBS**: 
+- För första gången, använd: `npx prisma migrate dev --name init`
+- Vid deployment på Vercel kommer migrations köras automatiskt via `postinstall` script
+- **Supabase**: Se till att du har både `DATABASE_URL` (pooled) och `DIRECT_URL` (direct) i Vercel environment variables
 
 ---
 
@@ -70,7 +123,9 @@ Du behöver följande miljövariabler. Förbered dem innan deployment:
 
 ```env
 # Database
+# För Supabase: Använd både DATABASE_URL (pooled) och DIRECT_URL (direct)
 DATABASE_URL="postgresql://user:password@host:port/database"
+DIRECT_URL="postgresql://user:password@host:port/database"  # Endast för Supabase
 
 # Admin
 ADMIN_TOKEN="generera-ett-långt-hemligt-token-här"
