@@ -104,7 +104,7 @@ export const authOptions: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }: { user: any; account: any; profile: any }) {
+    async signIn({ user, account, profile }: { user: any; account?: any; profile?: any }) {
       if (account?.provider === 'twitch' && account.access_token) {
         // Update user with Twitch data after sign in
         try {
@@ -133,7 +133,7 @@ export const authOptions: NextAuthConfig = {
       }
       return true
     },
-    async session({ session, token, user }: { session: any; token: any; user: any }) {
+    async session({ session, token, user }: { session: any; token?: any; user?: any }) {
       try {
         // With JWT strategy, token is provided instead of user
         // With database strategy, user is provided
