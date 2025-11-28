@@ -1,4 +1,4 @@
-import { NextAuthOptions } from 'next-auth'
+import type { NextAuthConfig } from 'next-auth'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './prisma'
 import { env } from './env'
@@ -86,7 +86,7 @@ async function updateUserTwitchData(
   }
 }
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthConfig = {
   adapter: PrismaAdapter(prisma) as any,
   secret: env.NEXTAUTH_SECRET,
   trustHost: true,
@@ -104,7 +104,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile }: { user: any; account: any; profile: any }) {
       if (account?.provider === 'twitch' && account.access_token) {
         // Update user with Twitch data after sign in
         try {
@@ -133,7 +133,7 @@ export const authOptions: NextAuthOptions = {
       }
       return true
     },
-    async session({ session, token, user }) {
+    async session({ session, token, user }: { session: any; token: any; user: any }) {
       try {
         // With JWT strategy, token is provided instead of user
         // With database strategy, user is provided
@@ -188,9 +188,9 @@ export const authOptions: NextAuthOptions = {
   },
   debug: true,
   logger: {
-    error: (...args) => console.error('AUTH_ERROR', ...args),
-    warn: (...args) => console.warn('AUTH_WARN', ...args),
-    debug: (...args) => console.log('AUTH_DEBUG', ...args),
+    error: (...args: any[]) => console.error('AUTH_ERROR', ...args),
+    warn: (...args: any[]) => console.warn('AUTH_WARN', ...args),
+    debug: (...args: any[]) => console.log('AUTH_DEBUG', ...args),
   },
 }
 
