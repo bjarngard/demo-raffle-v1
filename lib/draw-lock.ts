@@ -1,17 +1,14 @@
 /**
- * Simple in-memory draw lock (dev fallback)
- * Production should use Redis SETNX or similar
+ * Draw lock helper.
+ *
+ * NOTE: This helper does not guarantee exclusivity across serverless instances.
+ * All draw-related Prisma operations must be idempotent and resilient to concurrency.
  */
-const activeDraws = new Set<string>()
-
-export function acquireDrawLock(sessionId: string): boolean {
-  if (activeDraws.has(sessionId)) return false
-  activeDraws.add(sessionId)
-  setTimeout(() => activeDraws.delete(sessionId), 30000) // 30s timeout
+export function acquireDrawLock(): boolean {
   return true
 }
 
-export function releaseDrawLock(sessionId: string): void {
-  activeDraws.delete(sessionId)
+export function releaseDrawLock(): void {
+  // no-op
 }
 

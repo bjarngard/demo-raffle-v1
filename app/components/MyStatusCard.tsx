@@ -24,18 +24,21 @@ export default function MyStatusCard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (session?.user?.id) {
-      fetchUserWeight()
-      const interval = setInterval(fetchUserWeight, 10000) // Poll every 10s
-      return () => clearInterval(interval)
-    }
-  }, [session])
+    if (!session?.user?.id) return
+    fetchUserWeight()
+    const interval = setInterval(fetchUserWeight, 2 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [session?.user?.id])
 
   const fetchUserWeight = async () => {
     try {
       const response = await fetch('/api/twitch/sync', {
         method: 'POST',
       })
+
+      if (response.status === 429) {
+        return
+      }
 
       if (response.ok) {
         const data = await response.json()

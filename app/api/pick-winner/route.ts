@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAdminToken } from '@/lib/admin-auth'
-import { acquireDrawLock, releaseDrawLock } from '@/lib/draw-lock'
+import { requireAdminSession } from '@/lib/admin-auth'
+import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,103 +24,89 @@ type EntryWithUser = {
   } | null
 }
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    // Verify admin token
-    const isAuthenticated = await verifyAdminToken(request)
-
-    if (!isAuthenticated) {
+    const session = await requireAdminSession()
+    if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized access' },
         { status: 401 }
       )
     }
 
-    // Concurrency lock (single global lock for draws)
-    const lockKey = 'draw:global'
-    if (!acquireDrawLock(lockKey)) {
+    const entries = (await prisma.entry.findMany({
+      where: {
+        isWinner: false,
+      },
+      include: {
+        user: true,
+      },
+    })) as unknown as EntryWithUser[]
+
+    if (entries.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Draw already in progress', code: 'CONFLICT' },
-        { status: 409 }
+        { success: false, error: 'No participants available to choose from' },
+        { status: 400 }
       )
     }
 
-    try {
-      // Get all participants who are not winners with their user weights
-      // Note: Using type assertion due to Prisma TypeScript type inference limitations
-      const entries = (await prisma.entry.findMany({
-        where: {
-          isWinner: false,
-        },
-        include: {
-          user: true, // Get all user fields (we only need totalWeight, but Prisma requires full include)
-        },
-      })) as unknown as EntryWithUser[]
+    const winner = selectWeightedWinner(entries)
+    const totalWeight = entries.reduce((sum, e) => sum + (e.user?.totalWeight || 1.0), 0)
+    const seed = Math.random()
 
-      if (entries.length === 0) {
-        releaseDrawLock(lockKey)
-        return NextResponse.json(
-          { success: false, error: 'No participants available to choose from' },
-          { status: 400 }
-        )
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const freshEntry = await tx.entry.findUnique({
+        where: { id: winner.id },
+        include: { user: true },
+      })
+
+      if (!freshEntry || freshEntry.isWinner) {
+        throw new Error('Entry already processed')
       }
 
-      // Select winner using weighted random selection
-      const winner = selectWeightedWinner(entries)
-      const totalWeight = entries.reduce((sum, e) => sum + (e.user?.totalWeight || 1.0), 0)
-      const seed = Math.random() // Store for deterministic client animation
+      const updatedEntry = await tx.entry.update({
+        where: { id: winner.id },
+        data: { isWinner: true },
+      })
 
-      // Update winner in database (transaction)
-      const updatedWinner = await prisma.$transaction(async (tx) => {
-        const entry = await tx.entry.update({
-          where: { id: winner.id },
-          data: { isWinner: true },
+      if (freshEntry.userId) {
+        await tx.user.update({
+          where: { id: freshEntry.userId },
+          data: {
+            totalCheerBits: 0,
+            totalGiftedSubs: 0,
+            lastUpdated: new Date(),
+          },
         })
-        if (winner.userId) {
-          // @ts-ignore - Prisma transaction type inference issue
-          await tx.user.update({
-            where: { id: winner.userId },
-            data: {
-              totalCheerBits: 0,
-              totalGiftedSubs: 0,
-              lastUpdated: new Date(),
-            },
-          })
-        }
-        return entry
-      })
-
-      // Recalculate weight after reset
-      if (winner.userId) {
-        await recalculateUserWeight(winner.userId)
       }
 
-      // Generate spin list for animation (top entries, excluding winner for cleaner animation)
-      const spinList = entries
-        .filter(e => e.id !== winner.id) // Exclude winner from spin list
-        .map(e => ({ name: e.name, weight: e.user?.totalWeight || 1.0 }))
-        .sort((a, b) => b.weight - a.weight)
-        .slice(0, 20)
+      return updatedEntry
+    }, { timeout: 5000 })
 
-      releaseDrawLock(lockKey)
-      return NextResponse.json({
-        success: true,
-        winner: {
-          id: updatedWinner.id,
-          name: updatedWinner.name,
-          email: updatedWinner.email,
-          userId: winner.userId,
-          weight: winner.user?.totalWeight || 1.0,
-        },
-        spinList,
-        seed,
-        totalWeight,
-        message: 'Cheer bits and gifted subs reset for winner',
-      })
-    } catch (error) {
-      releaseDrawLock(lockKey)
-      throw error
+    if (winner.userId) {
+      await recalculateUserWeight(winner.userId)
     }
+
+    const spinList = entries
+      .filter(e => e.id !== winner.id)
+      .map(e => ({ name: e.name, weight: e.user?.totalWeight || 1.0 }))
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 20)
+
+    return NextResponse.json({
+      success: true,
+      winner: {
+        id: result.id,
+        name: result.name,
+        email: result.email,
+        userId: winner.userId,
+        weight: winner.user?.totalWeight || 1.0,
+      },
+      spinList,
+      seed,
+      totalWeight,
+      message: 'Cheer bits and gifted subs reset for winner',
+    })
   } catch (error) {
     console.error('Error in /api/pick-winner:', error)
     return NextResponse.json(
@@ -158,7 +144,6 @@ function selectWeightedWinner(entries: EntryWithUser[]) {
  * Recalculate user weight with caps to prevent whales
  */
 async function recalculateUserWeight(userId: string) {
-  // @ts-ignore - Prisma type inference issue
   const user = await prisma.user.findUnique({
     where: { id: userId },
   })
@@ -177,7 +162,6 @@ async function recalculateUserWeight(userId: string) {
     carryOverWeight: user.carryOverWeight,
   })
 
-  // @ts-ignore - Prisma type inference issue
   await prisma.user.update({
     where: { id: userId },
     data: {

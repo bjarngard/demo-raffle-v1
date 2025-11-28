@@ -1,19 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { checkUserFollowsChannel, getUserSubscription } from '@/lib/twitch-api'
+import { getBroadcasterAccessToken } from '@/lib/twitch-oauth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+type TwitchSyncUpdate = {
+  isFollower: boolean
+  isSubscriber: boolean
+  subMonths: number
+  totalSubs: number
+}
+
+type WeightSource = {
+  isSubscriber: boolean
+  subMonths: number
+  resubCount: number
+  totalCheerBits: number
+  totalDonations: number
+  totalGiftedSubs: number
+  carryOverWeight: number
+}
+
 // Sync user's Twitch data in real-time
-export async function POST(request: NextRequest) {
+const USER_SYNC_COOLDOWN_MS = 60 * 1000
+
+export async function POST() {
   try {
     const session = await auth()
 
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
@@ -25,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { success: false, error: 'User not found' },
         { status: 404 }
       )
     }
@@ -34,13 +54,24 @@ export async function POST(request: NextRequest) {
 
     if (!account?.access_token) {
       return NextResponse.json(
-        { error: 'Twitch account not linked' },
+        { success: false, error: 'Twitch account not linked' },
         { status: 400 }
       )
     }
 
-    // Fetch latest data from Twitch API (including follow status)
-    const updates = await fetchTwitchData(account.access_token, user.twitchId)
+    const now = new Date()
+    if (user.lastUpdated && now.getTime() - user.lastUpdated.getTime() < USER_SYNC_COOLDOWN_MS) {
+      return NextResponse.json({
+        success: true,
+        user: serializeUser(user),
+        skipped: true,
+        message: 'Sync skipped due to cooldown',
+      })
+    }
+
+    const broadcasterToken = await getBroadcasterAccessToken()
+
+    const updates = await fetchTwitchData(broadcasterToken, user.twitchId)
 
     // Update user in database
     const updatedUser = await prisma.user.update({
@@ -65,40 +96,31 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: {
-        id: finalUser.id,
-        username: finalUser.username,
-        displayName: finalUser.displayName,
-        isFollower: finalUser.isFollower,
-        isSubscriber: finalUser.isSubscriber,
-        subMonths: finalUser.subMonths,
-        totalCheerBits: finalUser.totalCheerBits,
-        totalDonations: finalUser.totalDonations,
-        resubCount: finalUser.resubCount,
-        totalGiftedSubs: finalUser.totalGiftedSubs,
-        totalWeight: finalUser.totalWeight,
-        carryOverWeight: finalUser.carryOverWeight,
-      },
+      user: serializeUser(finalUser),
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error syncing Twitch data:', error)
     return NextResponse.json(
-      { error: 'Failed to sync Twitch data', details: error.message },
+      {
+        success: false,
+        error: 'Failed to sync Twitch data',
+        details: error instanceof Error ? error.message : undefined,
+      },
       { status: 500 }
     )
   }
 }
 
-async function fetchTwitchData(accessToken: string, twitchUserId: string) {
+async function fetchTwitchData(broadcasterToken: string, twitchUserId: string): Promise<TwitchSyncUpdate> {
   // Check if user follows the channel using broadcaster token
   // GET /helix/channels/followers?broadcaster_id=<id>&user_id=<id>
   // Scope: moderator:read:followers (uses broadcaster token internally)
-  const isFollower = await checkUserFollowsChannel(twitchUserId)
+  const isFollower = await checkUserFollowsChannel(twitchUserId, broadcasterToken)
 
   // Get subscription info using broadcaster token
   // GET /helix/subscriptions?broadcaster_id=<id>&user_id=<id>
   // Scope: channel:read:subscriptions (uses broadcaster token internally)
-  const subscription = await getUserSubscription(twitchUserId)
+  const subscription = await getUserSubscription(twitchUserId, broadcasterToken)
   const isSubscriber = subscription?.isSubscriber || false
   const subMonths = subscription?.subMonths || 0
 
@@ -110,7 +132,23 @@ async function fetchTwitchData(accessToken: string, twitchUserId: string) {
   }
 }
 
-async function calculateWeight(user: any): Promise<number> {
+function serializeUser(user: WeightSource & Record<string, any>) {
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    isFollower: user.isFollower,
+    isSubscriber: user.isSubscriber,
+    subMonths: user.subMonths,
+    totalCheerBits: user.totalCheerBits,
+    totalDonations: user.totalDonations,
+    resubCount: user.resubCount,
+    totalGiftedSubs: user.totalGiftedSubs,
+    totalWeight: user.totalWeight,
+    carryOverWeight: user.carryOverWeight,
+  }
+}
+async function calculateWeight(user: WeightSource): Promise<number> {
   const { calculateUserWeight } = await import('@/lib/weight-settings')
   
   return await calculateUserWeight({

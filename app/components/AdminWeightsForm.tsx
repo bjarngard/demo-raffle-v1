@@ -19,10 +19,12 @@ interface WeightSettings {
 
 interface AdminWeightsFormProps {
   settings: WeightSettings
+  onSettingsChange?: (settings: WeightSettings) => void
 }
 
 export default function AdminWeightsForm({
   settings: initialSettings,
+  onSettingsChange,
 }: AdminWeightsFormProps) {
   const [settings, setSettings] = useState(initialSettings)
   const [saving, setSaving] = useState(false)
@@ -44,6 +46,7 @@ export default function AdminWeightsForm({
       if (response.ok) {
         const data = await response.json()
         setSettings(data.settings)
+        onSettingsChange?.(data.settings)
         setMessage({ type: 'success', text: 'Settings saved successfully!' })
       } else {
         const error = await response.json()

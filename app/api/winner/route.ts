@@ -29,14 +29,14 @@ export async function GET() {
         'Content-Type': 'application/json',
       },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in /api/winner:', error)
     
     // Return JSON even on error
     return NextResponse.json(
       { 
         error: 'An error occurred while fetching the winner',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
       },
       { 
         status: 500,

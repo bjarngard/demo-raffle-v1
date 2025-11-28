@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -65,7 +66,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON in request body' },
+        { status: 400 }
+      )
+    }
     const { name, demoLink } = body
 
     // Rate limit per user
@@ -125,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     // Try to create new participant
     try {
-      const entryData: any = {
+      const entryData: Prisma.EntryCreateInput = {
         name: displayName,
         userId: session.user.id, // Always linked to Twitch user
       }
@@ -152,9 +161,8 @@ export async function POST(request: NextRequest) {
           },
         }
       )
-    } catch (error: any) {
-      // If email already exists (unique constraint)
-      if (error.code === 'P2002') {
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         return NextResponse.json(
           { success: false, error: 'This email is already registered' },
           { 
@@ -167,13 +175,13 @@ export async function POST(request: NextRequest) {
       }
       throw error
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in /api/enter:', error)
     return NextResponse.json(
       { 
         success: false, 
         error: 'An error occurred during registration',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
       },
       { 
         status: 500,

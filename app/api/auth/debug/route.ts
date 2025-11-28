@@ -1,27 +1,41 @@
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+type ImportErrorDetails = {
+  step: 'env import' | 'auth import'
+  error: string
+  stack?: string[]
+}
+
+type EnvCheck = {
+  NEXTAUTH_SECRET?: string
+  TWITCH_CLIENT_ID?: string
+  NEXTAUTH_URL?: string
+}
+
 export async function GET() {
   try {
     // Test imports individually to isolate the error
-    let importError = null
-    let env = null
-    let authFn = null
+    let importError: ImportErrorDetails | null = null
+    let env: EnvCheck | null = null
+    let authFn: ((...args: unknown[]) => Promise<unknown>) | null = null
     
     try {
       const envModule = await import('@/lib/env')
       env = envModule.env
-    } catch (e: any) {
-      importError = { step: 'env import', error: e.message, stack: e.stack?.split('\n').slice(0, 5) }
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error('Unknown env import error')
+      importError = { step: 'env import', error: error.message, stack: error.stack?.split('\n').slice(0, 5) }
     }
     
     try {
       const authModule = await import('@/auth')
       authFn = authModule.auth
-    } catch (e: any) {
-      importError = importError || { step: 'auth import', error: e.message, stack: e.stack?.split('\n').slice(0, 5) }
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error('Unknown auth import error')
+      importError = importError || { step: 'auth import', error: error.message, stack: error.stack?.split('\n').slice(0, 5) }
       if (importError.step !== 'auth import') {
-        importError = { step: 'auth import', error: e.message, stack: e.stack?.split('\n').slice(0, 5) }
+        importError = { step: 'auth import', error: error.message, stack: error.stack?.split('\n').slice(0, 5) }
       }
     }
     
@@ -43,25 +57,26 @@ export async function GET() {
     try {
       const session = await authFn()
       return Response.json({ ok: true, session, envCheck })
-    } catch (e: any) {
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error('Unknown auth() error')
       return Response.json({
         ok: false,
         step: 'auth() call',
-        error: e.message,
-        stack: e.stack?.split('\n').slice(0, 15).join('\n'),
-        name: e.name,
+        error: error.message,
+        stack: error.stack?.split('\n').slice(0, 15).join('\n'),
+        name: error.name,
         envCheck,
       }, { status: 500 })
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('AUTH_ERROR in debug route:', error)
     return Response.json(
       {
         ok: false,
         step: 'top-level',
-        error: error?.message || String(error),
-        stack: error?.stack?.split('\n').slice(0, 15).join('\n'),
-        name: error?.name,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack?.split('\n').slice(0, 15).join('\n') : undefined,
+        name: error instanceof Error ? error.name : undefined,
       },
       { status: 500 }
     )

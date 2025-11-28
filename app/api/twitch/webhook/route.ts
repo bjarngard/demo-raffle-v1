@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,7 +17,6 @@ const TWITCH_MESSAGE_ID = 'twitch-eventsub-message-id'
 const TWITCH_MESSAGE_TIMESTAMP = 'twitch-eventsub-message-timestamp'
 const TWITCH_MESSAGE_SIGNATURE = 'twitch-eventsub-message-signature'
 const TWITCH_MESSAGE_TYPE = 'twitch-eventsub-message-type'
-const TWITCH_MESSAGE_RETRY = 'twitch-eventsub-message-retry'
 
 // Message types
 const MESSAGE_TYPE_VERIFICATION = 'webhook_callback_verification'
@@ -29,6 +29,29 @@ const HMAC_PREFIX = 'sha256='
 // Maximum age for events (10 minutes as per Twitch docs)
 const MAX_EVENT_AGE_MS = 10 * 60 * 1000
 
+type EventSubSubscription = {
+  type?: string
+  status?: string
+}
+
+type TwitchEvent = {
+  user_id?: string
+  tier?: string
+  is_gift?: boolean
+  cumulative_months?: number
+  streak_months?: number
+  bits?: number
+  total?: number
+  cumulative_total?: number | null
+  followed_at?: string
+}
+
+type EventSubPayload = {
+  challenge?: string
+  subscription?: EventSubSubscription
+  event?: TwitchEvent
+}
+
 /**
  * Main webhook handler
  * All requests must respond within a few seconds
@@ -40,7 +63,6 @@ export async function POST(request: NextRequest) {
     const messageTimestamp = request.headers.get(TWITCH_MESSAGE_TIMESTAMP)
     const messageSignature = request.headers.get(TWITCH_MESSAGE_SIGNATURE)
     const messageType = request.headers.get(TWITCH_MESSAGE_TYPE)
-    const messageRetry = request.headers.get(TWITCH_MESSAGE_RETRY)
 
     if (!messageId || !messageTimestamp || !messageSignature || !messageType) {
       return NextResponse.json(
@@ -74,9 +96,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse JSON body
-    let data
+    let data: EventSubPayload
     try {
-      data = JSON.parse(body)
+      data = JSON.parse(body) as EventSubPayload
     } catch (error) {
       console.error('Failed to parse webhook body:', error)
       return NextResponse.json(
@@ -128,9 +150,8 @@ export async function POST(request: NextRequest) {
             },
           })
         })
-      } catch (error: any) {
-        // If unique constraint fails, it's a duplicate
-        if (error?.code === 'P2002') {
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
           console.log(`Duplicate event detected, skipping: ${messageId}`)
           return new NextResponse(null, { status: 204 })
         }
@@ -141,7 +162,7 @@ export async function POST(request: NextRequest) {
       const event = data.event
       const subscription = data.subscription
 
-      if (!event || !subscription) {
+      if (!event || !subscription?.type) {
         console.error('Missing event or subscription data')
         return new NextResponse(null, { status: 204 })
       }
@@ -161,7 +182,7 @@ export async function POST(request: NextRequest) {
     // Unknown message type
     console.log(`Unknown message type: ${messageType}`)
     return new NextResponse(null, { status: 204 })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error processing Twitch webhook:', error)
     // Return 2XX even on error to avoid Twitch marking subscription as failed
     return new NextResponse(null, { status: 204 })
@@ -221,7 +242,7 @@ function verifyTimestamp(timestamp: string): boolean {
 /**
  * Process events based on subscription type
  */
-async function processEvent(subscriptionType: string, event: any) {
+async function processEvent(subscriptionType: string, event: TwitchEvent) {
   switch (subscriptionType) {
     case 'channel.subscribe':
       // New subscription (first month)
@@ -261,10 +282,8 @@ async function processEvent(subscriptionType: string, event: any) {
 /**
  * Handle channel.subscribe event
  */
-async function handleSubscription(event: any) {
+async function handleSubscription(event: TwitchEvent) {
   const twitchUserId = event.user_id
-  const isGift = event.is_gift || false
-  const tier = event.tier || '1000'
 
   if (!twitchUserId) {
     console.error('Missing user_id in subscription event')
@@ -294,10 +313,9 @@ async function handleSubscription(event: any) {
 /**
  * Handle channel.subscription.message event (resub)
  */
-async function handleResub(event: any) {
+async function handleResub(event: TwitchEvent) {
   const twitchUserId = event.user_id
   const cumulativeMonths = event.cumulative_months || 0
-  const streakMonths = event.streak_months || 0
 
   if (!twitchUserId) {
     console.error('Missing user_id in resub event')
@@ -326,7 +344,7 @@ async function handleResub(event: any) {
 /**
  * Handle channel.cheer event
  */
-async function handleCheer(event: any) {
+async function handleCheer(event: TwitchEvent) {
   const twitchUserId = event.user_id
   const bits = event.bits || 0
 
@@ -359,12 +377,11 @@ async function handleCheer(event: any) {
 /**
  * Handle channel.subscription.gift event
  */
-async function handleGiftSub(event: any) {
+async function handleGiftSub(event: TwitchEvent) {
   // channel.subscription.gift event - gifted subscriptions
   // Payload: total (gifted in this event), tier, cumulative_total (if not anonymous)
   const gifterId = event.user_id
   const total = event.total || 1
-  const tier = event.tier || '1000'
   const cumulativeTotal = event.cumulative_total || null // May be null if anonymous
 
   if (!gifterId) {
@@ -400,11 +417,10 @@ async function handleGiftSub(event: any) {
 /**
  * Handle channel.follow event
  */
-async function handleFollow(event: any) {
+async function handleFollow(event: TwitchEvent) {
   // channel.follow event - new follower
   // Payload: user_id, followed_at
   const twitchUserId = event.user_id
-  const followedAt = event.followed_at
 
   if (!twitchUserId) {
     console.error('Missing user_id in follow event')

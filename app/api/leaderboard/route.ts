@@ -60,12 +60,12 @@ export async function GET() {
       totalEntries: entries.length,
       entries: entriesWithProbability,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in /api/leaderboard:', error)
     return NextResponse.json(
       {
         error: 'An error occurred while fetching leaderboard',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined,
       },
       {
         status: 500,

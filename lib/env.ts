@@ -4,16 +4,6 @@
  */
 import { z } from 'zod'
 
-// DIRECT_URL is required by Prisma schema when directUrl is specified
-// For non-Supabase users, set DIRECT_URL to the same value as DATABASE_URL
-// For Supabase users, DIRECT_URL should be the direct connection (port 5432)
-if (!process.env.DIRECT_URL && process.env.DATABASE_URL) {
-  // Auto-fallback to DATABASE_URL for non-Supabase users
-  // This ensures Prisma schema doesn't fail when DIRECT_URL is missing
-  process.env.DIRECT_URL = process.env.DATABASE_URL
-  console.warn('⚠️  DIRECT_URL not set, using DATABASE_URL as fallback. For Supabase, set DIRECT_URL to direct connection (port 5432).')
-}
-
 const envSchema = z.object({
   TWITCH_CLIENT_ID: z.string().min(1),
   TWITCH_CLIENT_SECRET: z.string().min(1),
@@ -22,7 +12,7 @@ const envSchema = z.object({
   NEXTAUTH_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(1),
   DATABASE_URL: z.string().url(),
-  DIRECT_URL: z.string().url(), // Required by Prisma schema (auto-fallback to DATABASE_URL if not set)
+  DIRECT_URL: z.string().url().optional(),
   ADMIN_TOKEN: z.string().min(1),
   NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
 })
@@ -48,5 +38,14 @@ if (!parsed.success) {
   throw new Error('Missing or invalid environment variables. Check logs above.')
 }
 
-export const env = parsed.data
+const envData = parsed.data
+
+if (!envData.DIRECT_URL) {
+  envData.DIRECT_URL = envData.DATABASE_URL
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️  DIRECT_URL not set; defaulting to DATABASE_URL. Set DIRECT_URL for providers that require a separate direct connection.')
+  }
+}
+
+export const env = envData
 

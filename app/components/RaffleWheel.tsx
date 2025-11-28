@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 interface Entry {
   id: number
@@ -8,9 +8,23 @@ interface Entry {
   weight: number
 }
 
+export type RaffleWinner = {
+  id: number
+  name: string
+  email?: string | null
+  userId?: string | null
+  weight?: number
+}
+
 interface RaffleWheelProps {
   entries: Entry[]
-  onWinnerPicked: (winner: any) => void
+  onWinnerPicked: (winner: RaffleWinner) => void
+}
+
+type PickWinnerResponse = {
+  success: boolean
+  winner?: RaffleWinner
+  error?: string
 }
 
 export default function RaffleWheel({
@@ -19,7 +33,7 @@ export default function RaffleWheel({
 }: RaffleWheelProps) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [scrollingName, setScrollingName] = useState('')
-  const [winner, setWinner] = useState<any>(null)
+  const [winner, setWinner] = useState<RaffleWinner | null>(null)
   const [error, setError] = useState('')
 
   const handleDraw = async () => {
@@ -46,7 +60,7 @@ export default function RaffleWheel({
         },
       })
 
-      const data = await response.json()
+      const data: PickWinnerResponse = await response.json()
 
       if (data.success && data.winner) {
         // Stop scrolling after 2 seconds, then show winner

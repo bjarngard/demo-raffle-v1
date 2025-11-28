@@ -3,68 +3,39 @@
  * Based on official Twitch API documentation
  */
 import { env } from './env'
+import { getBroadcasterAccessToken } from './twitch-oauth'
 
 const TWITCH_CLIENT_ID = env.TWITCH_CLIENT_ID
-const TWITCH_CLIENT_SECRET = env.TWITCH_CLIENT_SECRET
 const BROADCASTER_ID = env.TWITCH_BROADCASTER_ID
 
-// Cache broadcaster token to avoid refreshing too often
+// Cache broadcaster token to avoid duplicate fetches within a single event loop
 let broadcasterTokenCache: { token: string; expiresAt: number } | null = null
 
-/**
- * Get broadcaster access token (for server-side API calls)
- * This token has broadcaster scopes and can check subs/follows
- */
-async function getBroadcasterToken(): Promise<string> {
-  // Check cache first
-  if (broadcasterTokenCache && broadcasterTokenCache.expiresAt > Date.now() + 60000) {
+type TwitchUserProfile = {
+  id: string
+  login: string
+  display_name: string
+  email?: string | null
+  profile_image_url?: string | null
+}
+
+async function resolveBroadcasterToken(providedToken?: string): Promise<string> {
+  if (providedToken) {
+    return providedToken
+  }
+
+  const now = Date.now()
+  if (broadcasterTokenCache && broadcasterTokenCache.expiresAt > now) {
     return broadcasterTokenCache.token
   }
 
-  try {
-    const response = await fetch('https://id.twitch.tv/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: TWITCH_CLIENT_ID,
-        client_secret: TWITCH_CLIENT_SECRET,
-        grant_type: 'client_credentials',
-        scope: 'channel:read:subscriptions moderator:read:followers bits:read',
-      }),
-    })
-
-    const responseText = await response.text()
-    
-    if (!response.ok) {
-      console.error('Failed to get broadcaster token:', response.status, responseText)
-      throw new Error(`Failed to get broadcaster token: ${response.status}`)
-    }
-
-    if (!responseText || responseText.trim().length === 0) {
-      throw new Error('Empty response from Twitch token endpoint')
-    }
-
-    let data
-    try {
-      data = JSON.parse(responseText)
-    } catch (parseError) {
-      console.error('Failed to parse broadcaster token response:', responseText)
-      throw new Error('Invalid JSON response from Twitch token endpoint')
-    }
-    const expiresAt = Date.now() + (data.expires_in * 1000) - 60000 // Refresh 1 min before expiry
-
-    broadcasterTokenCache = {
-      token: data.access_token,
-      expiresAt,
-    }
-
-    return data.access_token
-  } catch (error) {
-    console.error('Error getting broadcaster token:', error)
-    throw error
+  const token = await getBroadcasterAccessToken()
+  // Cache token for 30 seconds to avoid repeated DB lookups
+  broadcasterTokenCache = {
+    token,
+    expiresAt: now + 30 * 1000,
   }
+  return token
 }
 
 /**
@@ -72,9 +43,9 @@ async function getBroadcasterToken(): Promise<string> {
  * GET https://api.twitch.tv/helix/channels/followers?broadcaster_id=<id>&user_id=<id>
  * Scope: moderator:read:followers (broadcaster-token)
  */
-export async function checkUserFollowsChannel(userId: string): Promise<boolean> {
+export async function checkUserFollowsChannel(userId: string, broadcasterToken?: string): Promise<boolean> {
   try {
-    const token = await getBroadcasterToken()
+    const token = await resolveBroadcasterToken(broadcasterToken)
 
     const response = await fetch(
       `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${BROADCASTER_ID}&user_id=${userId}`,
@@ -103,7 +74,7 @@ export async function checkUserFollowsChannel(userId: string): Promise<boolean> 
     let data
     try {
       data = JSON.parse(responseText)
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse follow response:', responseText)
       return false
     }
@@ -120,14 +91,14 @@ export async function checkUserFollowsChannel(userId: string): Promise<boolean> 
  * Scope: channel:read:subscriptions (broadcaster-token)
  * Returns: user_id, tier, is_gift, cumulative_months, etc.
  */
-export async function getUserSubscription(userId: string): Promise<{
+export async function getUserSubscription(userId: string, broadcasterToken?: string): Promise<{
   isSubscriber: boolean
   subMonths: number
   tier: string
   isGift: boolean
 } | null> {
   try {
-    const token = await getBroadcasterToken()
+    const token = await resolveBroadcasterToken(broadcasterToken)
 
     const response = await fetch(
       `https://api.twitch.tv/helix/subscriptions?broadcaster_id=${BROADCASTER_ID}&user_id=${userId}`,
@@ -156,7 +127,7 @@ export async function getUserSubscription(userId: string): Promise<{
     let data
     try {
       data = JSON.parse(responseText)
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse subscription response:', responseText)
       return { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
     }
@@ -181,7 +152,7 @@ export async function getUserSubscription(userId: string): Promise<{
 /**
  * Get user info from Twitch API
  */
-export async function getUserInfo(accessToken: string): Promise<any> {
+export async function getUserInfo(accessToken: string): Promise<TwitchUserProfile> {
   const response = await fetch('https://api.twitch.tv/helix/users', {
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -200,10 +171,10 @@ export async function getUserInfo(accessToken: string): Promise<any> {
     throw new Error('Empty response from Twitch users endpoint')
   }
 
-  let data
+  let data: { data?: TwitchUserProfile[] }
   try {
-    data = JSON.parse(responseText)
-  } catch (parseError) {
+    data = JSON.parse(responseText) as { data?: TwitchUserProfile[] }
+  } catch {
     console.error('Failed to parse user data response:', responseText)
     throw new Error('Invalid JSON response from Twitch users endpoint')
   }

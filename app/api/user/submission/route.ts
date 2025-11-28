@@ -1,14 +1,14 @@
 /**
  * Get user's current submission status
  */
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth()
 
@@ -38,10 +38,13 @@ export async function GET(request: NextRequest) {
       hasSubmission: !!entry,
       submission: entry || null,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching submission:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch submission', details: error.message },
+      {
+        error: 'Failed to fetch submission',
+        details: error instanceof Error ? error.message : undefined,
+      },
       { status: 500 }
     )
   }

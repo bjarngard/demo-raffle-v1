@@ -2,41 +2,39 @@
 
 import { signIn, signOut, useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
+
+type UserWeightSummary = {
+  id: string
+  username: string
+  displayName?: string | null
+  isFollower: boolean
+  isSubscriber: boolean
+  subMonths: number
+  totalCheerBits: number
+  totalDonations: number
+  resubCount: number
+  totalGiftedSubs: number
+  totalWeight: number
+  carryOverWeight: number
+}
+
+type UserWeightResponse = {
+  success: boolean
+  user?: UserWeightSummary
+}
 
 export default function TwitchLogin() {
   const { data: session, status } = useSession()
   const [loading, setLoading] = useState(false)
-  const [userWeight, setUserWeight] = useState<any>(null)
+  const [userWeight, setUserWeight] = useState<UserWeightSummary | null>(null)
 
   useEffect(() => {
-    if (session?.user?.id) {
-      // Fetch user weight data
-      fetchUserWeight()
-      
-      // Set up polling for real-time weight updates
-      const interval = setInterval(() => {
-        fetchUserWeight()
-      }, 10000) // Update every 10 seconds
-
-      return () => clearInterval(interval)
-    }
-  }, [session])
-
-  const checkFollowStatus = async () => {
-    if (!session?.user?.id) return null
-    try {
-      const response = await fetch('/api/twitch/check-follow', {
-        method: 'POST',
-      })
-      if (response.ok) {
-        const data = await response.json()
-        return data.isFollower
-      }
-    } catch (error) {
-      console.error('Error checking follow status:', error)
-    }
-    return null
-  }
+    if (!session?.user?.id) return
+    fetchUserWeight()
+    const interval = setInterval(fetchUserWeight, 2 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [session?.user?.id])
 
   const fetchUserWeight = async () => {
     try {
@@ -44,9 +42,13 @@ export default function TwitchLogin() {
         method: 'POST',
       })
 
+      if (response.status === 429) {
+        return
+      }
+
       if (response.ok) {
-        const data = await response.json()
-        setUserWeight(data.user)
+        const data: UserWeightResponse = await response.json()
+        setUserWeight(data.user ?? null)
       }
     } catch (error) {
       console.error('Error fetching user weight:', error)
@@ -90,10 +92,12 @@ export default function TwitchLogin() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             {session.user.image && (
-              <img
+              <Image
                 src={session.user.image}
                 alt={session.user.name || 'User'}
-                className="w-12 h-12 rounded-full border-2 border-white"
+                width={48}
+                height={48}
+                className="w-12 h-12 rounded-full border-2 border-white object-cover"
               />
             )}
             <div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { SessionProvider, useSession } from 'next-auth/react'
 import TwitchLogin from './components/TwitchLogin'
 
@@ -84,9 +84,9 @@ function RaffleForm() {
     }
 
     return () => clearInterval(interval)
-  }, [session])
+  }, [session, checkFollowStatus])
 
-  const checkFollowStatus = async () => {
+  const checkFollowStatus = useCallback(async () => {
     if (!session?.user?.id) return
     try {
       const response = await fetch('/api/twitch/check-follow', {
@@ -99,7 +99,7 @@ function RaffleForm() {
     } catch (error) {
       console.error('Error checking follow status:', error)
     }
-  }
+  }, [session?.user?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

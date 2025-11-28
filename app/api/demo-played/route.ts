@@ -4,24 +4,31 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAdminToken } from '@/lib/admin-auth'
+import { requireAdminSession } from '@/lib/admin-auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify admin token
-    const isAuthenticated = await verifyAdminToken(request)
-
-    if (!isAuthenticated) {
+    const session = await requireAdminSession()
+    if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized access' },
         { status: 401 }
       )
     }
 
-    const { userId } = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON in request body' },
+        { status: 400 }
+      )
+    }
+    const { userId } = body
 
     if (!userId) {
       return NextResponse.json(
@@ -67,10 +74,14 @@ export async function POST(request: NextRequest) {
         totalWeight: updatedUser.totalWeight,
       },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in /api/demo-played:', error)
     return NextResponse.json(
-      { success: false, error: 'An error occurred', details: error.message },
+      {
+        success: false,
+        error: 'An error occurred',
+        details: error instanceof Error ? error.message : undefined,
+      },
       { status: 500 }
     )
   }

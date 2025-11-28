@@ -3,32 +3,31 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyAdminToken } from '@/lib/admin-auth'
+import { requireAdminSession } from '@/lib/admin-auth'
+import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    // Verify admin token
-    const isAuthenticated = await verifyAdminToken(request)
-
-    if (!isAuthenticated) {
+    const session = await requireAdminSession()
+    if (!session) {
       return NextResponse.json(
-        { error: 'Unauthorized access' },
+        { success: false, error: 'Unauthorized access' },
         { status: 401 }
       )
     }
 
-    const { id } = await params
+    const { id } = params
     const entryId = parseInt(id)
 
     if (isNaN(entryId)) {
       return NextResponse.json(
-        { error: 'Invalid entry ID' },
+        { success: false, error: 'Invalid entry ID' },
         { status: 400 }
       )
     }
@@ -42,18 +41,21 @@ export async function DELETE(
       success: true,
       message: 'Entry removed successfully',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error deleting entry:', error)
-    
-    if (error.code === 'P2025') {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       return NextResponse.json(
-        { error: 'Entry not found' },
+        { success: false, error: 'Entry not found' },
         { status: 404 }
       )
     }
 
     return NextResponse.json(
-      { error: 'Failed to delete entry', details: error.message },
+      {
+        success: false,
+        error: 'Failed to delete entry',
+        details: error instanceof Error ? error.message : undefined,
+      },
       { status: 500 }
     )
   }

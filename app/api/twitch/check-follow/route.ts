@@ -12,7 +12,7 @@ export async function POST() {
 
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
@@ -23,18 +23,23 @@ export async function POST() {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { success: false, error: 'User not found' },
         { status: 404 }
       )
     }
 
     return NextResponse.json({
+      success: true,
       isFollower: user.isFollower,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error checking follow status:', error)
     return NextResponse.json(
-      { error: 'Failed to check follow status', details: error.message },
+      {
+        success: false,
+        error: 'Failed to check follow status',
+        details: error instanceof Error ? error.message : undefined,
+      },
       { status: 500 }
     )
   }

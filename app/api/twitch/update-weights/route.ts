@@ -1,63 +1,104 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { requireAdminSession } from '@/lib/admin-auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const BATCH_SIZE = 25
+
 // Update weights based on Twitch data
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-
-    if (!session?.user?.id) {
+    const session = await requireAdminSession()
+    if (!session) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const { streamId } = await request.json()
-
+    let streamId: string | null = null
+    const contentLength = request.headers.get('content-length')
+    if (contentLength && contentLength !== '0') {
+      try {
+        const body = await request.json()
+        if (typeof body?.streamId === 'string') {
+          streamId = body.streamId
+        }
+      } catch {
+        return NextResponse.json(
+          { success: false, error: 'Invalid JSON in request body' },
+          { status: 400 }
+        )
+      }
+    }
     // Get all users with Twitch data
     const users = await prisma.user.findMany({
       where: {
+        ...(streamId
+          ? {
+              entries: {
+                some: {
+                  streamId,
+                  isWinner: false,
+                },
+              },
+            }
+          : {}),
         lastActive: {
           gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Active in last 24 hours
         },
       },
     })
 
-    const updatedUsers = []
+    const updatedUsers: Array<{ id: string; username: string; totalWeight: number }> = []
     const { calculateUserWeight } = await import('@/lib/weight-settings')
 
-    for (const user of users) {
-      // Calculate weight based on Twitch engagement using database settings
-      const weight = await calculateUserWeight({
-        isSubscriber: user.isSubscriber,
-        subMonths: user.subMonths,
-        resubCount: user.resubCount,
-        totalCheerBits: user.totalCheerBits,
-        totalDonations: user.totalDonations,
-        totalGiftedSubs: user.totalGiftedSubs,
-        carryOverWeight: user.carryOverWeight,
-      })
+    for (let i = 0; i < users.length; i += BATCH_SIZE) {
+      const batch = users.slice(i, i + BATCH_SIZE)
 
-      // Update user with calculated weight
-      const updatedUser = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          currentWeight: weight - user.carryOverWeight, // Current weight without carry-over
-          totalWeight: weight,
-          lastUpdated: new Date(),
-        },
-      })
+      const recalculated = await Promise.all(
+        batch.map(async (user) => {
+          const weight = await calculateUserWeight({
+            isSubscriber: user.isSubscriber,
+            subMonths: user.subMonths,
+            resubCount: user.resubCount,
+            totalCheerBits: user.totalCheerBits,
+            totalDonations: user.totalDonations,
+            totalGiftedSubs: user.totalGiftedSubs,
+            carryOverWeight: user.carryOverWeight,
+          })
 
-      updatedUsers.push({
-        id: updatedUser.id,
-        username: updatedUser.username,
-        totalWeight: updatedUser.totalWeight,
-      })
+          return {
+            id: user.id,
+            username: user.username,
+            carryOver: user.carryOverWeight,
+            totalWeight: weight,
+          }
+        })
+      )
+
+      await prisma.$transaction(
+        recalculated.map((record) =>
+          prisma.user.update({
+            where: { id: record.id },
+            data: {
+              currentWeight: record.totalWeight - record.carryOver,
+              totalWeight: record.totalWeight,
+              lastUpdated: new Date(),
+            },
+          })
+        )
+      )
+
+      updatedUsers.push(
+        ...recalculated.map((record) => ({
+          id: record.id,
+          username: record.username,
+          totalWeight: record.totalWeight,
+        }))
+      )
     }
 
     return NextResponse.json({
@@ -65,10 +106,14 @@ export async function POST(request: NextRequest) {
       updated: updatedUsers.length,
       users: updatedUsers,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating weights:', error)
     return NextResponse.json(
-      { error: 'Failed to update weights', details: error.message },
+      {
+        success: false,
+        error: 'Failed to update weights',
+        details: error instanceof Error ? error.message : undefined,
+      },
       { status: 500 }
     )
   }

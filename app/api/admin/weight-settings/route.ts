@@ -3,20 +3,19 @@
  * Requires ADMIN_TOKEN
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAdminToken } from '@/lib/admin-auth'
+import { requireAdminSession } from '@/lib/admin-auth'
 import { getWeightSettings, updateWeightSettings } from '@/lib/weight-settings'
+import type { WeightSettings } from '@/lib/weight-settings'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Verify admin token
-    const isAuthenticated = await verifyAdminToken(request)
-
-    if (!isAuthenticated) {
+    const session = await requireAdminSession()
+    if (!session) {
       return NextResponse.json(
-        { error: 'Unauthorized access' },
+        { success: false, error: 'Unauthorized access' },
         { status: 401 }
       )
     }
@@ -28,10 +27,14 @@ export async function GET(request: NextRequest) {
       success: true,
       settings,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching weight settings:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch weight settings', details: error.message },
+      {
+        success: false,
+        error: 'Failed to fetch weight settings',
+        details: error instanceof Error ? error.message : undefined,
+      },
       { status: 500 }
     )
   }
@@ -39,40 +42,87 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    // Verify admin token
-    const isAuthenticated = await verifyAdminToken(request)
-
-    if (!isAuthenticated) {
+    const session = await requireAdminSession()
+    if (!session) {
       return NextResponse.json(
-        { error: 'Unauthorized access' },
+        { success: false, error: 'Unauthorized access' },
         { status: 401 }
       )
     }
 
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON in request body' },
+        { status: 400 }
+      )
+    }
     const { settings } = body
 
     if (!settings || typeof settings !== 'object') {
       return NextResponse.json(
-        { error: 'Settings object is required' },
+        { success: false, error: 'Settings object is required' },
         { status: 400 }
       )
     }
 
+    const parseFloatValue = (value: unknown): number | undefined => {
+      if (typeof value === 'number') return value
+      if (typeof value === 'string') {
+        const parsed = Number.parseFloat(value)
+        return Number.isNaN(parsed) ? undefined : parsed
+      }
+      return undefined
+    }
+
+    const parseIntValue = (value: unknown): number | undefined => {
+      if (typeof value === 'number') return value
+      if (typeof value === 'string') {
+        const parsed = Number.parseInt(value, 10)
+        return Number.isNaN(parsed) ? undefined : parsed
+      }
+      return undefined
+    }
+
     // Validate settings values
-    const validSettings: any = {}
-    if (settings.baseWeight !== undefined) validSettings.baseWeight = parseFloat(settings.baseWeight)
-    if (settings.subMonthsMultiplier !== undefined) validSettings.subMonthsMultiplier = parseFloat(settings.subMonthsMultiplier)
-    if (settings.subMonthsCap !== undefined) validSettings.subMonthsCap = parseInt(settings.subMonthsCap)
-    if (settings.resubMultiplier !== undefined) validSettings.resubMultiplier = parseFloat(settings.resubMultiplier)
-    if (settings.resubCap !== undefined) validSettings.resubCap = parseInt(settings.resubCap)
-    if (settings.cheerBitsDivisor !== undefined) validSettings.cheerBitsDivisor = parseFloat(settings.cheerBitsDivisor)
-    if (settings.cheerBitsCap !== undefined) validSettings.cheerBitsCap = parseFloat(settings.cheerBitsCap)
-    if (settings.donationsDivisor !== undefined) validSettings.donationsDivisor = parseFloat(settings.donationsDivisor)
-    if (settings.donationsCap !== undefined) validSettings.donationsCap = parseFloat(settings.donationsCap)
-    if (settings.giftedSubsMultiplier !== undefined) validSettings.giftedSubsMultiplier = parseFloat(settings.giftedSubsMultiplier)
-    if (settings.giftedSubsCap !== undefined) validSettings.giftedSubsCap = parseFloat(settings.giftedSubsCap)
-    if (settings.carryOverMultiplier !== undefined) validSettings.carryOverMultiplier = parseFloat(settings.carryOverMultiplier)
+    const validSettings: Partial<WeightSettings> = {}
+    const baseWeight = parseFloatValue(settings.baseWeight)
+    if (baseWeight !== undefined) validSettings.baseWeight = baseWeight
+
+    const subMonthsMultiplier = parseFloatValue(settings.subMonthsMultiplier)
+    if (subMonthsMultiplier !== undefined) validSettings.subMonthsMultiplier = subMonthsMultiplier
+
+    const subMonthsCap = parseIntValue(settings.subMonthsCap)
+    if (subMonthsCap !== undefined) validSettings.subMonthsCap = subMonthsCap
+
+    const resubMultiplier = parseFloatValue(settings.resubMultiplier)
+    if (resubMultiplier !== undefined) validSettings.resubMultiplier = resubMultiplier
+
+    const resubCap = parseIntValue(settings.resubCap)
+    if (resubCap !== undefined) validSettings.resubCap = resubCap
+
+    const cheerBitsDivisor = parseFloatValue(settings.cheerBitsDivisor)
+    if (cheerBitsDivisor !== undefined) validSettings.cheerBitsDivisor = cheerBitsDivisor
+
+    const cheerBitsCap = parseFloatValue(settings.cheerBitsCap)
+    if (cheerBitsCap !== undefined) validSettings.cheerBitsCap = cheerBitsCap
+
+    const donationsDivisor = parseFloatValue(settings.donationsDivisor)
+    if (donationsDivisor !== undefined) validSettings.donationsDivisor = donationsDivisor
+
+    const donationsCap = parseFloatValue(settings.donationsCap)
+    if (donationsCap !== undefined) validSettings.donationsCap = donationsCap
+
+    const giftedSubsMultiplier = parseFloatValue(settings.giftedSubsMultiplier)
+    if (giftedSubsMultiplier !== undefined) validSettings.giftedSubsMultiplier = giftedSubsMultiplier
+
+    const giftedSubsCap = parseFloatValue(settings.giftedSubsCap)
+    if (giftedSubsCap !== undefined) validSettings.giftedSubsCap = giftedSubsCap
+
+    const carryOverMultiplier = parseFloatValue(settings.carryOverMultiplier)
+    if (carryOverMultiplier !== undefined) validSettings.carryOverMultiplier = carryOverMultiplier
 
     // Update settings
     const updated = await updateWeightSettings(validSettings)
@@ -82,10 +132,14 @@ export async function PUT(request: NextRequest) {
       settings: updated,
       message: 'Weight settings updated successfully',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating weight settings:', error)
     return NextResponse.json(
-      { error: 'Failed to update weight settings', details: error.message },
+      {
+        success: false,
+        error: 'Failed to update weight settings',
+        details: error instanceof Error ? error.message : undefined,
+      },
       { status: 500 }
     )
   }

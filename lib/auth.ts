@@ -4,12 +4,14 @@ import { prisma } from './prisma'
 import { env } from './env'
 import TwitchProvider from 'next-auth/providers/twitch'
 import { checkUserFollowsChannel, getUserSubscription, getUserInfo } from './twitch-api'
+import { getBroadcasterAccessToken, refreshTwitchAccessToken } from './twitch-oauth'
+
+const isDevelopment = process.env.NODE_ENV === 'development'
 
 // Update user Twitch data using official Twitch API endpoints
 async function updateUserTwitchData(
   userId: string,
   accessToken: string,
-  refreshToken?: string
 ) {
   try {
     // Fetch user info from Twitch API (using user token)
@@ -19,12 +21,14 @@ async function updateUserTwitchData(
       throw new Error('Twitch user not found or invalid')
     }
 
+    const broadcasterToken = await getBroadcasterAccessToken()
+
     // Check if user follows the channel (using broadcaster token)
     // GET /helix/channels/followers?broadcaster_id=<id>&user_id=<id>
     // Scope: moderator:read:followers (broadcaster-token required)
     let isFollower = false
     try {
-      isFollower = await checkUserFollowsChannel(twitchUser.id)
+      isFollower = await checkUserFollowsChannel(twitchUser.id, broadcasterToken)
     } catch (error) {
       console.error('Error checking follow status, defaulting to false:', error)
       isFollower = false
@@ -35,7 +39,7 @@ async function updateUserTwitchData(
     // Scope: channel:read:subscriptions (broadcaster-token required)
     let subscription = null
     try {
-      subscription = await getUserSubscription(twitchUser.id)
+      subscription = await getUserSubscription(twitchUser.id, broadcasterToken)
     } catch (error) {
       console.error('Error fetching subscription, defaulting to non-subscriber:', error)
       subscription = { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
@@ -54,9 +58,6 @@ async function updateUserTwitchData(
         displayName: twitchUser.display_name,
         email: twitchUser.email,
         image: twitchUser.profile_image_url,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        tokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
         isSubscriber,
         isFollower,
         subMonths,
@@ -69,9 +70,6 @@ async function updateUserTwitchData(
         displayName: twitchUser.display_name,
         email: twitchUser.email,
         image: twitchUser.profile_image_url,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        tokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
         isSubscriber,
         isFollower,
         subMonths,
@@ -86,8 +84,17 @@ async function updateUserTwitchData(
   }
 }
 
+type TwitchTokenState = {
+  accessToken: string
+  refreshToken?: string
+  expiresAt: number
+  providerAccountId?: string
+}
+
+const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000
+
 export const authOptions: NextAuthConfig = {
-  adapter: PrismaAdapter(prisma) as any,
+  adapter: PrismaAdapter(prisma),
   secret: env.NEXTAUTH_SECRET,
   trustHost: true,
   providers: [
@@ -104,11 +111,71 @@ export const authOptions: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }: { user: any; account?: any; profile?: any }) {
+    async jwt({ token, account, user }) {
+      const typedToken = token as typeof token & { twitch?: TwitchTokenState }
+
+      if (account?.provider === 'twitch' && user) {
+        const expiresAt = account.expires_at
+          ? account.expires_at * 1000
+          : Date.now() + (account.expires_in ?? 0) * 1000
+
+        typedToken.twitch = {
+          accessToken: account.access_token || '',
+          refreshToken: account.refresh_token || undefined,
+          expiresAt,
+          providerAccountId: account.providerAccountId,
+        }
+      }
+
+      const twitchState = typedToken.twitch
+      if (!twitchState?.accessToken || !twitchState.refreshToken || !twitchState.expiresAt) {
+        return typedToken
+      }
+
+      const shouldRefresh = Date.now() > twitchState.expiresAt - TOKEN_REFRESH_BUFFER_MS
+
+      if (!shouldRefresh) {
+        return typedToken
+      }
+
+      try {
+        const refreshed = await refreshTwitchAccessToken(twitchState.refreshToken)
+        const newExpiresAt = Date.now() + refreshed.expiresIn * 1000
+        typedToken.twitch = {
+          ...twitchState,
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken ?? twitchState.refreshToken,
+          expiresAt: newExpiresAt,
+        }
+
+        if (twitchState.providerAccountId) {
+          await prisma.account.update({
+            where: {
+              provider_providerAccountId: {
+                provider: 'twitch',
+                providerAccountId: twitchState.providerAccountId,
+              },
+            },
+            data: {
+              access_token: refreshed.accessToken,
+              refresh_token: refreshed.refreshToken ?? twitchState.refreshToken,
+              expires_at: Math.floor(newExpiresAt / 1000),
+            },
+          })
+        }
+      } catch (error) {
+        if (isDevelopment) {
+          console.error('Failed to refresh Twitch access token:', error)
+        }
+      }
+
+      return typedToken
+    },
+    async signIn({ user, account }) {
       if (account?.provider === 'twitch' && account.access_token) {
         // Update user with Twitch data after sign in
         try {
-          await updateUserTwitchData(user.id, account.access_token, account.refresh_token)
+          await updateUserTwitchData(user.id, account.access_token)
           // Check if user follows channel - REQUIRED
           const dbUser = await prisma.user.findUnique({
             where: { id: user.id },
@@ -117,14 +184,14 @@ export const authOptions: NextAuthConfig = {
             console.log('User does not follow channel, blocking sign-in')
             return false // Block sign-in if not following
           }
-        } catch (error: any) {
-          console.error('Error updating Twitch data during sign-in:', error)
-          // Log more details for debugging
-          if (error.message) {
-            console.error('Error message:', error.message)
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error('Unknown sign-in error')
+          console.error('Error updating Twitch data during sign-in:', err)
+          if (err.message) {
+            console.error('Error message:', err.message)
           }
-          if (error.stack) {
-            console.error('Error stack:', error.stack)
+          if (err.stack) {
+            console.error('Error stack:', err.stack)
           }
           // Don't block sign-in on error, let it proceed but log the issue
           // This prevents the JSON parsing error from blocking authentication
@@ -133,35 +200,36 @@ export const authOptions: NextAuthConfig = {
       }
       return true
     },
-    async session({ session, token, user }: { session: any; token?: any; user?: any }) {
+    async session({ session, token }) {
       try {
-        // With JWT strategy, token is provided instead of user
-        // With database strategy, user is provided
         if (!session) {
-          return {
-            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            user: null,
-          }
+          return session
         }
 
-        // For JWT strategy, use token; for database strategy, use user
-        const userId = user?.id ?? token?.sub ?? (session as any).user?.id ?? null
+        const userId = token?.sub ?? session.user?.id ?? null
         
         if (session.user && userId) {
           session.user.id = userId
-          
-          // Only fetch from DB if we have a user ID (database strategy)
-          if (user?.id) {
-            try {
-              const dbUser = await prisma.user.findUnique({
-                where: { id: user.id },
-                select: { isFollower: true },
-              })
-              ;(session as any).isFollower = dbUser?.isFollower || false
-            } catch (error) {
-              ;(session as any).isFollower = false
-            }
+        }
+
+        if (session.user?.id) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: session.user.id },
+              select: { isFollower: true },
+            })
+            session.isFollower = dbUser?.isFollower ?? false
+          } catch {
+            session.isFollower = false
           }
+        }
+
+        const isBroadcaster =
+          !!token &&
+          ((token as typeof token & { twitch?: TwitchTokenState }).twitch?.providerAccountId === env.TWITCH_BROADCASTER_ID)
+        session.isBroadcaster = isBroadcaster
+        if (session.user) {
+          session.user.isBroadcaster = isBroadcaster
         }
         
         return {
@@ -173,10 +241,7 @@ export const authOptions: NextAuthConfig = {
         }
       } catch (error) {
         console.error('AUTH_ERROR in session callback:', error)
-        return {
-          expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          user: null,
-        }
+        return session
       }
     },
   },
@@ -184,14 +249,16 @@ export const authOptions: NextAuthConfig = {
     signIn: '/',
   },
   session: {
-    strategy: 'database',
+    strategy: 'jwt',
   },
-  debug: true,
-  logger: {
-    error: (...args: any[]) => console.error('AUTH_ERROR', ...args),
-    warn: (...args: any[]) => console.warn('AUTH_WARN', ...args),
-    debug: (...args: any[]) => console.log('AUTH_DEBUG', ...args),
-  },
+  debug: isDevelopment,
+  logger: isDevelopment
+    ? {
+        error: (...args: unknown[]) => console.error('AUTH_ERROR', ...args),
+        warn: (...args: unknown[]) => console.warn('AUTH_WARN', ...args),
+        debug: (...args: unknown[]) => console.log('AUTH_DEBUG', ...args),
+      }
+    : undefined,
 }
 
 
