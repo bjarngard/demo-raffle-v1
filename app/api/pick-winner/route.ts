@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
         where: {
           isWinner: false,
         },
-        // @ts-expect-error - Prisma type inference issue with optional relations (Entry.user is optional)
         include: {
           user: true, // Get all user fields (we only need totalWeight, but Prisma requires full include)
         },
