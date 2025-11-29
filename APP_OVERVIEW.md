@@ -131,6 +131,7 @@ Fel loggas, men Twitch får aldrig 4XX/5XX så prenumerationen inte riskerar att
 - **Prisma client (`lib/prisma.ts`)** – Singleton with dev-mode global caching and eager connection attempts for faster failure when env vars are wrong.
 - **Admin data helper (`lib/admin-data.ts`)** – Shared entry formatting for both admin APIs and React components.
 - **Docs (`/docs`)** – Contain setup, Twitch configuration, Supabase provisioning, and deployment guides.
+- **Diagnostics (`npm run twitch:diagnose`)** – Runs `scripts/twitch-diagnose.ts`, fetches broadcaster tokens via existing helpers, and validates access to the Helix followers and subscriptions endpoints (surface missing scopes quickly).
 
 ---
 

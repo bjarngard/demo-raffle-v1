@@ -125,9 +125,8 @@ export const authOptions: NextAuthConfig = {
       clientSecret: env.TWITCH_CLIENT_SECRET,
       authorization: {
         params: {
-          // OIDC identity + email access for syncing Twitch profile
-          // Broadcaster token (server-side) används separat för follows/subs
-          scope: 'openid user:read:email',
+          // OIDC identity, email, and broadcaster scopes needed for Helix calls
+          scope: 'openid user:read:email user:read:follows moderator:read:followers channel:read:subscriptions',
         },
       },
       checks: ['state', 'pkce'],
