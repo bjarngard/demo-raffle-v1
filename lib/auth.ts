@@ -103,9 +103,9 @@ export const authOptions: NextAuthConfig = {
       clientSecret: env.TWITCH_CLIENT_SECRET,
       authorization: {
         params: {
-          // User scopes - we use user token for user info
-          // Broadcaster token (server-side) is used for checking follows/subs
-          scope: 'user:read:email',
+          // OIDC identity + email access for syncing Twitch profile
+          // Broadcaster token (server-side) används separat för follows/subs
+          scope: 'openid user:read:email',
         },
       },
       checks: ['state', 'pkce'],
