@@ -131,7 +131,11 @@ export const authOptions: NextAuthConfig = {
         },
       },
       checks: ['state', 'pkce'],
+    
+      // IMPORTANT: allow linking based on email
+      allowDangerousEmailAccountLinking: true,
     }),
+    
   ],
   callbacks: {
     async jwt({ token, account, user }) {
