@@ -200,23 +200,11 @@ export const authOptions: NextAuthConfig = {
     },
     async signIn({ user, account }) {
       if (account?.provider === 'twitch' && account.access_token) {
-        const isBroadcasterAccount = account.providerAccountId === env.TWITCH_BROADCASTER_ID
         try {
           await updateUserTwitchData(user.id, account.access_token)
         } catch (error) {
           if (isDevelopment) {
             console.error('updateUserTwitchData failed during sign-in:', error)
-          }
-        }
-
-        if (!isBroadcasterAccount) {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-            select: { isFollower: true },
-          })
-          if (!dbUser?.isFollower) {
-            console.log('User does not follow channel, blocking sign-in')
-            return false // Block sign-in if not following
           }
         }
       }

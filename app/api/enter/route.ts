@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (!user.isFollower) {
       return NextResponse.json(
-        { success: false, error: 'You must follow the channel to enter the raffle. Please follow and try again.' },
+        { error: 'NOT_FOLLOWING' },
         { 
           status: 403,
           headers: {
