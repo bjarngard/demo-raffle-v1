@@ -63,6 +63,7 @@ export default function RaffleWheel({
       const data: PickWinnerResponse = await response.json()
 
       if (data.success && data.winner) {
+        const winnerData = data.winner
         // Stop scrolling after 2 seconds, then show winner
         setTimeout(() => {
           clearInterval(scrollInterval)
@@ -81,10 +82,10 @@ export default function RaffleWheel({
                 clearInterval(finalScroll)
                 // Final reveal
                 setTimeout(() => {
-                  setScrollingName(data.winner.name)
-                  setWinner(data.winner)
+                  setScrollingName(winnerData.name)
+                  setWinner(winnerData)
                   setIsDrawing(false)
-                  onWinnerPicked(data.winner)
+                  onWinnerPicked(winnerData)
                 }, 300)
               }
             }

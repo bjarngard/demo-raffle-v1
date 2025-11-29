@@ -1,24 +1,5 @@
 import { prisma } from './prisma'
-
-export type AdminEntry = {
-  id: number
-  name: string
-  username: string
-  displayName: string
-  demoLink: string | null
-  totalWeight: number
-  weightBreakdown: {
-    base: number
-    subMonths: number
-    resubCount: number
-    cheerBits: number
-    donations: number
-    giftedSubs: number
-    carryOver: number
-  }
-  createdAt: Date
-  userId: string | null
-}
+import type { AdminEntry } from '@/types/admin'
 
 type EntrySortBy = 'weight' | 'name'
 type EntrySortOrder = 'asc' | 'desc'
@@ -86,7 +67,7 @@ export async function getAdminEntries({
       giftedSubs: entry.user?.totalGiftedSubs || 0,
       carryOver: entry.user?.carryOverWeight || 0,
     },
-    createdAt: entry.createdAt,
+    createdAt: entry.createdAt.toISOString(),
     userId: entry.userId,
   }))
 

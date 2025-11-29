@@ -1,29 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-
-interface Entry {
-  id: number
-  name: string
-  username: string
-  displayName: string
-  demoLink: string | null
-  totalWeight: number
-  weightBreakdown: {
-    base: number
-    subMonths: number
-    resubCount: number
-    cheerBits: number
-    donations: number
-    giftedSubs: number
-    carryOver: number
-  }
-  createdAt: string
-  userId: string | null
-}
+import type { AdminEntry } from '@/types/admin'
 
 interface AdminUserTableProps {
-  entries: Entry[]
+  entries: AdminEntry[]
   onRefresh: () => void
 }
 

@@ -34,6 +34,21 @@ function RaffleForm() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null)
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true)
 
+  const checkFollowStatus = useCallback(async () => {
+    if (!session?.user?.id) return
+    try {
+      const response = await fetch('/api/twitch/check-follow', {
+        method: 'POST',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setIsFollower(data.isFollower)
+      }
+    } catch (error) {
+      console.error('Error checking follow status:', error)
+    }
+  }, [session?.user?.id])
+
   // Fetch winner and leaderboard on page load
   useEffect(() => {
     async function fetchWinner() {
@@ -85,21 +100,6 @@ function RaffleForm() {
 
     return () => clearInterval(interval)
   }, [session, checkFollowStatus])
-
-  const checkFollowStatus = useCallback(async () => {
-    if (!session?.user?.id) return
-    try {
-      const response = await fetch('/api/twitch/check-follow', {
-        method: 'POST',
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setIsFollower(data.isFollower)
-      }
-    } catch (error) {
-      console.error('Error checking follow status:', error)
-    }
-  }, [session?.user?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -5,41 +5,10 @@ import AdminUserTable from '@/app/components/AdminUserTable'
 import AdminWeightsForm from '@/app/components/AdminWeightsForm'
 import RaffleWheel, { type RaffleWinner } from '@/app/components/RaffleWheel'
 import TopList from '@/app/components/TopList'
+import type { AdminEntry } from '@/types/admin'
+import type { WeightSettings } from '@/lib/weight-settings'
 
-export type AdminEntry = {
-  id: number
-  name: string
-  username: string
-  displayName: string
-  demoLink: string | null
-  totalWeight: number
-  weightBreakdown: {
-    base: number
-    subMonths: number
-    resubCount: number
-    cheerBits: number
-    donations: number
-    giftedSubs: number
-    carryOver: number
-  }
-  createdAt: string | Date
-  userId: string | null
-}
-
-export type AdminWeightSettings = {
-  baseWeight: number
-  subMonthsMultiplier: number
-  subMonthsCap: number
-  resubMultiplier: number
-  resubCap: number
-  cheerBitsDivisor: number
-  cheerBitsCap: number
-  donationsDivisor: number
-  donationsCap: number
-  giftedSubsMultiplier: number
-  giftedSubsCap: number
-  carryOverMultiplier: number
-}
+type AdminWeightSettings = WeightSettings
 
 type LeaderboardEntry = {
   id: number

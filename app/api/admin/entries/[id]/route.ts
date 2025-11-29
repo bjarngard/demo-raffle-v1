@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAdminSession()
@@ -22,7 +22,7 @@ export async function DELETE(
       )
     }
 
-    const { id } = params
+    const { id } = await params
     const entryId = parseInt(id)
 
     if (isNaN(entryId)) {

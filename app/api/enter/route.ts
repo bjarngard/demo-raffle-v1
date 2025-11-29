@@ -136,7 +136,9 @@ export async function POST(request: NextRequest) {
     try {
       const entryData: Prisma.EntryCreateInput = {
         name: displayName,
-        userId: session.user.id, // Always linked to Twitch user
+        user: {
+          connect: { id: session.user.id }, // Always linked to Twitch user
+        },
       }
 
       // Add demo link if provided
