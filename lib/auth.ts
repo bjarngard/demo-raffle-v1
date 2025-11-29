@@ -21,27 +21,49 @@ async function updateUserTwitchData(
       throw new Error('Twitch user not found or invalid')
     }
 
-    const broadcasterToken = await getBroadcasterAccessToken()
+    let broadcasterAccessToken: string | null = null
+    try {
+      broadcasterAccessToken = await getBroadcasterAccessToken()
+    } catch (error) {
+      if (isDevelopment) {
+        console.warn(
+          'Broadcaster token unavailable while updating Twitch data; skipping follow/sub sync.',
+          error,
+        )
+      }
+      broadcasterAccessToken = null
+    }
 
     // Check if user follows the channel (using broadcaster token)
     // GET /helix/channels/followers?broadcaster_id=<id>&user_id=<id>
     // Scope: moderator:read:followers (broadcaster-token required)
     let isFollower = false
-    try {
-      isFollower = await checkUserFollowsChannel(twitchUser.id, broadcasterToken)
-    } catch (error) {
-      console.error('Error checking follow status, defaulting to false:', error)
-      isFollower = false
-    }
+    let subscription: {
+      isSubscriber: boolean
+      subMonths: number
+      tier: string
+      isGift: boolean
+    } | null = null
 
-    // Get subscription info (using broadcaster token)
-    // GET /helix/subscriptions?broadcaster_id=<id>&user_id=<id>
-    // Scope: channel:read:subscriptions (broadcaster-token required)
-    let subscription = null
-    try {
-      subscription = await getUserSubscription(twitchUser.id, broadcasterToken)
-    } catch (error) {
-      console.error('Error fetching subscription, defaulting to non-subscriber:', error)
+    if (broadcasterAccessToken) {
+      try {
+        isFollower = await checkUserFollowsChannel(twitchUser.id, broadcasterAccessToken)
+      } catch (error) {
+        console.error('Error checking follow status, defaulting to false:', error)
+        isFollower = false
+      }
+
+      // Get subscription info (using broadcaster token)
+      // GET /helix/subscriptions?broadcaster_id=<id>&user_id=<id>
+      // Scope: channel:read:subscriptions (broadcaster-token required)
+      try {
+        subscription = await getUserSubscription(twitchUser.id, broadcasterAccessToken)
+      } catch (error) {
+        console.error('Error fetching subscription, defaulting to non-subscriber:', error)
+        subscription = { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
+      }
+    } else {
+      isFollower = false
       subscription = { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
     }
     
@@ -174,29 +196,21 @@ export const authOptions: NextAuthConfig = {
     },
     async signIn({ user, account }) {
       if (account?.provider === 'twitch' && account.access_token) {
-        // Update user with Twitch data after sign in
         try {
           await updateUserTwitchData(user.id, account.access_token)
-          // Check if user follows channel - REQUIRED
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-          })
-          if (!dbUser?.isFollower) {
-            console.log('User does not follow channel, blocking sign-in')
-            return false // Block sign-in if not following
-          }
         } catch (error) {
-          const err = error instanceof Error ? error : new Error('Unknown sign-in error')
-          console.error('Error updating Twitch data during sign-in:', err)
-          if (err.message) {
-            console.error('Error message:', err.message)
+          if (isDevelopment) {
+            console.error('updateUserTwitchData failed during sign-in:', error)
           }
-          if (err.stack) {
-            console.error('Error stack:', err.stack)
-          }
-          // Don't block sign-in on error, let it proceed but log the issue
-          // This prevents the JSON parsing error from blocking authentication
-          return true
+        }
+
+        // Check if user follows channel - REQUIRED
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+        })
+        if (!dbUser?.isFollower) {
+          console.log('User does not follow channel, blocking sign-in')
+          return false // Block sign-in if not following
         }
       }
       return true
