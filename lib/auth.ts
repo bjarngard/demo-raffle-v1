@@ -108,6 +108,7 @@ export const authOptions: NextAuthConfig = {
           scope: 'user:read:email',
         },
       },
+      checks: ['state', 'pkce'],
     }),
   ],
   callbacks: {
