@@ -139,44 +139,6 @@ function RaffleForm() {
     }
   }
 
-  // Show winner if exists
-  if (!loadingWinner && winner) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <main className="w-full max-w-2xl px-6 py-12">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12 text-center">
-            <div className="mb-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-yellow-100 dark:bg-yellow-900 rounded-full mb-4">
-                <svg
-                  className="w-10 h-10 text-yellow-600 dark:text-yellow-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              The raffle has ended!
-            </h1>
-            <p className="text-xl text-gray-700 dark:text-gray-300 mb-2">
-              Congratulations <span className="font-semibold text-indigo-600 dark:text-indigo-400">{winner.name}</span> on winning! 🎉
-            </p>
-            <p className="text-gray-500 dark:text-gray-400 mt-4">
-              Thank you to everyone who participated!
-            </p>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
   // Loading state
   if (loadingWinner || status === 'loading') {
     return (
@@ -270,6 +232,22 @@ function RaffleForm() {
             <p className="text-center text-lg mt-2 opacity-90">
               {leaderboard.totalEntries} {leaderboard.totalEntries === 1 ? 'entry' : 'entries'} total
             </p>
+          </div>
+        )}
+
+        {leaderboard && !leaderboard.submissionsOpen && (
+          <div className="mb-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow p-4 text-gray-800 dark:text-gray-100">
+            {winner ? (
+              <p>
+                Submissions are currently closed. Latest winner:{' '}
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                  {winner.name}
+                </span>
+                .
+              </p>
+            ) : (
+              <p>Submissions are currently closed.</p>
+            )}
           </div>
         )}
 

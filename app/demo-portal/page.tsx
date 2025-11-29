@@ -36,19 +36,27 @@ interface WeightSettings {
   carryOverMultiplier: number
 }
 
+interface WinnerData {
+  id: number
+  name: string
+}
+
 function DemoPortalContent() {
   const { data: session, status } = useSession()
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null)
   const [weightSettings, setWeightSettings] = useState<WeightSettings | null>(null)
+  const [winner, setWinner] = useState<WinnerData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchLeaderboard()
+    fetchLatestWinner()
     fetchWeightSettings()
     
     // Poll for updates every 5 seconds
     const interval = setInterval(() => {
       fetchLeaderboard()
+      fetchLatestWinner()
     }, 5000)
 
     return () => clearInterval(interval)
@@ -79,6 +87,19 @@ function DemoPortalContent() {
       }
     } catch (error) {
       console.error('Error fetching weight settings:', error)
+    }
+  }
+
+  const fetchLatestWinner = async () => {
+    try {
+      const response = await fetch('/api/winner')
+      if (!response.ok) {
+        return
+      }
+      const data = await response.json()
+      setWinner(data.winner ?? null)
+    } catch (error) {
+      console.error('Error fetching latest winner:', error)
     }
   }
 
@@ -123,6 +144,23 @@ function DemoPortalContent() {
               {leaderboard.totalEntries}{' '}
               {leaderboard.totalEntries === 1 ? 'entry' : 'entries'} total
             </p>
+          </div>
+        )}
+
+        {/* Inline status for closed submissions */}
+        {leaderboard && !leaderboard.submissionsOpen && (
+          <div className="mb-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow p-4 text-gray-800 dark:text-gray-100">
+            {winner ? (
+              <p>
+                Submissions are currently closed. Latest winner:{' '}
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                  {winner.name}
+                </span>
+                .
+              </p>
+            ) : (
+              <p>Submissions are currently closed.</p>
+            )}
           </div>
         )}
 
