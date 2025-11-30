@@ -9,15 +9,22 @@ export async function getAdminEntries({
   search = '',
   sortBy = 'weight',
   sortOrder = 'desc',
+  sessionId,
 }: {
   search?: string
   sortBy?: EntrySortBy
   sortOrder?: EntrySortOrder
+  sessionId?: string | null
 } = {}): Promise<AdminEntry[]> {
   const entries = await prisma.entry.findMany({
     where: {
       isWinner: false,
       ...entryStateExclusion,
+      ...(sessionId
+        ? {
+            sessionId,
+          }
+        : {}),
     },
     include: {
       user: {

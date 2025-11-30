@@ -1,37 +1,22 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { entryStateExclusion } from '@/lib/submissions-state'
+import { getCurrentSession, getLatestEndedSession } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    // Try to connect to database
-    const winner = await prisma.entry.findFirst({
-      where: {
-        isWinner: true,
-        ...entryStateExclusion,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      select: {
-        id: true,
-        name: true,
-        email: false, // Visa inte e-post publikt
-      },
-    })
+    const currentSession = await getCurrentSession()
+    let winner = await findLatestWinner(currentSession?.id)
 
     if (!winner) {
-      return NextResponse.json({ winner: null }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
+      const lastSession = await getLatestEndedSession()
+      winner = await findLatestWinner(lastSession?.id)
     }
 
-    return NextResponse.json({ winner }, {
+    return NextResponse.json({ winner: winner ?? null }, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -53,5 +38,24 @@ export async function GET() {
       }
     )
   }
+}
+
+async function findLatestWinner(sessionId?: string | null) {
+  if (!sessionId) return null
+
+  return prisma.entry.findFirst({
+    where: {
+      sessionId,
+      isWinner: true,
+      ...entryStateExclusion,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  })
 }
 

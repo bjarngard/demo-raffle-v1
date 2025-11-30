@@ -19,6 +19,7 @@ interface LeaderboardData {
   submissionsOpen: boolean
   totalEntries: number
   entries: LeaderboardEntry[]
+  sessionId: string | null
 }
 
 interface WeightSettings {
@@ -147,8 +148,14 @@ function DemoPortalContent() {
           </div>
         )}
 
-        {/* Inline status for closed submissions */}
-        {leaderboard && !leaderboard.submissionsOpen && (
+        {/* Inline status for session/submissions */}
+        {leaderboard && !leaderboard.sessionId && (
+          <div className="mb-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 shadow p-4 text-yellow-900 dark:text-yellow-100">
+            No active session is running right now. Please check back later.
+          </div>
+        )}
+
+        {leaderboard && leaderboard.sessionId && !leaderboard.submissionsOpen && (
           <div className="mb-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow p-4 text-gray-800 dark:text-gray-100">
             {winner ? (
               <p>
@@ -178,7 +185,10 @@ function DemoPortalContent() {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                   Submit Your Demo
                 </h2>
-                <DemoSubmissionForm submissionsOpen={leaderboard?.submissionsOpen !== false} />
+                <DemoSubmissionForm
+                  submissionsOpen={leaderboard?.submissionsOpen !== false}
+                  sessionActive={Boolean(leaderboard?.sessionId)}
+                />
               </div>
 
               {/* My Status */}

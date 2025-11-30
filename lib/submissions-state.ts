@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { ensureSystemSession } from './session'
 
 const SUBMISSIONS_STATE_EMAIL = 'submissions-state@demo-raffle.local'
 const SUBMISSIONS_STATE_STREAM_ID = '__STATE__'
@@ -34,6 +35,7 @@ export async function getSubmissionsOpen(): Promise<boolean> {
 export async function setSubmissionsOpen(submissionsOpen: boolean): Promise<void> {
   const name = submissionsOpen ? 'Submissions Open' : 'Submissions Closed'
   const demoLink = submissionsOpen ? 'open' : 'closed'
+  const systemSession = await ensureSystemSession()
 
   await prisma.entry.upsert({
     where: { email: SUBMISSIONS_STATE_EMAIL },
@@ -42,6 +44,7 @@ export async function setSubmissionsOpen(submissionsOpen: boolean): Promise<void
       demoLink,
       isWinner: false,
       streamId: SUBMISSIONS_STATE_STREAM_ID,
+      sessionId: systemSession.id,
     },
     create: {
       name,
@@ -49,6 +52,7 @@ export async function setSubmissionsOpen(submissionsOpen: boolean): Promise<void
       email: SUBMISSIONS_STATE_EMAIL,
       isWinner: false,
       streamId: SUBMISSIONS_STATE_STREAM_ID,
+      sessionId: systemSession.id,
     },
   })
 }

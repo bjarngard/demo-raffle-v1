@@ -20,6 +20,7 @@ interface LeaderboardData {
   submissionsOpen: boolean
   totalEntries: number
   entries: LeaderboardEntry[]
+  sessionId: string | null
 }
 
 function RaffleForm() {
@@ -33,6 +34,7 @@ function RaffleForm() {
   const [isFollower, setIsFollower] = useState<boolean | null>(null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null)
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true)
+  const sessionActive = leaderboard?.sessionId ? true : false
   const submissionsClosed = leaderboard?.submissionsOpen === false
 
   const checkFollowStatus = useCallback(async () => {
@@ -106,7 +108,12 @@ function RaffleForm() {
     e.preventDefault()
     setError('')
 
-    if (submissionsClosed) {
+  if (!sessionActive) {
+    setError('The raffle is not currently running. Please check back later.')
+    return
+  }
+
+  if (submissionsClosed) {
       setError('Submissions are currently closed. Please try again later.')
       return
     }
@@ -134,12 +141,16 @@ function RaffleForm() {
 
       if (!response.ok) {
         const errorCode = data.errorCode || data.error
-        if (errorCode === 'SUBMISSIONS_CLOSED') {
+        if (errorCode === 'NO_ACTIVE_SESSION') {
+          setError('The raffle is not currently running. Please try again later.')
+        } else if (errorCode === 'SUBMISSIONS_CLOSED') {
           setError('Submissions are currently closed. Please try again later.')
         } else if (errorCode === 'EMAIL_ALREADY_REGISTERED') {
           setError('This email is already registered for this round.')
-        } else if (errorCode === 'ALREADY_SUBMITTED' || data.error === 'You already have an active submission') {
-          setError('You already have an active submission.')
+        } else if (errorCode === 'ALREADY_SUBMITTED_THIS_SESSION' || data.error === 'You already have an active submission') {
+          setError('You already have an active submission for this session.')
+        } else if (errorCode === 'PENDING_ENTRY_FROM_PREVIOUS_SESSION') {
+          setError('You already have a pending submission with accumulated weight. It must be drawn before you can submit again.')
         } else {
           setError(data.error || 'An error occurred')
         }
@@ -256,7 +267,13 @@ function RaffleForm() {
           </div>
         )}
 
-        {leaderboard && !leaderboard.submissionsOpen && (
+        {leaderboard && !leaderboard.sessionId && (
+          <div className="mb-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 shadow p-4 text-yellow-900 dark:text-yellow-100">
+            The raffle is not currently running. Please check back later.
+          </div>
+        )}
+
+        {leaderboard && leaderboard.sessionId && !leaderboard.submissionsOpen && (
           <div className="mb-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow p-4 text-gray-800 dark:text-gray-100">
             {winner ? (
               <p>
@@ -306,6 +323,30 @@ function RaffleForm() {
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
                 You are now registered. Good luck! 🍀
+              </p>
+            </div>
+          ) : !sessionActive ? (
+            <div className="text-center py-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full mb-4">
+                <svg
+                  className="w-8 h-8 text-blue-600 dark:text-blue-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M4.93 4.93l14.14 14.14"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
+                The raffle is paused
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                The broadcaster hasn&apos;t started a new session yet. Please check back during the next stream.
               </p>
             </div>
           ) : submissionsClosed ? (

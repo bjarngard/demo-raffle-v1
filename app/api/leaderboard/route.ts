@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { entryStateExclusion, getSubmissionsOpen } from '@/lib/submissions-state'
+import { getCurrentSession } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,12 +11,21 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET() {
   try {
-    // Check if submissions are open or closed (closed if winner exists)
     const submissionsOpen = await getSubmissionsOpen()
+    const currentSession = await getCurrentSession()
 
-    // Get all entries that are not winners, sorted by weight
+    if (!currentSession) {
+      return NextResponse.json({
+        submissionsOpen,
+        totalEntries: 0,
+        entries: [],
+        sessionId: null,
+      })
+    }
+
     const entries = await prisma.entry.findMany({
       where: {
+        sessionId: currentSession.id,
         isWinner: false,
         ...entryStateExclusion,
       },
@@ -33,13 +43,11 @@ export async function GET() {
       },
     })
 
-    // Calculate total weight for probability calculation
     const totalWeight = entries.reduce((sum, entry) => {
       const weight = entry.user?.totalWeight || 1.0
       return sum + weight
     }, 0)
 
-    // Calculate probability for each entry and sort by weight (highest first)
     const entriesWithProbability = entries
       .map((entry) => {
         const weight = entry.user?.totalWeight || 1.0
@@ -48,17 +56,18 @@ export async function GET() {
         return {
           id: entry.id,
           name: entry.name || entry.user?.displayName || entry.user?.username || 'Unknown',
-          weight: weight,
-          probability: probability,
+          weight,
+          probability,
         }
       })
-      .sort((a, b) => b.weight - a.weight) // Sort by weight descending
-      .slice(0, 20) // Top 20
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 20)
 
     return NextResponse.json({
       submissionsOpen,
       totalEntries: entries.length,
       entries: entriesWithProbability,
+      sessionId: currentSession.id,
     })
   } catch (error) {
     console.error('Error in /api/leaderboard:', error)

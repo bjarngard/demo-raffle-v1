@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/admin-auth'
 import { Prisma } from '@prisma/client'
-import { entryStateExclusion, setSubmissionsOpen } from '@/lib/submissions-state'
+import { entryStateExclusion } from '@/lib/submissions-state'
+import { getCurrentSession } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,8 +36,17 @@ export async function POST() {
       )
     }
 
+    const currentSession = await getCurrentSession()
+    if (!currentSession) {
+      return NextResponse.json(
+        { success: false, error: 'No active session. Start a session before picking a winner.' },
+        { status: 400 }
+      )
+    }
+
     const entries = (await prisma.entry.findMany({
       where: {
+        sessionId: currentSession.id,
         isWinner: false,
         ...entryStateExclusion,
       },
@@ -94,8 +104,6 @@ export async function POST() {
       .map(e => ({ name: e.name, weight: e.user?.totalWeight || 1.0 }))
       .sort((a, b) => b.weight - a.weight)
       .slice(0, 20)
-
-    await setSubmissionsOpen(false)
 
     return NextResponse.json({
       success: true,

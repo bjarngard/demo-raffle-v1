@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { getAdminEntries } from '@/lib/admin-data'
 import { getWeightSettings } from '@/lib/weight-settings'
 import { getSubmissionsOpen } from '@/lib/submissions-state'
+import { getCurrentSession, getLatestEndedSession } from '@/lib/session'
 import AdminDashboardClient from './AdminDashboardClient'
 
 export default async function DemoAdminPage() {
@@ -22,17 +23,34 @@ export default async function DemoAdminPage() {
     )
   }
 
-  const [entries, weightSettings, submissionsOpen] = await Promise.all([
-    getAdminEntries(),
+  const [weightSettings, submissionsOpen, currentSession, lastEndedSession] = await Promise.all([
     getWeightSettings(),
     getSubmissionsOpen(),
+    getCurrentSession(),
+    getLatestEndedSession(),
   ])
+
+  const serializeSession = (session: Awaited<ReturnType<typeof getCurrentSession>>) =>
+    session
+      ? {
+          id: session.id,
+          name: session.name,
+          createdAt: session.createdAt.toISOString(),
+          endedAt: session.endedAt ? session.endedAt.toISOString() : null,
+        }
+      : null
+
+  const entries = currentSession
+    ? await getAdminEntries({ sessionId: currentSession.id })
+    : []
 
   return (
     <AdminDashboardClient
       initialEntries={entries}
       initialSettings={weightSettings}
       initialSubmissionsOpen={submissionsOpen}
+      initialSession={serializeSession(currentSession)}
+      lastEndedSession={serializeSession(lastEndedSession)}
     />
   )
 }

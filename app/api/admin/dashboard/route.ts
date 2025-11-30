@@ -3,6 +3,7 @@ import { requireAdminSession } from '@/lib/admin-auth'
 import { getAdminEntries } from '@/lib/admin-data'
 import { getWeightSettings } from '@/lib/weight-settings'
 import { getSubmissionsOpen } from '@/lib/submissions-state'
+import { getCurrentSession, getLatestEndedSession } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,10 +18,19 @@ export async function GET() {
       )
     }
 
-    const [entries, settings, submissionsOpen] = await Promise.all([
-      getAdminEntries(),
+    const [settings, submissionsOpen, currentSession] = await Promise.all([
       getWeightSettings(),
       getSubmissionsOpen(),
+      getCurrentSession(),
+    ])
+
+    const [entries, lastEndedSession] = await Promise.all([
+      currentSession
+        ? getAdminEntries({
+            sessionId: currentSession.id,
+          })
+        : Promise.resolve<Awaited<ReturnType<typeof getAdminEntries>>>([]),
+      getLatestEndedSession(),
     ])
 
     return NextResponse.json({
@@ -28,6 +38,8 @@ export async function GET() {
       entries,
       settings,
       submissionsOpen,
+      currentSession,
+      lastEndedSession,
     })
   } catch (error) {
     console.error('Error fetching admin dashboard data:', error)

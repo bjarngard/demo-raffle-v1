@@ -3,7 +3,8 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { Prisma } from '@prisma/client'
-import { getSubmissionsOpen } from '@/lib/submissions-state'
+import { getSubmissionsOpen, submissionsStateEmail } from '@/lib/submissions-state'
+import { getCurrentSession } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,6 +42,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
+
+    const currentSession = await getCurrentSession()
 
     // REQUIRE Twitch login
     if (!session?.user?.id) {
@@ -103,17 +106,55 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user already has an active submission (non-winner entry)
+    if (!currentSession) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'The raffle is not currently running. Please try again later.',
+          errorCode: 'NO_ACTIVE_SESSION',
+        },
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
     const existingEntry = await prisma.entry.findFirst({
       where: {
         userId: session.user.id,
         isWinner: false,
+        email: { not: submissionsStateEmail },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+      select: {
+        id: true,
+        sessionId: true,
       },
     })
 
     if (existingEntry) {
+      if (existingEntry.sessionId === currentSession.id) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'You already have an active submission for this session.',
+            errorCode: 'ALREADY_SUBMITTED_THIS_SESSION',
+          },
+          { status: 400 }
+        )
+      }
+
       return NextResponse.json(
-        { success: false, error: 'You already have an active submission', errorCode: 'ALREADY_SUBMITTED' },
+        {
+          success: false,
+          error: 'You already have a pending submission with accumulated weight. It must be drawn before you can submit again.',
+          errorCode: 'PENDING_ENTRY_FROM_PREVIOUS_SESSION',
+        },
         { status: 400 }
       )
     }
@@ -156,6 +197,11 @@ export async function POST(request: NextRequest) {
         name: displayName,
         user: {
           connect: { id: session.user.id }, // Always linked to Twitch user
+        },
+        session: {
+          connect: {
+            id: currentSession.id,
+          },
         },
       }
 

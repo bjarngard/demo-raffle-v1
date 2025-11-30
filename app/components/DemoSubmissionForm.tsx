@@ -12,9 +12,13 @@ interface Submission {
 
 type DemoSubmissionFormProps = {
   submissionsOpen?: boolean
+  sessionActive?: boolean
 }
 
-export default function DemoSubmissionForm({ submissionsOpen = true }: DemoSubmissionFormProps) {
+export default function DemoSubmissionForm({
+  submissionsOpen = true,
+  sessionActive = true,
+}: DemoSubmissionFormProps) {
   const { data: session } = useSession()
   const [demoLink, setDemoLink] = useState('')
   const [loading, setLoading] = useState(false)
@@ -23,10 +27,10 @@ export default function DemoSubmissionForm({ submissionsOpen = true }: DemoSubmi
   const [loadingSubmission, setLoadingSubmission] = useState(true)
 
   useEffect(() => {
-    if (submissionsOpen) {
+    if (submissionsOpen && sessionActive) {
       setError('')
     }
-  }, [submissionsOpen])
+  }, [submissionsOpen, sessionActive])
 
   // Fetch existing submission
   useEffect(() => {
@@ -55,6 +59,11 @@ export default function DemoSubmissionForm({ submissionsOpen = true }: DemoSubmi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!sessionActive) {
+      setError('The raffle is not currently running. Please check back later.')
+      return
+    }
+
     if (!submissionsOpen) {
       setError('Submissions are currently closed. Please check back later.')
       return
@@ -78,6 +87,10 @@ export default function DemoSubmissionForm({ submissionsOpen = true }: DemoSubmi
 
       if (!response.ok) {
         const errorCode = data.errorCode || data.error
+        if (errorCode === 'NO_ACTIVE_SESSION') {
+          setError('The raffle is not currently running. Please try again later.')
+          return
+        }
         if (errorCode === 'SUBMISSIONS_CLOSED') {
           setError('Submissions are currently closed. Please try again later.')
           return
@@ -86,8 +99,12 @@ export default function DemoSubmissionForm({ submissionsOpen = true }: DemoSubmi
           setError('This email is already registered for this round.')
           return
         }
-        if (errorCode === 'ALREADY_SUBMITTED') {
-          setError('You already have an active submission.')
+        if (errorCode === 'ALREADY_SUBMITTED_THIS_SESSION') {
+          setError('You already have an active submission for this session.')
+          return
+        }
+        if (errorCode === 'PENDING_ENTRY_FROM_PREVIOUS_SESSION') {
+          setError('You already have a pending submission with accumulated weight. It must be drawn before you can submit again.')
           return
         }
         setError(data.error || 'Failed to submit')
@@ -154,6 +171,17 @@ export default function DemoSubmissionForm({ submissionsOpen = true }: DemoSubmi
             </a>
           </div>
         )}
+      </div>
+    )
+  }
+
+  if (!sessionActive) {
+    return (
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">No active session</h3>
+        <p className="text-sm text-blue-800 dark:text-blue-200">
+          The broadcaster hasn&apos;t started a new session yet. Please check back during the next stream.
+        </p>
       </div>
     )
   }
