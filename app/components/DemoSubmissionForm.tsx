@@ -10,13 +10,23 @@ interface Submission {
   createdAt: string
 }
 
-export default function DemoSubmissionForm() {
+type DemoSubmissionFormProps = {
+  submissionsOpen?: boolean
+}
+
+export default function DemoSubmissionForm({ submissionsOpen = true }: DemoSubmissionFormProps) {
   const { data: session } = useSession()
   const [demoLink, setDemoLink] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [loadingSubmission, setLoadingSubmission] = useState(true)
+
+  useEffect(() => {
+    if (submissionsOpen) {
+      setError('')
+    }
+  }, [submissionsOpen])
 
   // Fetch existing submission
   useEffect(() => {
@@ -32,6 +42,8 @@ export default function DemoSubmissionForm() {
         const data = await response.json()
         if (data.hasSubmission && data.submission) {
           setSubmission(data.submission)
+        } else {
+          setSubmission(null)
         }
       }
     } catch (error) {
@@ -43,6 +55,11 @@ export default function DemoSubmissionForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!submissionsOpen) {
+      setError('Submissions are currently closed. Please check back later.')
+      return
+    }
+
     setError('')
     setLoading(true)
 
@@ -58,6 +75,24 @@ export default function DemoSubmissionForm() {
       })
 
       const data = await response.json()
+
+      if (!response.ok) {
+        const errorCode = data.errorCode || data.error
+        if (errorCode === 'SUBMISSIONS_CLOSED') {
+          setError('Submissions are currently closed. Please try again later.')
+          return
+        }
+        if (errorCode === 'EMAIL_ALREADY_REGISTERED') {
+          setError('This email is already registered for this round.')
+          return
+        }
+        if (errorCode === 'ALREADY_SUBMITTED') {
+          setError('You already have an active submission.')
+          return
+        }
+        setError(data.error || 'Failed to submit')
+        return
+      }
 
       if (data.success) {
         setDemoLink('')
@@ -119,6 +154,17 @@ export default function DemoSubmissionForm() {
             </a>
           </div>
         )}
+      </div>
+    )
+  }
+
+  if (!submissionsOpen) {
+    return (
+      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Submissions are closed</h3>
+        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+          The broadcaster has closed submissions for now. Please check back when the next round opens.
+        </p>
       </div>
     )
   }

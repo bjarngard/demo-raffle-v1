@@ -33,6 +33,7 @@ function RaffleForm() {
   const [isFollower, setIsFollower] = useState<boolean | null>(null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null)
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true)
+  const submissionsClosed = leaderboard?.submissionsOpen === false
 
   const checkFollowStatus = useCallback(async () => {
     if (!session?.user?.id) return
@@ -104,6 +105,12 @@ function RaffleForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (submissionsClosed) {
+      setError('Submissions are currently closed. Please try again later.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -124,6 +131,20 @@ function RaffleForm() {
       }
 
       const data = await response.json()
+
+      if (!response.ok) {
+        const errorCode = data.errorCode || data.error
+        if (errorCode === 'SUBMISSIONS_CLOSED') {
+          setError('Submissions are currently closed. Please try again later.')
+        } else if (errorCode === 'EMAIL_ALREADY_REGISTERED') {
+          setError('This email is already registered for this round.')
+        } else if (errorCode === 'ALREADY_SUBMITTED' || data.error === 'You already have an active submission') {
+          setError('You already have an active submission.')
+        } else {
+          setError(data.error || 'An error occurred')
+        }
+        return
+      }
 
       if (data.success) {
         setSubmitted(true)
@@ -285,6 +306,30 @@ function RaffleForm() {
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
                 You are now registered. Good luck! 🍀
+              </p>
+            </div>
+          ) : submissionsClosed ? (
+            <div className="text-center py-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 dark:bg-yellow-900 rounded-full mb-4">
+                <svg
+                  className="w-8 h-8 text-yellow-600 dark:text-yellow-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M12 8v.01"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
+                Submissions are closed
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                The broadcaster has closed submissions for now. Please check back when the next round opens.
               </p>
             </div>
           ) : (

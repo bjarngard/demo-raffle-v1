@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/admin-auth'
+import { entryStateExclusion } from '@/lib/submissions-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
       where: {
         streamId: streamId || null,
         isWinner: true,
+        ...entryStateExclusion,
       },
       include: { user: true },
     })

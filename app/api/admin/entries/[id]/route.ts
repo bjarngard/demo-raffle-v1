@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/admin-auth'
 import { Prisma } from '@prisma/client'
+import { submissionsStateEmail } from '@/lib/submissions-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -28,6 +29,25 @@ export async function DELETE(
     if (isNaN(entryId)) {
       return NextResponse.json(
         { success: false, error: 'Invalid entry ID' },
+        { status: 400 }
+      )
+    }
+
+    const entry = await prisma.entry.findUnique({
+      where: { id: entryId },
+      select: { email: true },
+    })
+
+    if (!entry) {
+      return NextResponse.json(
+        { success: false, error: 'Entry not found' },
+        { status: 404 }
+      )
+    }
+
+    if (entry.email === submissionsStateEmail) {
+      return NextResponse.json(
+        { success: false, error: 'Cannot delete submissions state entry' },
         { status: 400 }
       )
     }

@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { Prisma } from '@prisma/client'
+import { getSubmissionsOpen } from '@/lib/submissions-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,6 +24,23 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await auth()
+    const submissionsOpen = await getSubmissionsOpen()
+    if (!submissionsOpen) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Submissions are currently closed. Please try again later.',
+          errorCode: 'SUBMISSIONS_CLOSED',
+        },
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
 
     // REQUIRE Twitch login
     if (!session?.user?.id) {
@@ -95,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     if (existingEntry) {
       return NextResponse.json(
-        { success: false, error: 'You already have an active submission' },
+        { success: false, error: 'You already have an active submission', errorCode: 'ALREADY_SUBMITTED' },
         { status: 400 }
       )
     }
@@ -166,7 +184,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         return NextResponse.json(
-          { success: false, error: 'This email is already registered' },
+          { success: false, error: 'This email is already registered', errorCode: 'EMAIL_ALREADY_REGISTERED' },
           { 
             status: 400,
             headers: {

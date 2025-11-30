@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import type { AdminEntry } from '@/types/admin'
+import { entryStateExclusion } from './submissions-state'
 
 type EntrySortBy = 'weight' | 'name'
 type EntrySortOrder = 'asc' | 'desc'
@@ -16,6 +17,7 @@ export async function getAdminEntries({
   const entries = await prisma.entry.findMany({
     where: {
       isWinner: false,
+      ...entryStateExclusion,
     },
     include: {
       user: {

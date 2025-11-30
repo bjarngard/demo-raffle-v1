@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { entryStateExclusion } from '@/lib/submissions-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -8,7 +9,13 @@ export async function GET() {
   try {
     // Try to connect to database
     const winner = await prisma.entry.findFirst({
-      where: { isWinner: true },
+      where: {
+        isWinner: true,
+        ...entryStateExclusion,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
       select: {
         id: true,
         name: true,

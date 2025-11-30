@@ -20,17 +20,21 @@ type LeaderboardEntry = {
 type AdminDashboardClientProps = {
   initialEntries: AdminEntry[]
   initialSettings: AdminWeightSettings
+  initialSubmissionsOpen: boolean
 }
 
 export default function AdminDashboardClient({
   initialEntries,
   initialSettings,
+  initialSubmissionsOpen,
 }: AdminDashboardClientProps) {
   const [entries, setEntries] = useState<AdminEntry[]>(initialEntries)
   const [weightSettings, setWeightSettings] = useState<AdminWeightSettings>(initialSettings)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'users' | 'weights' | 'raffle'>('users')
+  const [submissionsOpen, setSubmissionsOpen] = useState(initialSubmissionsOpen)
+  const [isTogglingSubmissions, setIsTogglingSubmissions] = useState(false)
 
   const fetchAdminData = useCallback(async () => {
     setLoading(true)
@@ -45,6 +49,9 @@ export default function AdminDashboardClient({
         if (data.settings) {
           setWeightSettings(data.settings)
         }
+        if (typeof data.submissionsOpen === 'boolean') {
+          setSubmissionsOpen(data.submissionsOpen)
+        }
       }
     } catch (error) {
       console.error('Error fetching admin data:', error)
@@ -52,6 +59,33 @@ export default function AdminDashboardClient({
       setLoading(false)
     }
   }, [])
+
+  const toggleSubmissions = useCallback(
+    async (nextState: boolean) => {
+      setIsTogglingSubmissions(true)
+      try {
+        const response = await fetch('/api/admin/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ submissionsOpen: nextState }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to update submissions state')
+        }
+
+        const data = await response.json()
+        if (typeof data.submissionsOpen === 'boolean') {
+          setSubmissionsOpen(data.submissionsOpen)
+        }
+      } catch (error) {
+        console.error('Error toggling submissions:', error)
+      } finally {
+        setIsTogglingSubmissions(false)
+      }
+    },
+    []
+  )
 
   const fetchLeaderboard = useCallback(async () => {
     try {
@@ -110,6 +144,33 @@ export default function AdminDashboardClient({
                 Refreshing...
               </span>
             )}
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Submissions Status</p>
+              <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                {submissionsOpen ? 'Open' : 'Closed'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => toggleSubmissions(true)}
+                disabled={submissionsOpen || isTogglingSubmissions}
+                className="px-4 py-2 rounded-lg font-medium bg-green-600 text-white disabled:bg-green-300 disabled:cursor-not-allowed transition"
+              >
+                Open submissions
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleSubmissions(false)}
+                disabled={!submissionsOpen || isTogglingSubmissions}
+                className="px-4 py-2 rounded-lg font-medium bg-red-600 text-white disabled:bg-red-300 disabled:cursor-not-allowed transition"
+              >
+                Close submissions
+              </button>
+            </div>
           </div>
 
           <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">

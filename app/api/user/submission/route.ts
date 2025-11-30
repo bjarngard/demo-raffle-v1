@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { entryStateExclusion } from '@/lib/submissions-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,7 @@ export async function GET() {
       where: {
         userId: session.user.id,
         isWinner: false,
+        ...entryStateExclusion,
       },
       select: {
         id: true,

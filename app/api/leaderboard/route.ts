@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { entryStateExclusion, getSubmissionsOpen } from '@/lib/submissions-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,14 +11,13 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     // Check if submissions are open or closed (closed if winner exists)
-    const hasWinner = await prisma.entry.findFirst({
-      where: { isWinner: true },
-    })
+    const submissionsOpen = await getSubmissionsOpen()
 
     // Get all entries that are not winners, sorted by weight
     const entries = await prisma.entry.findMany({
       where: {
         isWinner: false,
+        ...entryStateExclusion,
       },
       include: {
         user: {
@@ -56,7 +56,7 @@ export async function GET() {
       .slice(0, 20) // Top 20
 
     return NextResponse.json({
-      submissionsOpen: !hasWinner,
+      submissionsOpen,
       totalEntries: entries.length,
       entries: entriesWithProbability,
     })

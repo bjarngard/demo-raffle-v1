@@ -174,15 +174,12 @@ function DemoPortalContent() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column: Submission Form & Status */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Submission Form */}
-              {leaderboard?.submissionsOpen && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                    Submit Your Demo
-                  </h2>
-                  <DemoSubmissionForm />
-                </div>
-              )}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                  Submit Your Demo
+                </h2>
+                <DemoSubmissionForm submissionsOpen={leaderboard?.submissionsOpen !== false} />
+              </div>
 
               {/* My Status */}
               <MyStatusCard />

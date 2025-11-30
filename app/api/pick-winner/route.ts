@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdminSession } from '@/lib/admin-auth'
 import { Prisma } from '@prisma/client'
+import { entryStateExclusion, setSubmissionsOpen } from '@/lib/submissions-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,6 +38,7 @@ export async function POST() {
     const entries = (await prisma.entry.findMany({
       where: {
         isWinner: false,
+        ...entryStateExclusion,
       },
       include: {
         user: true,
@@ -92,6 +94,8 @@ export async function POST() {
       .map(e => ({ name: e.name, weight: e.user?.totalWeight || 1.0 }))
       .sort((a, b) => b.weight - a.weight)
       .slice(0, 20)
+
+    await setSubmissionsOpen(false)
 
     return NextResponse.json({
       success: true,

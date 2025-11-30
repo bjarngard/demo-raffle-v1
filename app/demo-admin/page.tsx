@@ -1,6 +1,7 @@
 import { auth } from '@/auth'
 import { getAdminEntries } from '@/lib/admin-data'
 import { getWeightSettings } from '@/lib/weight-settings'
+import { getSubmissionsOpen } from '@/lib/submissions-state'
 import AdminDashboardClient from './AdminDashboardClient'
 
 export default async function DemoAdminPage() {
@@ -21,15 +22,17 @@ export default async function DemoAdminPage() {
     )
   }
 
-  const [entries, weightSettings] = await Promise.all([
+  const [entries, weightSettings, submissionsOpen] = await Promise.all([
     getAdminEntries(),
     getWeightSettings(),
+    getSubmissionsOpen(),
   ])
 
   return (
     <AdminDashboardClient
       initialEntries={entries}
       initialSettings={weightSettings}
+      initialSubmissionsOpen={submissionsOpen}
     />
   )
 }
