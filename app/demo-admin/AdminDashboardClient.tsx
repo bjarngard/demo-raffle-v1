@@ -98,14 +98,18 @@ export default function AdminDashboardClient({
         const data = await response.json()
         if (typeof data.submissionsOpen === 'boolean') {
           setSubmissionsOpen(data.submissionsOpen)
+        } else {
+          setSubmissionsOpen(nextState)
         }
+
+        await fetchAdminData()
       } catch (error) {
         console.error('Error toggling submissions:', error)
       } finally {
         setIsTogglingSubmissions(false)
       }
     },
-    []
+    [fetchAdminData]
   )
 
   const fetchLeaderboard = useCallback(async () => {
@@ -272,7 +276,7 @@ export default function AdminDashboardClient({
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Submissions Status</p>
               <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                {submissionsOpen ? 'Open' : 'Closed'}
+                {submissionsOpen ? 'Open' : 'Paused'}
               </p>
             </div>
             <div className="flex gap-2">
@@ -288,9 +292,9 @@ export default function AdminDashboardClient({
                 type="button"
                 onClick={() => toggleSubmissions(false)}
                 disabled={!submissionsOpen || isTogglingSubmissions}
-                className="px-4 py-2 rounded-lg font-medium bg-red-600 text-white disabled:bg-red-300 disabled:cursor-not-allowed transition"
+                className="px-4 py-2 rounded-lg font-medium bg-orange-500 text-white disabled:bg-orange-300 disabled:cursor-not-allowed transition"
               >
-                Close submissions
+                Pause submissions
               </button>
             </div>
           </div>

@@ -119,25 +119,21 @@ function DemoPortalContent() {
         {leaderboard && (
           <div
             className={`mb-6 rounded-lg shadow-lg p-4 ${
-              leaderboard.submissionsOpen
-                ? 'bg-green-500 text-white'
-                : 'bg-red-500 text-white'
+              leaderboard.submissionsOpen ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
             }`}
           >
             <div className="flex items-center justify-center gap-3">
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-red-300'
+                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-orange-300'
                 } animate-pulse`}
               ></div>
               <h2 className="text-3xl font-bold">
-                {leaderboard.submissionsOpen
-                  ? '🟢 SUBMISSIONS OPEN'
-                  : '🔴 SUBMISSIONS CLOSED'}
+                {leaderboard.submissionsOpen ? 'Submissions open' : 'Submissions paused'}
               </h2>
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-red-300'
+                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-orange-300'
                 } animate-pulse`}
               ></div>
             </div>
@@ -159,14 +155,14 @@ function DemoPortalContent() {
           <div className="mb-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow p-4 text-gray-800 dark:text-gray-100">
             {winner ? (
               <p>
-                Submissions are currently closed. Latest winner:{' '}
+                Submissions are currently paused. Latest winner:{' '}
                 <span className="font-semibold text-indigo-600 dark:text-indigo-400">
                   {winner.name}
                 </span>
                 .
               </p>
             ) : (
-              <p>Submissions are currently closed.</p>
+              <p>Submissions are currently paused.</p>
             )}
           </div>
         )}
