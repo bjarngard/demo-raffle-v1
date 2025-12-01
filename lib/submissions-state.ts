@@ -3,8 +3,6 @@ import { ensureSystemSession } from './session'
 
 const SUBMISSIONS_STATE_EMAIL = 'submissions-state@demo-raffle.local'
 const SUBMISSIONS_STATE_STREAM_ID = '__STATE__'
-const SUBMISSIONS_STATE_USER_ID = '__SYSTEM_SENTINEL__'
-
 type StateEntry = {
   demoLink: string | null
 }
@@ -29,31 +27,40 @@ export async function setSubmissionsOpen(submissionsOpen: boolean): Promise<void
   const name = submissionsOpen ? 'Submissions Open' : 'Submissions Closed'
   const demoLink = submissionsOpen ? 'open' : 'closed'
   const systemSession = await ensureSystemSession()
-
-  await prisma.entry.upsert({
+  const sentinelEntry = await prisma.entry.findFirst({
     where: {
-      sessionId_userId: {
-        sessionId: systemSession.id,
-        userId: SUBMISSIONS_STATE_USER_ID,
-      },
-    },
-    update: {
-      name,
-      demoLink,
-      isWinner: false,
-      streamId: SUBMISSIONS_STATE_STREAM_ID,
       sessionId: systemSession.id,
-    },
-    create: {
-      name,
-      demoLink,
+      streamId: SUBMISSIONS_STATE_STREAM_ID,
       email: SUBMISSIONS_STATE_EMAIL,
-      isWinner: false,
-      streamId: SUBMISSIONS_STATE_STREAM_ID,
-      userId: SUBMISSIONS_STATE_USER_ID,
-      sessionId: systemSession.id,
     },
+    select: { id: true },
   })
+
+  if (sentinelEntry) {
+    await prisma.entry.update({
+      where: { id: sentinelEntry.id },
+      data: {
+        name,
+        demoLink,
+        isWinner: false,
+        streamId: SUBMISSIONS_STATE_STREAM_ID,
+        sessionId: systemSession.id,
+        userId: null,
+      },
+    })
+  } else {
+    await prisma.entry.create({
+      data: {
+        name,
+        demoLink,
+        email: SUBMISSIONS_STATE_EMAIL,
+        isWinner: false,
+        streamId: SUBMISSIONS_STATE_STREAM_ID,
+        sessionId: systemSession.id,
+        userId: null,
+      },
+    })
+  }
 }
 
 export const entryStateExclusion = {
