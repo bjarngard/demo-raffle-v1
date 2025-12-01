@@ -47,8 +47,9 @@ export async function POST(request: NextRequest) {
 
     const { submissionsOpen } = body as { submissionsOpen: boolean }
     await setSubmissionsOpen(submissionsOpen)
+    const updatedState = await getSubmissionsOpen()
 
-    return NextResponse.json({ success: true, submissionsOpen })
+    return NextResponse.json({ success: true, submissionsOpen: updatedState })
   } catch (error) {
     console.error('Error updating submissions state:', error)
     return NextResponse.json(

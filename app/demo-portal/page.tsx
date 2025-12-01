@@ -65,7 +65,7 @@ function DemoPortalContent() {
 
   const fetchLeaderboard = async () => {
     try {
-      const response = await fetch('/api/leaderboard')
+      const response = await fetch('/api/leaderboard', { cache: 'no-store' })
       if (response.ok) {
         const data = await response.json()
         setLeaderboard(data)
@@ -93,7 +93,7 @@ function DemoPortalContent() {
 
   const fetchLatestWinner = async () => {
     try {
-      const response = await fetch('/api/winner')
+      const response = await fetch('/api/winner', { cache: 'no-store' })
       if (!response.ok) {
         return
       }

@@ -83,7 +83,7 @@ function RaffleForm() {
 
     async function fetchLeaderboard() {
       try {
-        const response = await fetch('/api/leaderboard')
+        const response = await fetch('/api/leaderboard', { cache: 'no-store' })
         if (response.ok) {
           const data = await response.json()
           setLeaderboard(data)
