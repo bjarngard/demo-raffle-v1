@@ -127,7 +127,6 @@ export async function POST(request: NextRequest) {
     const existingSessionEntry = await prisma.entry.findFirst({
       where: {
         userId: session.user.id,
-        isWinner: false,
         sessionId: currentSession.id,
         ...entryStateExclusion,
       },
