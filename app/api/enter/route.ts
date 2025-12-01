@@ -15,22 +15,85 @@ const RATE_LIMIT_PER_IP = 10 // 10 submissions per hour per IP
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit by IP
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
-    if (!checkRateLimit(`ip:${ip}`, RATE_LIMIT_PER_IP, 60 * 60 * 1000)) {
+    // --- IP-based rate limit ---
+    const ipHeader = request.headers.get('x-forwarded-for')
+    const ip = ipHeader ? ipHeader.split(',')[0].trim() : 'unknown'
+    const ipKey = `demo_submit_ip:${ip}`
+
+    const { success: ipAllowed, message: ipMessage } = checkRateLimit(
+      ipKey,
+      RATE_LIMIT_PER_IP,
+      60 * 60 * 1000 // 1 hour
+    )
+
+    if (!ipAllowed) {
       return NextResponse.json(
-        { success: false, error: 'Too many requests. Please try again later.' },
-        { status: 429 }
+        {
+          success: false,
+          error: ipMessage || 'Too many submissions from this IP. Please try again later.',
+          errorCode: 'RATE_LIMIT_IP',
+        },
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
       )
     }
 
     const session = await auth()
+
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'You must be signed in with Twitch to submit a demo.',
+          errorCode: 'UNAUTHENTICATED',
+        },
+        {
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    // --- User-based rate limit ---
+    const userKey = `demo_submit_user:${session.user.id}`
+    const { success: userAllowed, message: userMessage } = checkRateLimit(
+      userKey,
+      RATE_LIMIT_PER_USER,
+      60 * 60 * 1000 // 1 hour
+    )
+
+    if (!userAllowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: userMessage || 'Too many submissions from this account. Please try again later.',
+          errorCode: 'RATE_LIMIT_USER',
+        },
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    const body = await request.json()
+    const { name, demoLink } = body as { name?: string; demoLink?: string }
+
     const submissionsOpen = await getSubmissionsOpen()
+
     if (!submissionsOpen) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Submissions are currently closed. Please try again later.',
+          error: 'Submissions are currently closed.',
           errorCode: 'SUBMISSIONS_CLOSED',
         },
         {
@@ -42,69 +105,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-
     const currentSession = await getCurrentSession()
-
-    // REQUIRE Twitch login
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: 'You must be logged in with Twitch to enter the raffle' },
-        {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-    }
-
-    // Check if user follows the channel - REQUIRED
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    })
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found. Please try logging in again.' },
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-    }
-
-    if (!user.isFollower) {
-      return NextResponse.json(
-        { error: 'NOT_FOLLOWING' },
-        {
-          status: 403,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-    }
-
-    let body
-    try {
-      body = await request.json()
-    } catch {
-      return NextResponse.json(
-        { success: false, error: 'Invalid JSON in request body' },
-        { status: 400 }
-      )
-    }
-    const { name, demoLink } = body
-
-    // Rate limit per user
-    if (!checkRateLimit(`user:${session.user.id}`, RATE_LIMIT_PER_USER, 60 * 60 * 1000)) {
-      return NextResponse.json(
-        { success: false, error: 'Too many submissions. Please try again later.' },
-        { status: 429 }
-      )
-    }
 
     if (!currentSession) {
       return NextResponse.json(
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest) {
         }
       )
     }
+
     // 1) Check if user already has an entry in the CURRENT session
     const existingSessionEntry = await prisma.entry.findFirst({
       where: {
@@ -164,47 +166,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-
-    const existingSessionEntry = await prisma.entry.findFirst({
-      where: {
-        userId: session.user.id,
-        isWinner: false,
-        sessionId: currentSession.id,
-        ...entryStateExclusion,
-      },
-    })
-
-    if (existingSessionEntry) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'You already have an active submission for this session.',
-          errorCode: 'ALREADY_SUBMITTED_THIS_SESSION',
-        },
-        { status: 400 }
-      )
-    }
-
-    const pendingEntry = await prisma.entry.findFirst({
-      where: {
-        userId: session.user.id,
-        isWinner: false,
-        sessionId: { not: currentSession.id },
-        ...entryStateExclusion,
-      },
-    })
-
-    if (pendingEntry) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'You already have a pending submission with accumulated weight. It must be drawn before you can submit again.',
-          errorCode: 'PENDING_ENTRY_FROM_PREVIOUS_SESSION',
-        },
-        { status: 400 }
-      )
-    }
-
     // Validate demo link if provided
     if (demoLink && demoLink.trim()) {
       let url: URL
@@ -216,13 +177,15 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
+
       const domain = url.hostname.replace('www.', '')
       if (!ALLOWED_DOMAINS.some(d => domain === d || domain.endsWith('.' + d))) {
         return NextResponse.json(
-          { success: false, error: 'Demo link must be from SoundCloud, Google Drive, or Dropbox' },
+          { success: false, error: 'Demo link must be from SoundCloud, Google Drive, or Dropbox.' },
           { status: 400 }
         )
       }
+
       // Quick HEAD check (2s timeout)
       try {
         const controller = new AbortController()
@@ -235,65 +198,101 @@ export async function POST(request: NextRequest) {
     }
 
     // Name is optional if user has displayName
-    const displayName = name?.trim() || user.displayName || user.username
-
-    // Try to create new participant
-    try {
-      const entryData: Prisma.EntryCreateInput = {
-        name: displayName,
-        user: {
-          connect: { id: session.user.id }, // Always linked to Twitch user
-        },
-        session: {
-          connect: {
-            id: currentSession.id,
-          },
-        },
-      }
-
-      // Add demo link if provided
-      if (demoLink && demoLink.trim()) {
-        entryData.demoLink = demoLink.trim()
-      }
-
-      // Use email from user if available
-      if (user.email) {
-        entryData.email = user.email.toLowerCase()
-      }
-
-      const entry = await prisma.entry.create({
-        data: entryData,
+    let displayName = name?.trim()
+    if (!displayName) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { displayName: true },
       })
+      displayName = user?.displayName || ''
+    }
 
+    if (!displayName) {
       return NextResponse.json(
-        { success: true, id: entry.id },
+        { success: false, error: 'Name or Twitch display name is required.' },
+        { status: 400 }
+      )
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        isFollower: true,
+      },
+    })
+
+    if (!user) {
+      return NextResponse.json(
         {
+          success: false,
+          error: 'User not found in the raffle system.',
+          errorCode: 'USER_NOT_FOUND',
+        },
+        {
+          status: 404,
           headers: {
             'Content-Type': 'application/json',
           },
         }
       )
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        return NextResponse.json(
-          { success: false, error: 'This email is already registered', errorCode: 'EMAIL_ALREADY_REGISTERED' },
-          {
-            status: 400,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        )
-      }
-      throw error
     }
+
+    if (!user.isFollower) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'You need to follow the channel on Twitch before entering the raffle.',
+          errorCode: 'NOT_FOLLOWING',
+        },
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    const entryData: Prisma.EntryCreateInput = {
+      name: displayName,
+      user: {
+        connect: { id: session.user.id },
+      },
+      session: {
+        connect: {
+          id: currentSession.id,
+        },
+      },
+    }
+
+    if (demoLink && demoLink.trim()) {
+      entryData.demoLink = demoLink.trim()
+    }
+
+    const entry = await prisma.entry.create({
+      data: entryData,
+    })
+
+    return NextResponse.json(
+      {
+        success: true,
+        entryId: entry.id,
+      },
+      {
+        status: 201,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
   } catch (error) {
     console.error('Error in /api/enter:', error)
     return NextResponse.json(
       {
         success: false,
         error: 'An error occurred during registration',
-        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined,
       },
       {
         status: 500,
@@ -304,4 +303,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
