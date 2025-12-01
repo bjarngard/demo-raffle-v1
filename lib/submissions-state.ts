@@ -65,7 +65,7 @@ export async function setSubmissionsOpen(submissionsOpen: boolean): Promise<void
 }
 
 export const entryStateExclusion = {
-  email: { not: SUBMISSIONS_STATE_EMAIL },
+  OR: [{ email: null }, { email: { not: SUBMISSIONS_STATE_EMAIL } }],
 }
 
 export const submissionsStateEmail = SUBMISSIONS_STATE_EMAIL

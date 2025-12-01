@@ -287,5 +287,229 @@ Other endpoints primarily return descriptive `error` strings without named `erro
 └─ ... miscellaneous config files
 ```
 
+---
+
+## 13. Raffle State Machine & Central Logic (Authoritative Spec)
+
+### 13.1 Purpose
+
+This section defines the **intended** long-term architecture and business rules for the raffle logic.  
+The rest of this document describes the current implementation; this section describes the **target model** that code should converge towards.
+
+Whenever there is ambiguity or conflict between older descriptions and this section, this section is authoritative for future changes.
+
+### 13.2 Core Concepts
+
+We introduce three key ideas:
+
+1. **Raffle state machine** – a finite set of user/session states that govern whether a viewer may submit.
+2. **Central "raffle brain" module** – a single module in `lib/` that encapsulates the raffle rules.
+3. **Database as final enforcer** – the Prisma/DB constraint on `(sessionId, userId)` remains the final guard against multiple entries in the same session.
+
+### 13.3 Target Module: `lib/raffle-logic.ts`
+
+A new module should be introduced:
+
+- File: `lib/raffle-logic.ts`
+
+It should export:
+
+```ts
+export type UserRaffleState =
+  | 'NO_SESSION'
+  | 'NO_ENTRY'
+  | 'HAS_ENTRY_THIS_SESSION'
+  | 'HAS_PENDING_FROM_PREVIOUS_SESSION'
+  | 'CAN_SUBMIT'
+
+export type ResolveUserRaffleStateInput = {
+  userId: string
+  currentSessionId: string | null
+}
+
+export type ResolveUserRaffleStateResult = {
+  state: UserRaffleState
+  blockingEntry: Entry | null
+  pendingEntry: Entry | null
+}
+```
+
+And a core resolver:
+
+```ts
+export async function resolveUserRaffleState(
+  input: ResolveUserRaffleStateInput
+): Promise<ResolveUserRaffleStateResult> {
+  // Implementation details go here in code,
+  // but the behavior MUST follow the state machine and rules below.
+}
+```
+
+> Note: The exact imports (e.g., `Entry` type) and Prisma calls are left to the implementation, but MUST follow the semantics described here.
+
+### 13.4 State Machine: User + Session
+
+Given:
+
+* `currentSessionId` (string or null),
+* any existing entries for the user,
+
+the resolver MUST classify the user into one of the `UserRaffleState` values according to these rules:
+
+1. **NO_SESSION**
+
+   * When there is no active `RaffleSession`.
+   * Submissions MUST be blocked with `NO_ACTIVE_SESSION`.
+
+2. **HAS_ENTRY_THIS_SESSION**
+
+   * When the user already has an entry in the current session (matching `(sessionId, userId)`).
+   * This entry may be pending or already winner; in both cases, the user must not submit another entry for the same session.
+   * Submissions MUST be blocked with `ALREADY_SUBMITTED_THIS_SESSION`.
+
+3. **HAS_PENDING_FROM_PREVIOUS_SESSION**
+
+   * When the user has at least one pending entry (`isWinner = false`) from a **previous** session (not `currentSessionId`).
+   * This represents a carry-over entry.
+   * Submissions MUST be blocked with `PENDING_ENTRY_FROM_PREVIOUS_SESSION`.
+   * This remains true until that pending entry is drawn as a winner.
+
+4. **NO_ENTRY**
+
+   * When:
+
+     * there is an active session,
+     * the user has no entry for the current session,
+     * the user has no pending entries in any session.
+   * This is a transient state that resolves to `CAN_SUBMIT`.
+
+5. **CAN_SUBMIT**
+
+   * When:
+
+     * there is an active session AND
+     * the user has no conflicting pending entries AND
+     * the user has not yet submitted in the current session.
+   * In this state, the resolver signals that `/api/enter` may proceed to create a new `Entry` row.
+
+### 13.5 Hard Business Invariants (Target Model)
+
+The following invariants MUST be respected by all future code changes:
+
+1. **One entry per session per user**
+
+   * Enforced at DB level by `@@unique([sessionId, userId])`.
+   * No code is allowed to bypass or disable this constraint.
+   * If `prisma.entry.create()` throws `P2002` on `(sessionId, userId)`, this MUST always be interpreted as “user already has an entry in this session” and surfaced as `ALREADY_SUBMITTED_THIS_SESSION`.
+
+2. **Global pending entry rule**
+
+   * A “pending entry” is any `Entry` with `isWinner = false`.
+   * If a user has ANY pending entry (any session), that entry blocks new submissions until:
+
+     * it is drawn as a winner, **and**
+     * the user does not already have a row for the current session.
+
+3. **Carry-over behavior**
+
+   * Pending entries may carry over across sessions.
+   * A carry-over entry from a previous session remains pending until it wins in a later session.
+   * When a carry-over entry wins:
+
+     * The user’s “pending block” is cleared.
+     * The user may submit a new entry, subject to the per-session rule (only one row per session).
+
+4. **Visibility invariant**
+
+   * Any pending entry (`isWinner = false`) MUST be visible:
+
+     * in the main viewer leaderboard (for the appropriate session),
+     * in the admin “Active Entries” / “Raffle” views.
+   * No pending entries may silently exist only in the database while being invisible in the UI.
+
+5. **Sessions vs submissions**
+
+   * Sessions and submissions-open/closed remain orthogonal (as documented in §6).
+   * The state machine is layered on top of that:
+
+     * even if submissions are open, `resolveUserRaffleState` may still block the user (e.g., pending carry-over).
+
+### 13.6 `/api/enter` Endpoint Integration (Target Behavior)
+
+The `/api/enter` handler MUST eventually be refactored to:
+
+1. Resolve the active session:
+
+   * If none → return `NO_ACTIVE_SESSION`.
+
+2. Call `resolveUserRaffleState({ userId, currentSessionId })`:
+
+   * If `NO_SESSION` → map to `NO_ACTIVE_SESSION`.
+   * If `HAS_ENTRY_THIS_SESSION` → return `ALREADY_SUBMITTED_THIS_SESSION`.
+   * If `HAS_PENDING_FROM_PREVIOUS_SESSION` → return `PENDING_ENTRY_FROM_PREVIOUS_SESSION`.
+   * If `CAN_SUBMIT` → proceed to DB insert.
+
+3. Attempt to create the entry:
+
+```ts
+try {
+  const entry = await prisma.entry.create({ data: entryData })
+  // return success payload
+} catch (error) {
+  // If Prisma error code === 'P2002' on (sessionId, userId)
+  // → map to ALREADY_SUBMITTED_THIS_SESSION
+  // Otherwise rethrow or map to generic error.
+}
+```
+
+The DB acts as the final enforcer against race conditions and double-click submission.
+
+### 13.7 Leaderboard & Admin as Views on the Same Truth
+
+The leaderboard and admin APIs must be considered **views** over the same underlying state:
+
+* They must both:
+
+  * respect the session scoping,
+  * show pending entries correctly,
+  * not hide real entries with extra, ad-hoc filters.
+
+Key points:
+
+* Viewer leaderboard:
+
+  * Focuses on entries for the **current** session.
+  * Pending entries for the current session must appear here.
+* Admin “Active Entries” / “Raffle”:
+
+  * Shows all pending entries relevant to the current raffle context.
+  * May include carry-over entries explicitly, but must never hide pending rows that block the user from submitting.
+
+If the database has an `Entry` row that causes a user to be blocked from submitting, that same entry MUST be observable in at least one admin view, and — if it belongs to the current session — in the viewer leaderboard.
+
+### 13.8 Migration Path
+
+This section defines the target behavior. The current implementation (as documented above in sections 1–12) may diverge from this in details.
+
+Future refactors should:
+
+1. Introduce `lib/raffle-logic.ts` with the API defined here.
+2. Gradually move the scattered conditional logic from:
+
+   * `/api/enter`,
+   * `/api/leaderboard`,
+   * admin entry APIs,
+
+     into the central resolver and simple helper functions.
+3. Keep every change aligned with:
+
+   * The state machine in §13.4.
+   * The invariants in §13.5.
+   * The endpoint behavior in §13.6–13.7.
+
+---
+
+_Last updated: 2025-12-01 – added raffle state machine & central logic spec (section 13)._
+
 _Last updated: 2025-11-30 via automated documentation task._
 
