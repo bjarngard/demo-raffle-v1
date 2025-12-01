@@ -6,7 +6,7 @@ const SYSTEM_SESSION_NAME = 'System Sentinel Session'
 export async function getCurrentSession() {
   return prisma.raffleSession.findFirst({
     where: {
-      isSystem: false,
+      status: 'ACTIVE',
       endedAt: null,
     },
     orderBy: {
@@ -18,7 +18,7 @@ export async function getCurrentSession() {
 export async function getLatestEndedSession() {
   return prisma.raffleSession.findFirst({
     where: {
-      isSystem: false,
+      status: 'ENDED',
       endedAt: {
         not: null,
       },
@@ -31,14 +31,14 @@ export async function getLatestEndedSession() {
 
 export async function ensureSystemSession() {
   let session = await prisma.raffleSession.findFirst({
-    where: { isSystem: true },
+    where: { status: 'SYSTEM' },
   })
 
   if (!session) {
     session = await prisma.raffleSession.create({
       data: {
         name: SYSTEM_SESSION_NAME,
-        isSystem: true,
+        status: 'SYSTEM',
       },
     })
   }
@@ -55,7 +55,7 @@ export async function startNewSession(name?: string) {
   const session = await prisma.raffleSession.create({
     data: {
       name,
-      isSystem: false,
+      status: 'ACTIVE',
     },
   })
 
@@ -85,6 +85,7 @@ export async function endCurrentSession() {
     where: { id: active.id },
     data: {
       endedAt: new Date(),
+      status: 'ENDED',
     },
   })
 }

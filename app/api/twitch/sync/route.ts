@@ -24,6 +24,14 @@ type WeightSource = {
   carryOverWeight: number
 }
 
+type SerializeUserSource = WeightSource & {
+  id: string
+  username: string | null
+  displayName: string | null
+  isFollower: boolean
+  totalWeight: number
+}
+
 // Sync user's Twitch data in real-time
 const USER_SYNC_COOLDOWN_MS = 60 * 1000
 
@@ -132,7 +140,7 @@ async function fetchTwitchData(broadcasterToken: string, twitchUserId: string): 
   }
 }
 
-function serializeUser(user: WeightSource & Record<string, any>) {
+function serializeUser(user: SerializeUserSource) {
   return {
     id: user.id,
     username: user.username,

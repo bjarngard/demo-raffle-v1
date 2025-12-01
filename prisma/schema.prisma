@@ -62,7 +62,7 @@ model Entry {
   userId     String? // Twitch user ID
   user       User?          @relation(fields: [userId], references: [id])
   name       String
-  email      String?        @unique
+  email      String?
   demoLink   String?        // Demo link (SoundCloud, Drive, etc.)
   createdAt  DateTime       @default(now())
   isWinner   Boolean        @default(false)
@@ -103,10 +103,10 @@ model Session {
 model RaffleSession {
   id        String   @id @default(cuid())
   name      String?
-  isSystem  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   endedAt   DateTime?
+  status    String   @default("ACTIVE")
   entries   Entry[]
 }
 

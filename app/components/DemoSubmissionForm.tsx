@@ -107,6 +107,10 @@ export default function DemoSubmissionForm({
           setError('You already have a pending submission with accumulated weight. It must be drawn before you can submit again.')
           return
         }
+        if (errorCode === 'NOT_FOLLOWING') {
+          setError('You need to follow the channel on Twitch before entering the raffle.')
+          return
+        }
         setError(data.error || 'Failed to submit')
         return
       }

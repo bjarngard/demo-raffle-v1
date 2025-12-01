@@ -151,6 +151,8 @@ function RaffleForm() {
           setError('You already have an active submission for this session.')
         } else if (errorCode === 'PENDING_ENTRY_FROM_PREVIOUS_SESSION') {
           setError('You already have a pending submission with accumulated weight. It must be drawn before you can submit again.')
+        } else if (errorCode === 'NOT_FOLLOWING') {
+          setError('You need to follow the channel on Twitch before entering.')
         } else {
           setError(data.error || 'An error occurred')
         }

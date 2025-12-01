@@ -3,7 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { Prisma } from '@prisma/client'
-import { getSubmissionsOpen, submissionsStateEmail } from '@/lib/submissions-state'
+import { entryStateExclusion, getSubmissionsOpen } from '@/lib/submissions-state'
 import { getCurrentSession } from '@/lib/session'
 
 export const runtime = 'nodejs'
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: 'You must be logged in with Twitch to enter the raffle' },
-        { 
+        {
           status: 401,
           headers: {
             'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'User not found. Please try logging in again.' },
-        { 
+        {
           status: 404,
           headers: {
             'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     if (!user.isFollower) {
       return NextResponse.json(
         { error: 'NOT_FOLLOWING' },
-        { 
+        {
           status: 403,
           headers: {
             'Content-Type': 'application/json',
@@ -121,34 +121,80 @@ export async function POST(request: NextRequest) {
         }
       )
     }
-
-    const existingEntry = await prisma.entry.findFirst({
+    // 1) Check if user already has an entry in the CURRENT session
+    const existingSessionEntry = await prisma.entry.findFirst({
       where: {
         userId: session.user.id,
         isWinner: false,
-        email: { not: submissionsStateEmail },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-      select: {
-        id: true,
-        sessionId: true,
+        sessionId: currentSession.id,
+        ...entryStateExclusion,
       },
     })
 
-    if (existingEntry) {
-      if (existingEntry.sessionId === currentSession.id) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'You already have an active submission for this session.',
-            errorCode: 'ALREADY_SUBMITTED_THIS_SESSION',
-          },
-          { status: 400 }
-        )
-      }
+    if (existingSessionEntry) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'You already have an active submission for this session.',
+          errorCode: 'ALREADY_SUBMITTED_THIS_SESSION',
+        },
+        { status: 400 }
+      )
+    }
 
+    // 2) Check if user has a pending entry from ANY PREVIOUS session
+    const pendingEntry = await prisma.entry.findFirst({
+      where: {
+        userId: session.user.id,
+        isWinner: false,
+        sessionId: { not: currentSession.id },
+        ...entryStateExclusion,
+      },
+    })
+
+    if (pendingEntry) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'You already have a pending submission with accumulated weight. It must be drawn before you can submit again.',
+          errorCode: 'PENDING_ENTRY_FROM_PREVIOUS_SESSION',
+        },
+        { status: 400 }
+      )
+    }
+
+
+    const existingSessionEntry = await prisma.entry.findFirst({
+      where: {
+        userId: session.user.id,
+        isWinner: false,
+        sessionId: currentSession.id,
+        ...entryStateExclusion,
+      },
+    })
+
+    if (existingSessionEntry) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'You already have an active submission for this session.',
+          errorCode: 'ALREADY_SUBMITTED_THIS_SESSION',
+        },
+        { status: 400 }
+      )
+    }
+
+    const pendingEntry = await prisma.entry.findFirst({
+      where: {
+        userId: session.user.id,
+        isWinner: false,
+        sessionId: { not: currentSession.id },
+        ...entryStateExclusion,
+      },
+    })
+
+    if (pendingEntry) {
       return NextResponse.json(
         {
           success: false,
@@ -231,7 +277,7 @@ export async function POST(request: NextRequest) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         return NextResponse.json(
           { success: false, error: 'This email is already registered', errorCode: 'EMAIL_ALREADY_REGISTERED' },
-          { 
+          {
             status: 400,
             headers: {
               'Content-Type': 'application/json',
@@ -244,12 +290,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in /api/enter:', error)
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'An error occurred during registration',
         details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
       },
-      { 
+      {
         status: 500,
         headers: {
           'Content-Type': 'application/json',

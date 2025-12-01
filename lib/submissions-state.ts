@@ -3,13 +3,14 @@ import { ensureSystemSession } from './session'
 
 const SUBMISSIONS_STATE_EMAIL = 'submissions-state@demo-raffle.local'
 const SUBMISSIONS_STATE_STREAM_ID = '__STATE__'
+const SUBMISSIONS_STATE_USER_ID = '__SYSTEM_SENTINEL__'
 
 type StateEntry = {
   demoLink: string | null
 }
 
 async function readStateEntry(): Promise<StateEntry | null> {
-  return prisma.entry.findUnique({
+  return prisma.entry.findFirst({
     where: { email: SUBMISSIONS_STATE_EMAIL },
     select: { demoLink: true },
   })
@@ -38,7 +39,12 @@ export async function setSubmissionsOpen(submissionsOpen: boolean): Promise<void
   const systemSession = await ensureSystemSession()
 
   await prisma.entry.upsert({
-    where: { email: SUBMISSIONS_STATE_EMAIL },
+    where: {
+      sessionId_userId: {
+        sessionId: systemSession.id,
+        userId: SUBMISSIONS_STATE_USER_ID,
+      },
+    },
     update: {
       name,
       demoLink,
@@ -52,6 +58,7 @@ export async function setSubmissionsOpen(submissionsOpen: boolean): Promise<void
       email: SUBMISSIONS_STATE_EMAIL,
       isWinner: false,
       streamId: SUBMISSIONS_STATE_STREAM_ID,
+      userId: SUBMISSIONS_STATE_USER_ID,
       sessionId: systemSession.id,
     },
   })
