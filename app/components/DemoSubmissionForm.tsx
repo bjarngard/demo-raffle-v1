@@ -20,17 +20,29 @@ export default function DemoSubmissionForm({
   sessionActive = true,
 }: DemoSubmissionFormProps) {
   const { data: session } = useSession()
+  const [sessionOverride, setSessionOverride] = useState<boolean | null>(null)
+  const [submissionsOverride, setSubmissionsOverride] = useState<boolean | null>(null)
   const [demoLink, setDemoLink] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [loadingSubmission, setLoadingSubmission] = useState(true)
+  const effectiveSessionActive = sessionOverride ?? sessionActive
+  const effectiveSubmissionsOpen = submissionsOverride ?? submissionsOpen
 
   useEffect(() => {
-    if (submissionsOpen && sessionActive) {
+    if (effectiveSubmissionsOpen && effectiveSessionActive) {
       setError('')
     }
-  }, [submissionsOpen, sessionActive])
+  }, [effectiveSubmissionsOpen, effectiveSessionActive])
+
+  useEffect(() => {
+    setSessionOverride(null)
+  }, [sessionActive])
+
+  useEffect(() => {
+    setSubmissionsOverride(null)
+  }, [submissionsOpen])
 
   // Fetch existing submission
   useEffect(() => {
@@ -59,13 +71,15 @@ export default function DemoSubmissionForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!sessionActive) {
+    if (!effectiveSessionActive) {
       setError('The raffle is not currently running. Please check back later.')
+      setSessionOverride(false)
       return
     }
 
-    if (!submissionsOpen) {
+    if (!effectiveSubmissionsOpen) {
       setError('Submissions are currently closed. Please check back later.')
+      setSubmissionsOverride(false)
       return
     }
 
@@ -89,10 +103,12 @@ export default function DemoSubmissionForm({
         const errorCode = data.errorCode || data.error
         if (errorCode === 'NO_ACTIVE_SESSION') {
           setError('The raffle is not currently running. Please try again later.')
+          setSessionOverride(false)
           return
         }
         if (errorCode === 'SUBMISSIONS_CLOSED') {
           setError('Submissions are currently closed. Please try again later.')
+          setSubmissionsOverride(false)
           return
         }
         if (errorCode === 'EMAIL_ALREADY_REGISTERED') {
@@ -179,7 +195,7 @@ export default function DemoSubmissionForm({
     )
   }
 
-  if (!sessionActive) {
+  if (!effectiveSessionActive) {
     return (
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">No active session</h3>
@@ -190,7 +206,7 @@ export default function DemoSubmissionForm({
     )
   }
 
-  if (!submissionsOpen) {
+  if (!effectiveSubmissionsOpen) {
     return (
       <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Submissions are closed</h3>

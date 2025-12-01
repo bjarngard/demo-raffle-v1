@@ -34,8 +34,13 @@ function RaffleForm() {
   const [isFollower, setIsFollower] = useState<boolean | null>(null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null)
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true)
+  const [sessionOverride, setSessionOverride] = useState<boolean | null>(null)
+  const [submissionsOverride, setSubmissionsOverride] = useState<boolean | null>(null)
   const sessionActive = leaderboard?.sessionId ? true : false
-  const submissionsClosed = leaderboard?.submissionsOpen === false
+  const submissionsOpen = leaderboard?.submissionsOpen === true
+  const effectiveSessionActive = sessionOverride ?? sessionActive
+  const effectiveSubmissionsOpen = submissionsOverride ?? submissionsOpen
+  const submissionsClosed = !effectiveSubmissionsOpen
 
   const checkFollowStatus = useCallback(async () => {
     if (!session?.user?.id) return
@@ -104,17 +109,27 @@ function RaffleForm() {
     return () => clearInterval(interval)
   }, [session, checkFollowStatus])
 
+  useEffect(() => {
+    setSessionOverride(null)
+  }, [leaderboard?.sessionId])
+
+  useEffect(() => {
+    setSubmissionsOverride(null)
+  }, [leaderboard?.submissionsOpen])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-  if (!sessionActive) {
-    setError('The raffle is not currently running. Please check back later.')
-    return
-  }
+    if (!effectiveSessionActive) {
+      setError('The raffle is not currently running. Please check back later.')
+      setSessionOverride(false)
+      return
+    }
 
-  if (submissionsClosed) {
+    if (submissionsClosed) {
       setError('Submissions are currently closed. Please try again later.')
+      setSubmissionsOverride(false)
       return
     }
 
@@ -142,8 +157,10 @@ function RaffleForm() {
       if (!response.ok) {
         const errorCode = data.errorCode || data.error
         if (errorCode === 'NO_ACTIVE_SESSION') {
+          setSessionOverride(false)
           setError('The raffle is not currently running. Please try again later.')
         } else if (errorCode === 'SUBMISSIONS_CLOSED') {
+          setSubmissionsOverride(false)
           setError('Submissions are currently closed. Please try again later.')
         } else if (errorCode === 'EMAIL_ALREADY_REGISTERED') {
           setError('This email is already registered for this round.')
@@ -327,7 +344,7 @@ function RaffleForm() {
                 You are now registered. Good luck! 🍀
               </p>
             </div>
-          ) : !sessionActive ? (
+          ) : !effectiveSessionActive ? (
             <div className="text-center py-8">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full mb-4">
                 <svg

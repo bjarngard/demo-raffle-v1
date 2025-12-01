@@ -22,15 +22,7 @@ export async function getSubmissionsOpen(): Promise<boolean> {
     return stateEntry.demoLink !== 'closed'
   }
 
-  const hasWinner = await prisma.entry.findFirst({
-    where: {
-      isWinner: true,
-      email: { not: SUBMISSIONS_STATE_EMAIL },
-    },
-    select: { id: true },
-  })
-
-  return !hasWinner
+  return true
 }
 
 export async function setSubmissionsOpen(submissionsOpen: boolean): Promise<void> {

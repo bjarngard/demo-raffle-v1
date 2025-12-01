@@ -186,7 +186,7 @@ function DemoPortalContent() {
                   Submit Your Demo
                 </h2>
                 <DemoSubmissionForm
-                  submissionsOpen={leaderboard?.submissionsOpen !== false}
+                  submissionsOpen={leaderboard?.submissionsOpen === true}
                   sessionActive={Boolean(leaderboard?.sessionId)}
                 />
               </div>
