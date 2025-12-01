@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/admin-auth'
 import { getCurrentSession, endCurrentSession } from '@/lib/session'
 import { applyCarryOverForSession } from '@/lib/carry-over'
+import { setSubmissionsOpen } from '@/lib/submissions-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
 
     const carryOver = await applyCarryOverForSession(currentSession.id, resetWeights)
     const endedSession = await endCurrentSession()
+    await setSubmissionsOpen(false)
 
     return NextResponse.json({
       success: true,

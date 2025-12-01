@@ -87,9 +87,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, demoLink } = body as { name?: string; demoLink?: string }
 
-    const submissionsOpen = await getSubmissionsOpen()
+    const submissionsOpenFlag = await getSubmissionsOpen()
 
-    if (!submissionsOpen) {
+    if (!submissionsOpenFlag) {
       return NextResponse.json(
         {
           success: false,
@@ -123,11 +123,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const submissionsOpen = await getSubmissionsOpen()
+
+    if (!submissionsOpen) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Submissions are currently closed. Please try again later.',
+          errorCode: 'SUBMISSIONS_CLOSED',
+        },
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
     // 1) Check if user already has an entry in the CURRENT session
     const existingSessionEntry = await prisma.entry.findFirst({
       where: {
         userId: session.user.id,
         sessionId: currentSession.id,
+        isWinner: false,
         ...entryStateExclusion,
       },
     })

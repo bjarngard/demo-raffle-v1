@@ -78,7 +78,10 @@ export async function POST() {
 
       const updatedEntry = await tx.entry.update({
         where: { id: winner.id },
-        data: { isWinner: true },
+        data: {
+          isWinner: true,
+          sessionId: currentSession.id,
+        },
       })
 
       if (freshEntry.userId) {

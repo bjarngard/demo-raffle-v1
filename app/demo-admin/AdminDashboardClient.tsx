@@ -272,18 +272,18 @@ export default function AdminDashboardClient({
             )}
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Submissions Status</p>
               <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                {submissionsOpen ? 'Open' : 'Paused'}
+                  {sessionInfo ? (submissionsOpen ? 'Open' : 'Paused') : 'No active session'}
               </p>
             </div>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => toggleSubmissions(true)}
-                disabled={submissionsOpen || isTogglingSubmissions}
+                  disabled={!sessionInfo || submissionsOpen || isTogglingSubmissions}
                 className="px-4 py-2 rounded-lg font-medium bg-green-600 text-white disabled:bg-green-300 disabled:cursor-not-allowed transition"
               >
                 Open submissions
@@ -291,7 +291,7 @@ export default function AdminDashboardClient({
               <button
                 type="button"
                 onClick={() => toggleSubmissions(false)}
-                disabled={!submissionsOpen || isTogglingSubmissions}
+                  disabled={!sessionInfo || !submissionsOpen || isTogglingSubmissions}
                 className="px-4 py-2 rounded-lg font-medium bg-orange-500 text-white disabled:bg-orange-300 disabled:cursor-not-allowed transition"
               >
                 Pause submissions

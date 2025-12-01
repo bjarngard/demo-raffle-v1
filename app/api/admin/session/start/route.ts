@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/admin-auth'
 import { startNewSession } from '@/lib/session'
+import { setSubmissionsOpen } from '@/lib/submissions-state'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await startNewSession(name)
+    await setSubmissionsOpen(true)
 
     return NextResponse.json({
       success: true,
