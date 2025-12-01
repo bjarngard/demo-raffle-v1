@@ -269,9 +269,32 @@ export async function POST(request: NextRequest) {
       entryData.demoLink = demoLink.trim()
     }
 
-    const entry = await prisma.entry.create({
-      data: entryData,
-    })
+    let entry
+    try {
+      entry = await prisma.entry.create({
+        data: entryData,
+      })
+    } catch (error: unknown) {
+      const prismaError = error as { code?: string }
+
+      if (prismaError?.code === 'P2002') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'You already have an active submission for this session.',
+            errorCode: 'ALREADY_SUBMITTED_THIS_SESSION',
+          },
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+      }
+
+      throw error
+    }
 
     return NextResponse.json(
       {
