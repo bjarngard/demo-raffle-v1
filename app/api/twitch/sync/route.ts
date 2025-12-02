@@ -17,6 +17,7 @@ export async function POST() {
       )
     }
 
+    // Weight/Twitch sync (B): explicit force-sync bypasses cooldown for manual refresh.
     const { user, updated, reason } = await syncUserFromTwitch(session.user.id, { force: true })
 
     return NextResponse.json({

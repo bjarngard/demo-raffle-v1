@@ -4,6 +4,7 @@ import { getBroadcasterAccessToken } from './twitch-oauth'
 import { checkUserFollowsChannel, getUserSubscription } from './twitch-api'
 import { calculateUserWeight } from './weight-settings'
 
+// Canonical bridge: Twitch → normalized DB → weight engine.
 export const USER_TWITCH_SYNC_COOLDOWN_MS = 60_000
 
 export type UserTwitchSyncResult = {

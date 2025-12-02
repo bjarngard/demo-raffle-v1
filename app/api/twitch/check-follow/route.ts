@@ -19,6 +19,7 @@ export async function POST() {
     }
 
     const user = await ensureUser(session.user)
+    // Gatekeeping (A): consult Twitch-evaluated status, treating unknown as non-blocking cache.
     const followStatus = await evaluateFollowStatus({
       id: user.id,
       twitchId: user.twitchId,

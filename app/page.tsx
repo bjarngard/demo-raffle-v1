@@ -113,6 +113,7 @@ function RaffleForm() {
       setFollowStatus('checking')
       setFollowReason(null)
       checkFollowStatus()
+      // Hint-only sync to refresh Twitch-derived state after login without blocking UI.
       fetch('/api/twitch/sync', { method: 'POST' }).catch((err) => {
         console.error('Twitch sync on login failed:', err)
       })
@@ -249,7 +250,7 @@ function RaffleForm() {
     )
   }
 
-  // User is logged in - check if they follow
+  // Gatekeeping (A): only block when Twitch explicitly reports not_following; unknown just warns.
   if (followStatus === 'not_following') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -344,6 +345,7 @@ function RaffleForm() {
 
           <TwitchLogin />
 
+          {/* Warning only (A): uncertain follow state never blocks entry, just informs the user. */}
           {followStatus === 'unknown' && (
             <div className="mt-4 mb-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4">
               <p className="text-sm text-yellow-800 dark:text-yellow-200">

@@ -190,6 +190,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Gatekeeping (A): require an explicit not_following result before blocking entry.
     const followStatus = await evaluateFollowStatus({
       id: viewer.id,
       twitchId: viewer.twitchId,

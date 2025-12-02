@@ -28,6 +28,7 @@ export default function MyStatusCard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // UI display (C): poll the canonical weight API, never recompute client-side.
   useEffect(() => {
     if (!session?.user?.id) return
     fetchWeightInfo()

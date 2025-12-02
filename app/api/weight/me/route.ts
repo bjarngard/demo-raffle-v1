@@ -13,9 +13,11 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Weight/odds (B): always normalize the viewer before using cached state.
   await ensureUser(session.user)
 
   let resolvedUser: User | null = null
+  // Twitch is ground truth: attempt a lazy sync unless cooldown blocks it.
   try {
     const syncResult = await syncUserFromTwitch(session.user.id)
     resolvedUser = syncResult.user
