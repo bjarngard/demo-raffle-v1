@@ -124,6 +124,15 @@ export async function PUT(request: NextRequest) {
     const carryOverMultiplier = parseFloatValue(settings.carryOverMultiplier)
     if (carryOverMultiplier !== undefined) validSettings.carryOverMultiplier = carryOverMultiplier
 
+    const carryOverMaxBonus = parseFloatValue(settings.carryOverMaxBonus)
+    if (carryOverMaxBonus !== undefined) validSettings.carryOverMaxBonus = carryOverMaxBonus
+
+    const loyaltyMaxBonus = parseFloatValue(settings.loyaltyMaxBonus)
+    if (loyaltyMaxBonus !== undefined) validSettings.loyaltyMaxBonus = loyaltyMaxBonus
+
+    const supportMaxBonus = parseFloatValue(settings.supportMaxBonus)
+    if (supportMaxBonus !== undefined) validSettings.supportMaxBonus = supportMaxBonus
+
     // Update settings
     const updated = await updateWeightSettings(validSettings)
 

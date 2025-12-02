@@ -115,6 +115,7 @@ async function recalculateUserWeight(userId: string) {
       data: {
         currentWeight: weight - user.carryOverWeight,
         totalWeight: weight,
+        lastUpdated: new Date(),
       },
     })
   } catch (error) {

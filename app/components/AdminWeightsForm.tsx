@@ -15,6 +15,9 @@ interface WeightSettings {
   giftedSubsMultiplier: number
   giftedSubsCap: number
   carryOverMultiplier: number
+  carryOverMaxBonus: number
+  loyaltyMaxBonus: number
+  supportMaxBonus: number
 }
 
 interface AdminWeightsFormProps {
@@ -77,7 +80,7 @@ export default function AdminWeightsForm({
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -206,19 +209,75 @@ export default function AdminWeightsForm({
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Carry-Over Multiplier
-          </label>
-          <input
-            type="number"
-            step="0.01"
-            value={settings.carryOverMultiplier}
-            onChange={(e) =>
-              setSettings({ ...settings, carryOverMultiplier: parseFloat(e.target.value) || 0 })
-            }
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Carry-Over Multiplier
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={settings.carryOverMultiplier}
+              onChange={(e) =>
+                setSettings({ ...settings, carryOverMultiplier: parseFloat(e.target.value) || 0 })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Carry-Over Max Bonus
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={settings.carryOverMaxBonus}
+              onChange={(e) =>
+                setSettings({ ...settings, carryOverMaxBonus: parseFloat(e.target.value) || 0 })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Caps the accumulated carry-over bonus across sessions.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Loyalty Max Bonus
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={settings.loyaltyMaxBonus}
+              onChange={(e) =>
+                setSettings({ ...settings, loyaltyMaxBonus: parseFloat(e.target.value) || 0 })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Overall cap for sub tenure and resub loyalty contributions.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Support Max Bonus
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              value={settings.supportMaxBonus}
+              onChange={(e) =>
+                setSettings({ ...settings, supportMaxBonus: parseFloat(e.target.value) || 0 })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Caps the combined bits, donations, and gifted subs bonus.
+            </p>
+          </div>
         </div>
 
         <button

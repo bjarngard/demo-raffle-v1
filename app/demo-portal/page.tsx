@@ -35,6 +35,9 @@ interface WeightSettings {
   giftedSubsMultiplier: number
   giftedSubsCap: number
   carryOverMultiplier: number
+  carryOverMaxBonus: number
+  loyaltyMaxBonus: number
+  supportMaxBonus: number
 }
 
 interface WinnerData {

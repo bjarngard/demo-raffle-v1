@@ -17,9 +17,55 @@ const DEFAULT_SETTINGS = {
   giftedSubsMultiplier: 0.1,
   giftedSubsCap: 5.0,
   carryOverMultiplier: 0.5,
+  carryOverMaxBonus: 1.0,
+  loyaltyMaxBonus: 5.0,
+  supportMaxBonus: 10.0,
 }
 
 export type WeightSettings = typeof DEFAULT_SETTINGS
+type WeightUserInput = {
+  isSubscriber: boolean
+  subMonths: number
+  resubCount: number
+  totalCheerBits: number
+  totalDonations: number
+  totalGiftedSubs: number
+  carryOverWeight: number
+}
+
+type WeightComponents = {
+  baseWeight: number
+  monthsComponent: number
+  resubComponent: number
+  loyaltyWeightRaw: number
+  loyaltyWeightCapped: number
+  cheerWeight: number
+  donationsWeight: number
+  giftedSubsWeight: number
+  supportWeightRaw: number
+  supportWeightCapped: number
+}
+
+export type WeightBreakdown = {
+  baseWeight: number
+  loyalty: {
+    monthsComponent: number
+    resubComponent: number
+    rawTotal: number
+    cappedTotal: number
+    cap: number
+  }
+  support: {
+    cheerWeight: number
+    donationsWeight: number
+    giftedSubsWeight: number
+    rawTotal: number
+    cappedTotal: number
+    cap: number
+  }
+  carryOverWeight: number
+  totalWeight: number
+}
 
 let settingsCache: WeightSettings | null = null
 let cacheTimestamp = 0
@@ -49,20 +95,7 @@ export async function getWeightSettings(): Promise<WeightSettings> {
       })
     }
 
-    const result = {
-      baseWeight: settings.baseWeight,
-      subMonthsMultiplier: settings.subMonthsMultiplier,
-      subMonthsCap: settings.subMonthsCap,
-      resubMultiplier: settings.resubMultiplier,
-      resubCap: settings.resubCap,
-      cheerBitsDivisor: settings.cheerBitsDivisor,
-      cheerBitsCap: settings.cheerBitsCap,
-      donationsDivisor: settings.donationsDivisor,
-      donationsCap: settings.donationsCap,
-      giftedSubsMultiplier: settings.giftedSubsMultiplier,
-      giftedSubsCap: settings.giftedSubsCap,
-      carryOverMultiplier: settings.carryOverMultiplier,
-    }
+    const result = normalizeSettings(settings)
 
     // Update cache
     settingsCache = result
@@ -106,20 +139,7 @@ export async function updateWeightSettings(
     // Invalidate cache
     settingsCache = null
 
-    return {
-      baseWeight: updated.baseWeight,
-      subMonthsMultiplier: updated.subMonthsMultiplier,
-      subMonthsCap: updated.subMonthsCap,
-      resubMultiplier: updated.resubMultiplier,
-      resubCap: updated.resubCap,
-      cheerBitsDivisor: updated.cheerBitsDivisor,
-      cheerBitsCap: updated.cheerBitsCap,
-      donationsDivisor: updated.donationsDivisor,
-      donationsCap: updated.donationsCap,
-      giftedSubsMultiplier: updated.giftedSubsMultiplier,
-      giftedSubsCap: updated.giftedSubsCap,
-      carryOverMultiplier: updated.carryOverMultiplier,
-    }
+    return normalizeSettings(updated)
   } catch (error) {
     console.error('Error updating weight settings:', error)
     throw error
@@ -129,55 +149,134 @@ export async function updateWeightSettings(
 /**
  * Calculate user weight based on settings
  */
-export async function calculateUserWeight(
-  user: {
-    isSubscriber: boolean
-    subMonths: number
-    resubCount: number
-    totalCheerBits: number
-    totalDonations: number
-    totalGiftedSubs: number
-    carryOverWeight: number
-  }
-): Promise<number> {
+export async function calculateUserWeight(user: WeightUserInput): Promise<number> {
   const settings = await getWeightSettings()
+  const components = computeWeightComponents(user, settings)
+  const totalWeight =
+    components.baseWeight +
+    components.loyaltyWeightCapped +
+    components.supportWeightCapped +
+    user.carryOverWeight
+  return totalWeight
+}
 
-  let weight = settings.baseWeight
+export async function describeWeightBreakdown(user: WeightUserInput): Promise<WeightBreakdown> {
+  const settings = await getWeightSettings()
+  const components = computeWeightComponents(user, settings)
+  const totalWeight =
+    components.baseWeight +
+    components.loyaltyWeightCapped +
+    components.supportWeightCapped +
+    user.carryOverWeight
 
-  // Subscriber bonus (capped)
-  if (user.isSubscriber) {
-    const subMonthsCapped = Math.min(user.subMonths, settings.subMonthsCap)
-    weight += subMonthsCapped * settings.subMonthsMultiplier
+  return {
+    baseWeight: components.baseWeight,
+    loyalty: {
+      monthsComponent: components.monthsComponent,
+      resubComponent: components.resubComponent,
+      rawTotal: components.loyaltyWeightRaw,
+      cappedTotal: components.loyaltyWeightCapped,
+      cap: settings.loyaltyMaxBonus,
+    },
+    support: {
+      cheerWeight: components.cheerWeight,
+      donationsWeight: components.donationsWeight,
+      giftedSubsWeight: components.giftedSubsWeight,
+      rawTotal: components.supportWeightRaw,
+      cappedTotal: components.supportWeightCapped,
+      cap: settings.supportMaxBonus,
+    },
+    carryOverWeight: user.carryOverWeight,
+    totalWeight,
   }
+}
 
-  // Resub bonus (capped)
-  const resubCountCapped = Math.min(user.resubCount, settings.resubCap)
-  weight += resubCountCapped * settings.resubMultiplier
+function normalizeSettings(settings: {
+  baseWeight: number
+  subMonthsMultiplier: number
+  subMonthsCap: number
+  resubMultiplier: number
+  resubCap: number
+  cheerBitsDivisor: number
+  cheerBitsCap: number
+  donationsDivisor: number
+  donationsCap: number
+  giftedSubsMultiplier: number
+  giftedSubsCap: number
+  carryOverMultiplier: number
+  carryOverMaxBonus?: number | null
+  loyaltyMaxBonus?: number | null
+  supportMaxBonus?: number | null
+}): WeightSettings {
+  return {
+    baseWeight: settings.baseWeight,
+    subMonthsMultiplier: settings.subMonthsMultiplier,
+    subMonthsCap: settings.subMonthsCap,
+    resubMultiplier: settings.resubMultiplier,
+    resubCap: settings.resubCap,
+    cheerBitsDivisor: settings.cheerBitsDivisor,
+    cheerBitsCap: settings.cheerBitsCap,
+    donationsDivisor: settings.donationsDivisor,
+    donationsCap: settings.donationsCap,
+    giftedSubsMultiplier: settings.giftedSubsMultiplier,
+    giftedSubsCap: settings.giftedSubsCap,
+    carryOverMultiplier: settings.carryOverMultiplier,
+    carryOverMaxBonus: settings.carryOverMaxBonus ?? DEFAULT_SETTINGS.carryOverMaxBonus,
+    loyaltyMaxBonus: settings.loyaltyMaxBonus ?? DEFAULT_SETTINGS.loyaltyMaxBonus,
+    supportMaxBonus: settings.supportMaxBonus ?? DEFAULT_SETTINGS.supportMaxBonus,
+  }
+}
 
-  // Cheer bits bonus (capped)
+function computeWeightComponents(
+  user: WeightUserInput,
+  settings: WeightSettings
+): WeightComponents {
+  const baseWeight = settings.baseWeight
+
+  const monthsComponent = user.isSubscriber
+    ? Math.min(
+        user.subMonths * settings.subMonthsMultiplier,
+        settings.subMonthsCap * settings.subMonthsMultiplier
+      )
+    : 0
+
+  const resubComponent = Math.min(
+    user.resubCount * settings.resubMultiplier,
+    settings.resubCap * settings.resubMultiplier
+  )
+
+  const loyaltyWeightRaw = monthsComponent + resubComponent
+  const loyaltyWeightCapped = Math.min(loyaltyWeightRaw, settings.loyaltyMaxBonus)
+
   const cheerWeight = Math.min(
     user.totalCheerBits / settings.cheerBitsDivisor,
     settings.cheerBitsCap
   )
-  weight += cheerWeight
 
-  // Donation bonus (capped)
-  const donationWeight = Math.min(
-    user.totalDonations / settings.donationsDivisor,
+  const donationsInUnits = user.totalDonations / 100
+  const donationsWeight = Math.min(
+    donationsInUnits / settings.donationsDivisor,
     settings.donationsCap
   )
-  weight += donationWeight
 
-  // Gifted subs bonus (capped)
   const giftedSubsWeight = Math.min(
     user.totalGiftedSubs * settings.giftedSubsMultiplier,
     settings.giftedSubsCap
   )
-  weight += giftedSubsWeight
 
-  // Add carry-over weight
-  weight += user.carryOverWeight
+  const supportWeightRaw = cheerWeight + donationsWeight + giftedSubsWeight
+  const supportWeightCapped = Math.min(supportWeightRaw, settings.supportMaxBonus)
 
-  return weight
+  return {
+    baseWeight,
+    monthsComponent,
+    resubComponent,
+    loyaltyWeightRaw,
+    loyaltyWeightCapped,
+    cheerWeight,
+    donationsWeight,
+    giftedSubsWeight,
+    supportWeightRaw,
+    supportWeightCapped,
+  }
 }
-

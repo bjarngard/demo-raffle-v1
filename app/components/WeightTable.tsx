@@ -13,6 +13,9 @@ interface WeightSettings {
   giftedSubsMultiplier: number
   giftedSubsCap: number
   carryOverMultiplier: number
+  carryOverMaxBonus: number
+  loyaltyMaxBonus: number
+  supportMaxBonus: number
 }
 
 interface WeightTableProps {
@@ -78,7 +81,7 @@ export default function WeightTable({ settings }: WeightTableProps) {
             <tr className="border-b border-gray-100 dark:border-gray-800">
               <td className="py-3 text-gray-900 dark:text-white">Donations</td>
               <td className="py-3 text-gray-600 dark:text-gray-400">
-                min(cents / {settings.donationsDivisor}, {settings.donationsCap})
+                min(USD / {settings.donationsDivisor}, {settings.donationsCap})
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
                 {settings.donationsCap.toFixed(1)}x
@@ -93,13 +96,31 @@ export default function WeightTable({ settings }: WeightTableProps) {
                 {settings.giftedSubsCap.toFixed(1)}x
               </td>
             </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-3 text-gray-900 dark:text-white">Loyalty Cap</td>
+              <td className="py-3 text-gray-600 dark:text-gray-400">
+                Total loyalty bonus (sub months + resubs) is capped at this value
+              </td>
+              <td className="py-3 font-semibold text-gray-900 dark:text-white">
+                {settings.loyaltyMaxBonus.toFixed(1)}x
+              </td>
+            </tr>
+            <tr className="border-b border-gray-100 dark:border-gray-800">
+              <td className="py-3 text-gray-900 dark:text-white">Support Cap</td>
+              <td className="py-3 text-gray-600 dark:text-gray-400">
+                Combined bits + donations + gifted subs bonus cap
+              </td>
+              <td className="py-3 font-semibold text-gray-900 dark:text-white">
+                {settings.supportMaxBonus.toFixed(1)}x
+              </td>
+            </tr>
             <tr>
               <td className="py-3 text-gray-900 dark:text-white">Carry-Over</td>
               <td className="py-3 text-gray-600 dark:text-gray-400">
-                Previous weight × {settings.carryOverMultiplier}
+                Previous weight × {settings.carryOverMultiplier} (capped at {settings.carryOverMaxBonus.toFixed(1)}x)
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
-                Variable
+                {settings.carryOverMaxBonus.toFixed(1)}x max
               </td>
             </tr>
           </tbody>

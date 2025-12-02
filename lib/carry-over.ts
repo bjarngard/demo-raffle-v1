@@ -1,79 +1,121 @@
 import { prisma } from './prisma'
 import { entryStateExclusion } from './submissions-state'
+import { calculateUserWeight, getWeightSettings } from './weight-settings'
 
-const BATCH_SIZE = 25
+type CarryOverResultUser = {
+  id: string
+  username: string
+  carryOverWeight: number
+}
 
-export async function applyCarryOverForSession(sessionId: string, resetWeights = false) {
+type CarryOverResult = {
+  updatedCount: number
+  users: CarryOverResultUser[]
+}
+
+export async function applyCarryOverForSession(
+  sessionId: string,
+  resetWeights = false
+): Promise<CarryOverResult> {
   if (!sessionId) {
-    return { updatedCount: 0 }
+    return { updatedCount: 0, users: [] }
   }
 
-  const nonWinners = await prisma.user.findMany({
-    where: {
-      entries: {
-        some: {
-          sessionId,
-          isWinner: false,
-          ...entryStateExclusion,
-        },
-      },
-    },
+  const session = await prisma.raffleSession.findUnique({
+    where: { id: sessionId },
   })
 
-  const updated: Array<{ id: string; username: string; carryOverWeight: number }> = []
-
-  for (let i = 0; i < nonWinners.length; i += BATCH_SIZE) {
-    const batch = nonWinners.slice(i, i + BATCH_SIZE)
-    const updates = batch.map((user) => ({
-      id: user.id,
-      username: user.username,
-      carryOver: resetWeights ? 0 : user.totalWeight * 0.5,
-    }))
-
-    await prisma.$transaction(
-      updates.map((update) =>
-        prisma.user.update({
-          where: { id: update.id },
-          data: {
-            carryOverWeight: update.carryOver,
-            currentWeight: 1.0,
-            totalWeight: 1.0 + update.carryOver,
-            lastUpdated: new Date(),
-          },
-        })
-      )
-    )
-
-    updated.push(
-      ...updates.map((update) => ({
-        id: update.id,
-        username: update.username,
-        carryOverWeight: update.carryOver,
-      }))
-    )
+  if (!session) {
+    return { updatedCount: 0, users: [] }
   }
 
-  const winner = await prisma.entry.findFirst({
+  // Load ALL entries for this raffle session (excluding sentinel/system entries),
+  // not just winners, so we can apply carry-over correctly for all participants.
+  const entries = await prisma.entry.findMany({
     where: {
       sessionId,
-      isWinner: true,
       ...entryStateExclusion,
     },
-    include: { user: true },
+    select: {
+      userId: true,
+      isWinner: true,
+    },
   })
 
-  if (winner?.user) {
-    await prisma.user.update({
-      where: { id: winner.user.id },
-      data: {
-        carryOverWeight: 0,
-      },
-    })
+  const participantIds = Array.from(
+    new Set(
+      entries
+        .map((entry) => entry.userId)
+        .filter((id): id is string => Boolean(id))
+    )
+  )
+
+  if (participantIds.length === 0) {
+    return { updatedCount: 0, users: [] }
   }
 
+  const winnerId =
+    entries.find((entry) => entry.isWinner && entry.userId)?.userId ?? null
+
+  const settings = await getWeightSettings()
+
+  const updatedUsers = await prisma.$transaction(async (tx) => {
+    const users = await tx.user.findMany({
+      where: { id: { in: participantIds } },
+    })
+
+    const userById = new Map(users.map((user) => [user.id, user]))
+    const updates: CarryOverResultUser[] = []
+
+    for (const userId of participantIds) {
+      const user = userById.get(userId)
+      if (!user) continue
+
+      let newCarry = 0
+
+      if (resetWeights || userId === winnerId) {
+        // Either we're doing a hard reset, or this is the winner → no carry-over.
+        newCarry = 0
+      } else {
+        // Normal carry-over behaviour for non-winners.
+        const carryFromSession = user.totalWeight * settings.carryOverMultiplier
+        const newCarryRaw = user.carryOverWeight + carryFromSession
+        newCarry = Math.min(newCarryRaw, settings.carryOverMaxBonus)
+      }
+
+      const totalWeight = await calculateUserWeight({
+        isSubscriber: user.isSubscriber,
+        subMonths: user.subMonths,
+        resubCount: user.resubCount,
+        totalCheerBits: user.totalCheerBits,
+        totalDonations: user.totalDonations,
+        totalGiftedSubs: user.totalGiftedSubs,
+        carryOverWeight: newCarry,
+      })
+
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          carryOverWeight: newCarry,
+          totalWeight,
+          currentWeight: totalWeight - newCarry,
+          lastUpdated: new Date(),
+        },
+      })
+
+      updates.push({
+        id: user.id,
+        username: user.username,
+        carryOverWeight: newCarry,
+      })
+    }
+
+    return updates
+  })
+
   return {
-    updatedCount: updated.length,
-    users: updated,
+    updatedCount: updatedUsers.length,
+    users: updatedUsers,
   }
 }
 

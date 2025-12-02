@@ -2,50 +2,57 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import type { WeightBreakdown, WeightSettings } from '@/lib/weight-settings'
 
-interface UserWeight {
-  id: string
-  username: string
-  displayName: string
-  isFollower: boolean
-  isSubscriber: boolean
-  subMonths: number
-  totalCheerBits: number
-  totalDonations: number
-  resubCount: number
-  totalGiftedSubs: number
-  totalWeight: number
-  carryOverWeight: number
+type WeightResponse = {
+  user: {
+    id: string
+    username: string
+    displayName: string
+    isSubscriber: boolean
+    subMonths: number
+    resubCount: number
+    totalCheerBits: number
+    totalDonations: number
+    totalGiftedSubs: number
+    carryOverWeight: number
+    totalWeight: number
+  }
+  breakdown: WeightBreakdown
+  settings: WeightSettings
 }
 
 export default function MyStatusCard() {
   const { data: session } = useSession()
-  const [userWeight, setUserWeight] = useState<UserWeight | null>(null)
+  const [weightInfo, setWeightInfo] = useState<WeightResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!session?.user?.id) return
-    fetchUserWeight()
-    const interval = setInterval(fetchUserWeight, 2 * 60 * 1000)
+    fetchWeightInfo()
+    const interval = setInterval(fetchWeightInfo, 2 * 60 * 1000)
     return () => clearInterval(interval)
   }, [session?.user?.id])
 
-  const fetchUserWeight = async () => {
+  const fetchWeightInfo = async () => {
     try {
-      const response = await fetch('/api/twitch/sync', {
-        method: 'POST',
-      })
-
-      if (response.status === 429) {
+      const response = await fetch('/api/weight/me', { cache: 'no-store' })
+      if (!response.ok) {
+        if (response.status === 401) {
+          setWeightInfo(null)
+          setError('You must be signed in to view your raffle status.')
+        } else {
+          setError('Unable to load your weight breakdown right now.')
+        }
         return
       }
-
-      if (response.ok) {
-        const data = await response.json()
-        setUserWeight(data.user)
-      }
+      const data: WeightResponse = await response.json()
+      setWeightInfo(data)
+      setError(null)
     } catch (error) {
       console.error('Error fetching user weight:', error)
+      setError('Unable to load your weight breakdown right now.')
     } finally {
       setLoading(false)
     }
@@ -55,7 +62,7 @@ export default function MyStatusCard() {
     return null
   }
 
-  if (loading || !userWeight) {
+  if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <p className="text-gray-500">Loading status...</p>
@@ -63,16 +70,21 @@ export default function MyStatusCard() {
     )
   }
 
-  // Calculate weight breakdown (mirrors backend logic)
-  const baseWeight = 1.0
-  const subMonthsCapped = Math.min(userWeight.subMonths, 10)
-  const subMonthsWeight = userWeight.isSubscriber ? subMonthsCapped * 0.1 : 0
-  const resubCountCapped = Math.min(userWeight.resubCount, 5)
-  const resubWeight = resubCountCapped * 0.2
-  const cheerWeight = Math.min(userWeight.totalCheerBits / 1000, 5.0)
-  const donationWeight = Math.min(userWeight.totalDonations / 1000, 5.0)
-  const giftedSubsWeight = Math.min(userWeight.totalGiftedSubs * 0.1, 5.0)
-  const carryOver = userWeight.carryOverWeight
+  if (!weightInfo) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <p className="text-gray-500">
+          {error || 'Unable to load your raffle status. Please try again later.'}
+        </p>
+      </div>
+    )
+  }
+
+  const { user, breakdown } = weightInfo
+  const donationsDollars = user.totalDonations / 100
+  const cheerCount = user.totalCheerBits.toLocaleString()
+  const donationCount = donationsDollars.toFixed(2)
+  const giftedSubsCount = user.totalGiftedSubs.toLocaleString()
 
   return (
     <div className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
@@ -81,65 +93,67 @@ export default function MyStatusCard() {
       <div className="bg-white/10 rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-purple-100">Total Weight</span>
-          <span className="text-3xl font-bold">{userWeight.totalWeight.toFixed(2)}x</span>
+          <span className="text-3xl font-bold">{breakdown.totalWeight.toFixed(2)}x</span>
         </div>
       </div>
 
       <div className="space-y-2 text-sm">
         <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
           <span className="text-purple-100">Base Weight</span>
-          <span className="font-semibold">{baseWeight.toFixed(2)}x</span>
+          <span className="font-semibold">{breakdown.baseWeight.toFixed(2)}x</span>
         </div>
         
-        {userWeight.isSubscriber && (
+        {user.isSubscriber && (
           <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
             <span className="text-purple-100">
-              Subscriber ({subMonthsCapped}/{userWeight.subMonths} months)
+              Subscriber ({user.subMonths} months)
             </span>
-            <span className="font-semibold">+{subMonthsWeight.toFixed(2)}x</span>
+            <span className="font-semibold">+{breakdown.loyalty.monthsComponent.toFixed(2)}x</span>
           </div>
         )}
         
-        {userWeight.resubCount > 0 && (
+        {user.resubCount > 0 && (
           <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
             <span className="text-purple-100">
-              Resubs ({resubCountCapped}/{userWeight.resubCount})
+              Resubs ({user.resubCount})
             </span>
-            <span className="font-semibold">+{resubWeight.toFixed(2)}x</span>
+            <span className="font-semibold">+{breakdown.loyalty.resubComponent.toFixed(2)}x</span>
           </div>
         )}
         
-        {userWeight.totalCheerBits > 0 && (
+        {user.totalCheerBits > 0 && (
           <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
-            <span className="text-purple-100">
-              Cheer Bits ({userWeight.totalCheerBits.toLocaleString()})
-            </span>
-            <span className="font-semibold">+{cheerWeight.toFixed(2)}x</span>
+            <span className="text-purple-100">Cheer Bits ({cheerCount})</span>
+            <span className="font-semibold">+{breakdown.support.cheerWeight.toFixed(2)}x</span>
           </div>
         )}
         
-        {userWeight.totalDonations > 0 && (
+        {user.totalDonations > 0 && (
           <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
             <span className="text-purple-100">
-              Donations (${(userWeight.totalDonations / 100).toFixed(2)})
+              Donations (${donationCount})
             </span>
-            <span className="font-semibold">+{donationWeight.toFixed(2)}x</span>
+            <span className="font-semibold">
+              +{breakdown.support.donationsWeight.toFixed(2)}x
+            </span>
           </div>
         )}
         
-        {userWeight.totalGiftedSubs > 0 && (
+        {user.totalGiftedSubs > 0 && (
           <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
             <span className="text-purple-100">
-              Gifted Subs ({userWeight.totalGiftedSubs})
+              Gifted Subs ({giftedSubsCount})
             </span>
-            <span className="font-semibold">+{giftedSubsWeight.toFixed(2)}x</span>
+            <span className="font-semibold">
+              +{breakdown.support.giftedSubsWeight.toFixed(2)}x
+            </span>
           </div>
         )}
         
-        {carryOver > 0 && (
+        {breakdown.carryOverWeight > 0 && (
           <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
             <span className="text-purple-100">Carry-Over Weight</span>
-            <span className="font-semibold">+{carryOver.toFixed(2)}x</span>
+            <span className="font-semibold">+{breakdown.carryOverWeight.toFixed(2)}x</span>
           </div>
         )}
       </div>

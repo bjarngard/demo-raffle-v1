@@ -99,6 +99,7 @@ export async function POST() {
       data: {
         totalWeight: weight,
         currentWeight: weight - updatedUser.carryOverWeight,
+        lastUpdated: new Date(),
       },
     })
 

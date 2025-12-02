@@ -135,6 +135,9 @@ model WeightSettings {
   giftedSubsMultiplier Float    @default(0.1)
   giftedSubsCap        Float    @default(5.0)
   carryOverMultiplier  Float    @default(0.5)
+  carryOverMaxBonus    Float    @default(1.0)
+  loyaltyMaxBonus      Float    @default(5.0)
+  supportMaxBonus      Float    @default(10.0)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   
