@@ -1,7 +1,10 @@
+import type { User } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { describeWeightBreakdown, getWeightSettings } from '@/lib/weight-settings'
+import { ensureUser } from '@/lib/user'
+import { syncUserFromTwitch } from '@/lib/twitch-sync'
 
 export async function GET() {
   const session = await auth()
@@ -10,50 +13,50 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      username: true,
-      displayName: true,
-      isSubscriber: true,
-      subMonths: true,
-      resubCount: true,
-      totalCheerBits: true,
-      totalDonations: true,
-      totalGiftedSubs: true,
-      carryOverWeight: true,
-    },
-  })
+  await ensureUser(session.user)
 
-  if (!user) {
+  let resolvedUser: User | null = null
+  try {
+    const syncResult = await syncUserFromTwitch(session.user.id)
+    resolvedUser = syncResult.user
+  } catch (error) {
+    console.error('Lazy Twitch sync failed in /api/weight/me:', error)
+  }
+
+  if (!resolvedUser) {
+    resolvedUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    })
+  }
+
+  if (!resolvedUser) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
   const breakdown = await describeWeightBreakdown({
-    isSubscriber: user.isSubscriber,
-    subMonths: user.subMonths,
-    resubCount: user.resubCount,
-    totalCheerBits: user.totalCheerBits,
-    totalDonations: user.totalDonations,
-    totalGiftedSubs: user.totalGiftedSubs,
-    carryOverWeight: user.carryOverWeight,
+    isSubscriber: resolvedUser.isSubscriber,
+    subMonths: resolvedUser.subMonths,
+    resubCount: resolvedUser.resubCount,
+    totalCheerBits: resolvedUser.totalCheerBits,
+    totalDonations: resolvedUser.totalDonations,
+    totalGiftedSubs: resolvedUser.totalGiftedSubs,
+    carryOverWeight: resolvedUser.carryOverWeight,
   })
 
   const settings = await getWeightSettings()
 
   return NextResponse.json({
     user: {
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      isSubscriber: user.isSubscriber,
-      subMonths: user.subMonths,
-      resubCount: user.resubCount,
-      totalCheerBits: user.totalCheerBits,
-      totalDonations: user.totalDonations,
-      totalGiftedSubs: user.totalGiftedSubs,
-      carryOverWeight: user.carryOverWeight,
+      id: resolvedUser.id,
+      username: resolvedUser.username,
+      displayName: resolvedUser.displayName,
+      isSubscriber: resolvedUser.isSubscriber,
+      subMonths: resolvedUser.subMonths,
+      resubCount: resolvedUser.resubCount,
+      totalCheerBits: resolvedUser.totalCheerBits,
+      totalDonations: resolvedUser.totalDonations,
+      totalGiftedSubs: resolvedUser.totalGiftedSubs,
+      carryOverWeight: resolvedUser.carryOverWeight,
       totalWeight: breakdown.totalWeight,
     },
     breakdown,

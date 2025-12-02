@@ -31,7 +31,7 @@ export default function MyStatusCard() {
   useEffect(() => {
     if (!session?.user?.id) return
     fetchWeightInfo()
-    const interval = setInterval(fetchWeightInfo, 2 * 60 * 1000)
+    const interval = setInterval(fetchWeightInfo, 30 * 1000)
     return () => clearInterval(interval)
   }, [session?.user?.id])
 
@@ -157,6 +157,21 @@ export default function MyStatusCard() {
           </div>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={async () => {
+          try {
+            await fetch('/api/twitch/sync', { method: 'POST' })
+            await fetchWeightInfo()
+          } catch (err) {
+            console.error('Force refresh from Twitch failed:', err)
+          }
+        }}
+        className="mt-4 text-xs text-purple-100 underline underline-offset-2 hover:text-white"
+      >
+        Force refresh from Twitch
+      </button>
     </div>
   )
 }

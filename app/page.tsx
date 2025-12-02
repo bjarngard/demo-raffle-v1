@@ -113,6 +113,9 @@ function RaffleForm() {
       setFollowStatus('checking')
       setFollowReason(null)
       checkFollowStatus()
+      fetch('/api/twitch/sync', { method: 'POST' }).catch((err) => {
+        console.error('Twitch sync on login failed:', err)
+      })
     } else {
       setFollowStatus(null)
       setFollowReason(null)
