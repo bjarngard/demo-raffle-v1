@@ -5,6 +5,8 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { Prisma } from '@prisma/client'
 import { entryStateExclusion, getSubmissionsOpen } from '@/lib/submissions-state'
 import { getCurrentSession } from '@/lib/session'
+import { ensureUser } from '@/lib/user'
+import { evaluateFollowStatus } from '@/lib/follow-status'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -123,10 +125,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, demoLink } = body as { name?: string; demoLink?: string }
 
+    const viewer = await ensureUser(session.user)
+
     // Global pending entry check
     const pendingEntry = await prisma.entry.findFirst({
       where: {
-        userId: session.user.id,
+        userId: viewer.id,
         isWinner: false,
         ...entryStateExclusion,
       },
@@ -186,48 +190,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Name is optional if user has displayName
-    let displayName = name?.trim()
-    if (!displayName) {
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { displayName: true },
-      })
-      displayName = user?.displayName || ''
-    }
-
-    if (!displayName) {
-      return NextResponse.json(
-        { success: false, error: 'Name or Twitch display name is required.' },
-        { status: 400 }
-      )
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        isFollower: true,
-      },
+    const followStatus = await evaluateFollowStatus({
+      id: viewer.id,
+      twitchId: viewer.twitchId,
+      isFollower: viewer.isFollower,
     })
 
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'User not found in the raffle system.',
-          errorCode: 'USER_NOT_FOUND',
-        },
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-    }
-
-    if (!user.isFollower) {
+    if (followStatus.status === 'not_following') {
       return NextResponse.json(
         {
           success: false,
@@ -243,10 +212,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const displayName =
+      name?.trim() ||
+      viewer.displayName ||
+      viewer.username ||
+      session.user.name ||
+      'Raffle Viewer'
+
     const entryData: Prisma.EntryCreateInput = {
       name: displayName,
       user: {
-        connect: { id: session.user.id },
+        connect: { id: viewer.id },
       },
       session: {
         connect: {
@@ -288,7 +264,7 @@ export async function POST(request: NextRequest) {
 
           const existingEntry = await prisma.entry.findFirst({
             where: {
-              userId: session.user.id,
+              userId: viewer.id,
               sessionId: activeSession.id,
               ...entryStateExclusion,
             },

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { prisma } from '@/lib/prisma'
+import { ensureUser } from '@/lib/user'
+import { evaluateFollowStatus } from '@/lib/follow-status'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,20 +18,19 @@ export async function POST() {
       )
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+    const user = await ensureUser(session.user)
+    const followStatus = await evaluateFollowStatus({
+      id: user.id,
+      twitchId: user.twitchId,
+      isFollower: user.isFollower,
     })
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      )
-    }
 
     return NextResponse.json({
       success: true,
-      isFollower: user.isFollower,
+      status: followStatus.status,
+      isFollower: followStatus.isFollower,
+      reason: followStatus.reason ?? null,
+      source: followStatus.source,
     })
   } catch (error) {
     console.error('Error checking follow status:', error)

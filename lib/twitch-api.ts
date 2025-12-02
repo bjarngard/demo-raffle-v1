@@ -38,12 +38,24 @@ async function resolveBroadcasterToken(providedToken?: string): Promise<string> 
   return token
 }
 
+export type FollowApiResult = {
+  status: 'following' | 'not_following' | 'unknown'
+  reason?: string
+}
+
 /**
  * Check if a user follows the broadcaster channel
  * GET https://api.twitch.tv/helix/channels/followers?broadcaster_id=<id>&user_id=<id>
  * Scope: moderator:read:followers (broadcaster-token)
  */
-export async function checkUserFollowsChannel(userId: string, broadcasterToken?: string): Promise<boolean> {
+export async function checkUserFollowsChannel(
+  userId: string | null,
+  broadcasterToken?: string
+): Promise<FollowApiResult> {
+  if (!userId) {
+    return { status: 'unknown', reason: 'missing_user_id' }
+  }
+
   try {
     const token = await resolveBroadcasterToken(broadcasterToken)
 
@@ -61,14 +73,17 @@ export async function checkUserFollowsChannel(userId: string, broadcasterToken?:
     
     if (!response.ok) {
       if (response.status === 404) {
-        return false // User doesn't follow
+        return { status: 'not_following' }
+      }
+      if (response.status === 401) {
+        return { status: 'unknown', reason: 'unauthorized' }
       }
       console.error('Twitch API error checking follow:', response.status, responseText)
-      return false // Return false on error instead of throwing
+      return { status: 'unknown', reason: `http_${response.status}` }
     }
 
     if (!responseText || responseText.trim().length === 0) {
-      return false
+      return { status: 'unknown', reason: 'empty_response' }
     }
 
     let data
@@ -76,12 +91,13 @@ export async function checkUserFollowsChannel(userId: string, broadcasterToken?:
       data = JSON.parse(responseText)
     } catch {
       console.error('Failed to parse follow response:', responseText)
-      return false
+      return { status: 'unknown', reason: 'invalid_json' }
     }
-    return data.data && data.data.length > 0
+    const follows = Boolean(data.data && data.data.length > 0)
+    return { status: follows ? 'following' : 'not_following' }
   } catch (error) {
     console.error('Error checking follow status:', error)
-    return false
+    return { status: 'unknown', reason: 'network_error' }
   }
 }
 

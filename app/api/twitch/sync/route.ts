@@ -79,7 +79,7 @@ export async function POST() {
 
     const broadcasterToken = await getBroadcasterAccessToken()
 
-    const updates = await fetchTwitchData(broadcasterToken, user.twitchId)
+    const updates = await fetchTwitchData(broadcasterToken, user.twitchId, user.isFollower)
 
     // Update user in database
     const updatedUser = await prisma.user.update({
@@ -120,11 +120,21 @@ export async function POST() {
   }
 }
 
-async function fetchTwitchData(broadcasterToken: string, twitchUserId: string): Promise<TwitchSyncUpdate> {
+async function fetchTwitchData(
+  broadcasterToken: string,
+  twitchUserId: string,
+  currentIsFollower: boolean
+): Promise<TwitchSyncUpdate> {
   // Check if user follows the channel using broadcaster token
   // GET /helix/channels/followers?broadcaster_id=<id>&user_id=<id>
   // Scope: moderator:read:followers (uses broadcaster token internally)
-  const isFollower = await checkUserFollowsChannel(twitchUserId, broadcasterToken)
+  const followResult = await checkUserFollowsChannel(twitchUserId, broadcasterToken)
+  let isFollower = currentIsFollower
+  if (followResult.status === 'following') {
+    isFollower = true
+  } else if (followResult.status === 'not_following') {
+    isFollower = false
+  }
 
   // Get subscription info using broadcaster token
   // GET /helix/subscriptions?broadcaster_id=<id>&user_id=<id>

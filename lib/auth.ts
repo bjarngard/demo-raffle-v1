@@ -37,7 +37,7 @@ async function updateUserTwitchData(
     // Check if user follows the channel (using broadcaster token)
     // GET /helix/channels/followers?broadcaster_id=<id>&user_id=<id>
     // Scope: moderator:read:followers (broadcaster-token required)
-    let isFollower = false
+    let isFollower: boolean | undefined
     let subscription: {
       isSubscriber: boolean
       subMonths: number
@@ -47,10 +47,12 @@ async function updateUserTwitchData(
 
     if (broadcasterAccessToken) {
       try {
-        isFollower = await checkUserFollowsChannel(twitchUser.id, broadcasterAccessToken)
+        const followResult = await checkUserFollowsChannel(twitchUser.id, broadcasterAccessToken)
+        if (followResult.status !== 'unknown') {
+          isFollower = followResult.status === 'following'
+        }
       } catch (error) {
-        console.error('Error checking follow status, defaulting to false:', error)
-        isFollower = false
+        console.error('Error checking follow status, keeping previous value:', error)
       }
 
       // Get subscription info (using broadcaster token)
@@ -63,12 +65,15 @@ async function updateUserTwitchData(
         subscription = { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
       }
     } else {
-      isFollower = false
       subscription = { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
     }
-    
+
     const isSubscriber = subscription?.isSubscriber || false
     const subMonths = subscription?.subMonths || 0
+    const followerUpdate =
+      typeof isFollower === 'boolean'
+        ? { isFollower }
+        : {}
 
     // Update or create user in database
     await prisma.user.upsert({
@@ -81,7 +86,7 @@ async function updateUserTwitchData(
         email: twitchUser.email,
         image: twitchUser.profile_image_url,
         isSubscriber,
-        isFollower,
+        ...followerUpdate,
         subMonths,
         totalSubs: subMonths,
         lastUpdated: new Date(),
@@ -93,7 +98,7 @@ async function updateUserTwitchData(
         email: twitchUser.email,
         image: twitchUser.profile_image_url,
         isSubscriber,
-        isFollower,
+        ...followerUpdate,
         subMonths,
         totalSubs: subMonths,
         lastUpdated: new Date(),

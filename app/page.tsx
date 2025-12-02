@@ -31,7 +31,8 @@ function RaffleForm() {
   const [loading, setLoading] = useState(false)
   const [loadingWinner, setLoadingWinner] = useState(true)
   const [winner, setWinner] = useState<Winner | null>(null)
-  const [isFollower, setIsFollower] = useState<boolean | null>(null)
+  const [followStatus, setFollowStatus] = useState<'checking' | 'following' | 'not_following' | 'unknown' | null>(null)
+  const [followReason, setFollowReason] = useState<string | null>(null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null)
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true)
   const [sessionOverride, setSessionOverride] = useState<boolean | null>(null)
@@ -48,12 +49,18 @@ function RaffleForm() {
       const response = await fetch('/api/twitch/check-follow', {
         method: 'POST',
       })
-      if (response.ok) {
-        const data = await response.json()
-        setIsFollower(data.isFollower)
+      if (!response.ok) {
+        setFollowStatus('unknown')
+        setFollowReason('network_error')
+        return
       }
+      const data = await response.json()
+      setFollowStatus(data.status ?? 'unknown')
+      setFollowReason(data.reason ?? null)
     } catch (error) {
       console.error('Error checking follow status:', error)
+      setFollowStatus('unknown')
+      setFollowReason('network_error')
     }
   }, [session?.user?.id])
 
@@ -103,7 +110,12 @@ function RaffleForm() {
 
     // Check follow status if logged in
     if (session?.user?.id) {
+      setFollowStatus('checking')
+      setFollowReason(null)
       checkFollowStatus()
+    } else {
+      setFollowStatus(null)
+      setFollowReason(null)
     }
 
     return () => clearInterval(interval)
@@ -173,6 +185,7 @@ function RaffleForm() {
         } else if (errorCode === 'PENDING_ENTRY_FROM_PREVIOUS_SESSION') {
           setError('You already have a pending submission with accumulated weight. It must be drawn before you can submit again.')
         } else if (errorCode === 'NOT_FOLLOWING') {
+          setFollowStatus('not_following')
           setError('You need to follow the channel on Twitch before entering.')
         } else {
           setError(data.error || 'An error occurred')
@@ -234,7 +247,7 @@ function RaffleForm() {
   }
 
   // User is logged in - check if they follow
-  if (isFollower === false) {
+  if (followStatus === 'not_following') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <main className="w-full max-w-2xl px-6 py-12">
@@ -327,6 +340,16 @@ function RaffleForm() {
             </p>
 
           <TwitchLogin />
+
+          {followStatus === 'unknown' && (
+            <div className="mt-4 mb-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                We couldn&apos;t verify your follow status right now
+                {followReason ? ` (${followReason})` : ''}.{' '}
+                You should still be able to enter, but please try again later or let the broadcaster know if this keeps happening.
+              </p>
+            </div>
+          )}
 
           {submitted ? (
             <div className="text-center py-8">
