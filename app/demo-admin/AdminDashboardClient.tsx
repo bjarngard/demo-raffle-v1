@@ -81,6 +81,20 @@ export default function AdminDashboardClient({
     }
   }, [])
 
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      const response = await fetch('/api/leaderboard', {
+        cache: 'no-store',
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setLeaderboard(data.entries || [])
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error)
+    }
+  }, [])
+
   const toggleSubmissions = useCallback(
     async (nextState: boolean) => {
       setIsTogglingSubmissions(true)
@@ -103,28 +117,15 @@ export default function AdminDashboardClient({
         }
 
         await fetchAdminData()
+        await fetchLeaderboard()
       } catch (error) {
         console.error('Error toggling submissions:', error)
       } finally {
         setIsTogglingSubmissions(false)
       }
     },
-    [fetchAdminData]
+    [fetchAdminData, fetchLeaderboard]
   )
-
-  const fetchLeaderboard = useCallback(async () => {
-    try {
-      const response = await fetch('/api/leaderboard', {
-        cache: 'no-store',
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setLeaderboard(data.entries || [])
-      }
-    } catch (error) {
-      console.error('Error fetching leaderboard:', error)
-    }
-  }, [])
 
   useEffect(() => {
     fetchLeaderboard()

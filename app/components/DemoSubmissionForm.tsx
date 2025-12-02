@@ -41,6 +41,11 @@ export default function DemoSubmissionForm({
   }, [sessionActive])
 
   useEffect(() => {
+    setError('')
+    setDemoLink('')
+  }, [sessionActive])
+
+  useEffect(() => {
     setSubmissionsOverride(null)
   }, [submissionsOpen])
 
@@ -113,6 +118,10 @@ export default function DemoSubmissionForm({
         }
         if (errorCode === 'EMAIL_ALREADY_REGISTERED') {
           setError('This email is already registered for this round.')
+          return
+        }
+        if (errorCode === 'ALREADY_WON_THIS_SESSION') {
+          setError('You have already won this session. Please wait for the next session before submitting again.')
           return
         }
         if (errorCode === 'ALREADY_SUBMITTED_THIS_SESSION') {

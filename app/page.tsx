@@ -111,6 +111,8 @@ function RaffleForm() {
 
   useEffect(() => {
     setSessionOverride(null)
+    setSubmitted(false)
+    setError('')
   }, [leaderboard?.sessionId])
 
   useEffect(() => {
@@ -164,6 +166,8 @@ function RaffleForm() {
           setError('Submissions are currently closed. Please try again later.')
         } else if (errorCode === 'EMAIL_ALREADY_REGISTERED') {
           setError('This email is already registered for this round.')
+        } else if (errorCode === 'ALREADY_WON_THIS_SESSION') {
+          setError('You have already won this session. You’ll be eligible again in the next session.')
         } else if (errorCode === 'ALREADY_SUBMITTED_THIS_SESSION' || data.error === 'You already have an active submission') {
           setError('You already have an active submission for this session.')
         } else if (errorCode === 'PENDING_ENTRY_FROM_PREVIOUS_SESSION') {
@@ -437,9 +441,14 @@ function RaffleForm() {
 
           {/* Right Column: Top 20 Leaderboard */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 md:p-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">
-              📊 Top 20 Leaderboard
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 text-center">
+              {sessionActive ? '📊 Top 20 Leaderboard' : '📊 Last session results'}
             </h2>
+            {!sessionActive && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 text-center">
+                Showing the most recent completed session
+              </p>
+            )}
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
               Win probability based on weights
             </p>

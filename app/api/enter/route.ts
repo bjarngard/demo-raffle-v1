@@ -269,6 +269,48 @@ export async function POST(request: NextRequest) {
         const target = error.meta?.target
         const targetParts = Array.isArray(target) ? target : typeof target === 'string' ? [target] : []
         if (targetParts.includes('sessionId_userId') || (targetParts.includes('sessionId') && targetParts.includes('userId'))) {
+          const activeSession = currentSession ?? (await getCurrentSession())
+          if (!activeSession) {
+            console.error('P2002 triggered but no active session found')
+            return NextResponse.json(
+              {
+                success: false,
+                error: 'Unable to verify your submission status. Please try again.',
+              },
+              {
+                status: 500,
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              }
+            )
+          }
+
+          const existingEntry = await prisma.entry.findFirst({
+            where: {
+              userId: session.user.id,
+              sessionId: activeSession.id,
+              ...entryStateExclusion,
+            },
+            select: { id: true, isWinner: true },
+          })
+
+          if (existingEntry?.isWinner) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: 'You have already won this session. You’ll be eligible again in the next session.',
+                errorCode: 'ALREADY_WON_THIS_SESSION',
+              },
+              {
+                status: 400,
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              }
+            )
+          }
+
           return NextResponse.json(
             {
               success: false,
