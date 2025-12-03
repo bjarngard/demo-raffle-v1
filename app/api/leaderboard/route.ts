@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { entryStateExclusion, getSubmissionsOpen } from '@/lib/submissions-state'
+import { getSubmissionsOpen } from '@/lib/submissions-state'
 import { getCurrentSession } from '@/lib/session'
+import { getLeaderboardEntries } from '@/lib/leaderboard-data'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,50 +23,12 @@ export async function GET() {
       })
     }
 
-    const entries = await prisma.entry.findMany({
-      where: {
-        sessionId: currentSession.id,
-        isWinner: false,
-        ...entryStateExclusion,
-      },
-      include: {
-        user: {
-          select: {
-            totalWeight: true,
-            displayName: true,
-            username: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
-
-    const totalWeight = entries.reduce((sum, entry) => {
-      const weight = entry.user?.totalWeight || 1.0
-      return sum + weight
-    }, 0)
-
-    const entriesWithProbability = entries
-      .map((entry) => {
-        const weight = entry.user?.totalWeight || 1.0
-        const probability = totalWeight > 0 ? (weight / totalWeight) * 100 : 0
-
-        return {
-          id: entry.id,
-          name: entry.name || entry.user?.displayName || entry.user?.username || 'Unknown',
-          weight,
-          probability,
-        }
-      })
-      .sort((a, b) => b.weight - a.weight)
-      .slice(0, 20)
+    const { entries: leaderboardEntries, totalEntries } = await getLeaderboardEntries(currentSession.id)
 
     return NextResponse.json({
       submissionsOpen,
-      totalEntries: entries.length,
-      entries: entriesWithProbability,
+      totalEntries,
+      entries: leaderboardEntries,
       sessionId: currentSession.id,
     })
   } catch (error) {

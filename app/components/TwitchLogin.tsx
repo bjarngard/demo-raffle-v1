@@ -141,7 +141,9 @@ export default function TwitchLogin() {
               <div>
                 <p className="text-purple-100">Subscriber</p>
                 <p className="text-lg font-semibold">
-                  {userWeight.isSubscriber ? `✓ ${userWeight.subMonths} months` : 'No'}
+                  {userWeight.isSubscriber
+                    ? `✓ ${Math.max(1, userWeight.subMonths || 0)} months`
+                    : 'No'}
                 </p>
               </div>
               <div>
