@@ -18,6 +18,13 @@ const MESSAGE_TYPE_REVOCATION = 'revocation'
 
 const HMAC_PREFIX = 'sha256='
 const MAX_EVENT_AGE_MS = 10 * 60 * 1000
+const ALLOWED_EVENT_TYPES = new Set([
+  'channel.follow',
+  'channel.subscribe',
+  'channel.subscription.message',
+  'channel.subscription.gift',
+  'channel.cheer',
+])
 
 type EventSubPayload = {
   challenge?: string
@@ -29,6 +36,10 @@ type EventSubPayload = {
 
 const BROADCASTER_ID = env.TWITCH_BROADCASTER_ID
 
+/**
+ * Verify Twitch EventSub payloads, dedupe them, and mark affected users as
+ * needing a backend sync. All canonical data still comes from Helix.
+ */
 export async function POST(request: NextRequest) {
   const messageId = request.headers.get(MESSAGE_ID_HEADER)
   const messageTimestamp = request.headers.get(MESSAGE_TIMESTAMP_HEADER)
@@ -42,12 +53,12 @@ export async function POST(request: NextRequest) {
   const rawBody = await request.text()
 
   if (!verifySignature(env.TWITCH_WEBHOOK_SECRET, messageId, messageTimestamp, rawBody, messageSignature)) {
-    console.error('Invalid EventSub signature')
+    console.error('Invalid EventSub signature', { messageId })
     return NextResponse.json({ error: 'invalid_signature' }, { status: 403 })
   }
 
   if (!verifyTimestamp(messageTimestamp)) {
-    console.error('EventSub message too old')
+    console.error('EventSub message too old', { messageId })
     return NextResponse.json({ error: 'event_too_old' }, { status: 400 })
   }
 
@@ -78,12 +89,21 @@ export async function POST(request: NextRequest) {
   }
 
   if (messageType === MESSAGE_TYPE_NOTIFICATION) {
-    const subscriptionType = payload?.subscription?.type ?? 'unknown'
+    const subscriptionType = payload?.subscription?.type
+    if (!subscriptionType || !ALLOWED_EVENT_TYPES.has(subscriptionType)) {
+      console.warn('[eventsub] ignoring unsupported subscription type', subscriptionType)
+      return new NextResponse(null, { status: 204 })
+    }
+
     const event = payload?.event ?? {}
     const twitchUserId = extractTwitchUserId(event)
 
-    if (!twitchUserId || twitchUserId === BROADCASTER_ID) {
-      console.warn('[eventsub] unable to resolve user for subscription type', subscriptionType, 'event=', event)
+    if (!twitchUserId) {
+      console.warn('[eventsub] missing twitchUserId for type', subscriptionType, 'payload=', event)
+      return new NextResponse(null, { status: 204 })
+    }
+
+    if (twitchUserId === BROADCASTER_ID) {
       return new NextResponse(null, { status: 204 })
     }
 
@@ -97,10 +117,19 @@ export async function POST(request: NextRequest) {
       })
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        console.log('[eventsub] duplicate message, skipping:', messageId, 'type=', subscriptionType)
+        console.log('[eventsub] duplicate message ignored', {
+          messageId,
+          subscriptionType,
+          twitchUserId,
+        })
         return new NextResponse(null, { status: 204 })
       }
-      console.error('Error recording processed EventSub message:', error)
+      console.error('Error recording processed EventSub message', {
+        messageId,
+        subscriptionType,
+        twitchUserId,
+        error,
+      })
       return new NextResponse(null, { status: 204 })
     }
 
@@ -111,10 +140,19 @@ export async function POST(request: NextRequest) {
       })
 
       if (result.count === 0) {
-        console.warn('[eventsub] no matching user found to flag needsResync for twitchId=', twitchUserId, 'type=', subscriptionType)
+        console.warn(
+          '[eventsub] no matching user to mark for type',
+          subscriptionType,
+          'user=',
+          twitchUserId
+        )
       }
     } catch (error) {
-      console.error('Failed to mark user for resync from EventSub:', error)
+      console.error('Failed to mark user for resync from EventSub', {
+        twitchUserId,
+        subscriptionType,
+        error,
+      })
     }
 
     return new NextResponse(null, { status: 204 })

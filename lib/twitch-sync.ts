@@ -13,6 +13,10 @@ export type UserTwitchSyncResult = {
   reason?: string
 }
 
+/**
+ * Reconcile a single user with Twitch (the source of truth) based on their
+ * current needsResync flag and the internal cooldown.
+ */
 export async function syncUserFromTwitch(
   userId: string,
   options?: { force?: boolean }
@@ -40,7 +44,10 @@ export async function syncUserFromTwitch(
   try {
     broadcasterToken = await getBroadcasterAccessToken()
   } catch (error) {
-    console.error('Failed to fetch broadcaster token for Twitch sync:', error)
+    console.error('Failed to fetch broadcaster token for Twitch sync', {
+      userId: existingUser.id,
+      error,
+    })
     try {
       const cleared = await prisma.user.update({
         where: { id: existingUser.id },
@@ -48,7 +55,10 @@ export async function syncUserFromTwitch(
       })
       return { user: cleared, updated: false, reason: 'missing_broadcaster_token' }
     } catch (updateError) {
-      console.error('Failed to clear needsResync after broadcaster token error:', updateError)
+      console.error('Failed to clear needsResync after broadcaster token error', {
+        userId: existingUser.id,
+        error: updateError,
+      })
       return { user: existingUser, updated: false, reason: 'missing_broadcaster_token' }
     }
   }
@@ -76,7 +86,7 @@ export async function syncUserFromTwitch(
     }
 
     console.log(
-      '[syncUserFromTwitch] userId=%s follower=%s subscriber=%s subMonths=%d reason=%s',
+      '[syncUserFromTwitch] user=%s follower=%s subscriber=%s subMonths=%d reason=%s',
       existingUser.id,
       isFollower,
       isSubscriber,
@@ -122,7 +132,7 @@ export async function syncUserFromTwitch(
       reason: syncReason,
     }
   } catch (error) {
-    console.error('Error syncing user from Twitch API:', error)
+    console.error('Error syncing user from Twitch API', { userId: existingUser.id, error })
     try {
       const cleared = await prisma.user.update({
         where: { id: existingUser.id },

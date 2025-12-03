@@ -112,12 +112,13 @@ model RaffleSession {
 }
 
 model ProcessedWebhookEvent {
-  id          String   @id @default(cuid())
-  messageId   String   @unique // Twitch-Eventsub-Message-Id
-  eventType   String   // subscription.type
-  twitchUserId String? // user_id from event
-  processedAt DateTime @default(now())
-  
+  id           String   @id @default(cuid())
+  messageId    String   // Twitch-EventSub Message ID
+  eventType    String   // subscription.type
+  twitchUserId String   // user_id from event
+  processedAt  DateTime @default(now())
+
+  @@unique([messageId, eventType, twitchUserId])
   @@index([messageId])
   @@index([processedAt])
 }

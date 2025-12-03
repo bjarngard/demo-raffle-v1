@@ -8,6 +8,11 @@ import { syncUserFromTwitch } from '@/lib/twitch-sync'
 
 const STALE_WEIGHT_MAX_AGE_MS = 6 * 60 * 60 * 1000 // 6 hours
 
+/**
+ * Surface the viewer's canonical raffle weight. EventSub flags users via
+ * needsResync; this route optionally refreshes them from Twitch before
+ * returning cached state to the frontend.
+ */
 export async function GET() {
   const session = await auth()
 
@@ -25,27 +30,24 @@ export async function GET() {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
+  // EventSub marks dirty users (needsResync); also refresh stale cache entries.
   const now = Date.now()
   const lastUpdatedMs = resolvedUser.lastUpdated?.getTime() ?? 0
   const isStale = !lastUpdatedMs || now - lastUpdatedMs > STALE_WEIGHT_MAX_AGE_MS
+  const syncTrigger = resolvedUser.needsResync ? 'event' : isStale ? 'stale' : null
 
-  if (resolvedUser.needsResync) {
+  if (syncTrigger) {
     try {
       const syncResult = await syncUserFromTwitch(resolvedUser.id)
       if (syncResult.updated) {
         resolvedUser = syncResult.user
       }
     } catch (error) {
-      console.error('Lazy Twitch sync failed in /api/weight/me:', error)
-    }
-  } else if (isStale) {
-    try {
-      const syncResult = await syncUserFromTwitch(resolvedUser.id)
-      if (syncResult.updated) {
-        resolvedUser = syncResult.user
-      }
-    } catch (error) {
-      console.error('Lazy Twitch sync failed in /api/weight/me:', error)
+      console.error('Lazy Twitch sync failed in /api/weight/me:', {
+        userId: resolvedUser.id,
+        trigger: syncTrigger,
+        error,
+      })
     }
   }
 
