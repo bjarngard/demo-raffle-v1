@@ -104,7 +104,7 @@ export async function checkUserFollowsChannel(
 export type UserSubscription = {
   isSubscriber: boolean
   subMonths: number
-  tier: string
+  tier: string | null
   isGift: boolean
 } | null
 
@@ -119,76 +119,162 @@ export async function getUserSubscription(userId: string | null, broadcasterToke
     return null
   }
 
+  type HelixBroadcasterSubscription = {
+    broadcaster_id: string
+    broadcaster_login: string
+    broadcaster_name: string
+    gifter_id: string | null
+    gifter_login: string | null
+    gifter_name: string | null
+    is_gift: boolean
+    plan_name: string
+    tier: string
+    user_id: string
+    user_name: string
+    user_login: string
+  }
+
+  type HelixBroadcasterSubscriptionResponse = {
+    data?: HelixBroadcasterSubscription[]
+    total?: number
+    points?: number
+  }
+
+  const url = new URL('https://api.twitch.tv/helix/subscriptions')
+  url.searchParams.set('broadcaster_id', BROADCASTER_ID)
+  url.searchParams.set('user_id', userId)
+
   try {
     const token = await resolveBroadcasterToken(broadcasterToken)
 
-    const response = await fetch(
-      `https://api.twitch.tv/helix/subscriptions?broadcaster_id=${BROADCASTER_ID}&user_id=${userId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Client-Id': TWITCH_CLIENT_ID,
-        },
-      }
-    )
+    const response = await fetch(url.toString(), {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Client-Id': TWITCH_CLIENT_ID,
+      },
+    })
 
     const responseText = await response.text()
-    
+
+    const notSubscribedResponse =
+      response.status === 404 ||
+      (response.status === 400 && /not\s+subscribed|user\s+does\s+not\s+have/i.test(responseText))
+
     if (!response.ok) {
-      if (response.status === 404 || response.status === 400) {
+      if (notSubscribedResponse) {
+        console.log('[getUserSubscription] not_subscribed', {
+          userId,
+          broadcasterId: BROADCASTER_ID,
+          status: response.status,
+        })
         return {
           isSubscriber: false,
           subMonths: 0,
-          tier: '1000',
+          tier: null,
           isGift: false,
         }
       }
 
       if (response.status === 401) {
-        console.error('Twitch subscription check unauthorized:', responseText)
+        console.error('[getUserSubscription] helix_error', {
+          userId,
+          broadcasterId: BROADCASTER_ID,
+          status: response.status,
+          url: url.toString(),
+          body: responseText,
+          reason: 'unauthorized',
+        })
         return null
       }
 
       if (response.status === 429) {
-        console.warn('Twitch subscription check rate limited')
+        console.error('[getUserSubscription] helix_error', {
+          userId,
+          broadcasterId: BROADCASTER_ID,
+          status: response.status,
+          url: url.toString(),
+          body: responseText,
+          reason: 'rate_limited',
+        })
         return null
       }
 
-      console.error('Twitch API error fetching subscription:', response.status, responseText)
+      console.error('[getUserSubscription] helix_error', {
+        userId,
+        broadcasterId: BROADCASTER_ID,
+        status: response.status,
+        url: url.toString(),
+        body: responseText,
+        reason: 'http_error',
+      })
       return null
     }
 
     if (!responseText || responseText.trim().length === 0) {
-      console.warn('Empty subscription response from Twitch for user:', userId)
+      console.error('[getUserSubscription] helix_error', {
+        userId,
+        broadcasterId: BROADCASTER_ID,
+        status: response.status,
+        url: url.toString(),
+        reason: 'empty_body',
+      })
       return null
     }
 
-    let data
+    let data: HelixBroadcasterSubscriptionResponse
     try {
-      data = JSON.parse(responseText)
+      data = JSON.parse(responseText) as HelixBroadcasterSubscriptionResponse
     } catch {
-      console.error('Failed to parse subscription response:', responseText)
+      console.error('[getUserSubscription] helix_error', {
+        userId,
+        broadcasterId: BROADCASTER_ID,
+        status: response.status,
+        url: url.toString(),
+        reason: 'invalid_json',
+        body: responseText,
+      })
       return null
     }
-    
-    if (data.data && data.data.length > 0) {
-      const sub = data.data[0]
+
+    const subscription = data.data && data.data.length > 0 ? data.data[0] : null
+
+    if (!subscription) {
+      console.log('[getUserSubscription] not_subscribed', {
+        userId,
+        broadcasterId: BROADCASTER_ID,
+        reason: 'no_data',
+      })
       return {
-        isSubscriber: true,
-        subMonths: sub.cumulative_months || 0,
-        tier: sub.tier || '1000',
-        isGift: sub.is_gift || false,
+        isSubscriber: false,
+        subMonths: 0,
+        tier: null,
+        isGift: false,
       }
     }
 
-    return {
-      isSubscriber: false,
+    const normalized: UserSubscription = {
+      isSubscriber: true,
       subMonths: 0,
-      tier: '1000',
-      isGift: false,
+      tier: subscription.tier ?? null,
+      isGift: Boolean(subscription.is_gift),
     }
+
+    console.log('[getUserSubscription] success', {
+      userId,
+      broadcasterId: BROADCASTER_ID,
+      tier: normalized.tier,
+      isGift: normalized.isGift,
+    })
+
+    return normalized
   } catch (error) {
-    console.error('Error fetching subscription:', error)
+    console.error('[getUserSubscription] helix_error', {
+      userId,
+      broadcasterId: BROADCASTER_ID,
+      url: url.toString(),
+      reason: 'network_error',
+      error,
+    })
     return null
   }
 }

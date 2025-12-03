@@ -81,8 +81,19 @@ export async function syncUserFromTwitch(
     let subMonths = existingUser.subMonths
 
     if (subscription) {
-      isSubscriber = subscription.isSubscriber
-      subMonths = subscription.subMonths
+      if (subscription.isSubscriber) {
+        isSubscriber = true
+        subMonths = subscription.subMonths
+      } else {
+        isSubscriber = false
+        subMonths = 0
+      }
+    } else {
+      console.warn('[syncUserFromTwitch] subscription_fallback', {
+        userId: existingUser.id,
+        twitchId: existingUser.twitchId,
+        reason: 'subscription_lookup_failed',
+      })
     }
 
     console.log(

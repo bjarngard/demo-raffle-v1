@@ -41,7 +41,7 @@ async function updateUserTwitchData(
     let subscription: {
       isSubscriber: boolean
       subMonths: number
-      tier: string
+      tier: string | null
       isGift: boolean
     } | null = null
 
@@ -62,10 +62,10 @@ async function updateUserTwitchData(
         subscription = await getUserSubscription(twitchUser.id, broadcasterAccessToken)
       } catch (error) {
         console.error('Error fetching subscription, defaulting to non-subscriber:', error)
-        subscription = { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
+        subscription = { isSubscriber: false, subMonths: 0, tier: null, isGift: false }
       }
     } else {
-      subscription = { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
+      subscription = { isSubscriber: false, subMonths: 0, tier: null, isGift: false }
     }
 
     const isSubscriber = subscription?.isSubscriber || false
