@@ -101,18 +101,24 @@ export async function checkUserFollowsChannel(
   }
 }
 
+export type UserSubscription = {
+  isSubscriber: boolean
+  subMonths: number
+  tier: string
+  isGift: boolean
+} | null
+
 /**
  * Get user's subscription info to broadcaster channel
  * GET https://api.twitch.tv/helix/subscriptions?broadcaster_id=<id>&user_id=<id>
  * Scope: channel:read:subscriptions (broadcaster-token)
  * Returns: user_id, tier, is_gift, cumulative_months, etc.
  */
-export async function getUserSubscription(userId: string, broadcasterToken?: string): Promise<{
-  isSubscriber: boolean
-  subMonths: number
-  tier: string
-  isGift: boolean
-} | null> {
+export async function getUserSubscription(userId: string | null, broadcasterToken?: string): Promise<UserSubscription> {
+  if (!userId) {
+    return null
+  }
+
   try {
     const token = await resolveBroadcasterToken(broadcasterToken)
 
@@ -130,14 +136,31 @@ export async function getUserSubscription(userId: string, broadcasterToken?: str
     
     if (!response.ok) {
       if (response.status === 404 || response.status === 400) {
-        return { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
+        return {
+          isSubscriber: false,
+          subMonths: 0,
+          tier: '1000',
+          isGift: false,
+        }
       }
+
+      if (response.status === 401) {
+        console.error('Twitch subscription check unauthorized:', responseText)
+        return null
+      }
+
+      if (response.status === 429) {
+        console.warn('Twitch subscription check rate limited')
+        return null
+      }
+
       console.error('Twitch API error fetching subscription:', response.status, responseText)
-      return { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false } // Return default instead of throwing
+      return null
     }
 
     if (!responseText || responseText.trim().length === 0) {
-      return { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
+      console.warn('Empty subscription response from Twitch for user:', userId)
+      return null
     }
 
     let data
@@ -145,7 +168,7 @@ export async function getUserSubscription(userId: string, broadcasterToken?: str
       data = JSON.parse(responseText)
     } catch {
       console.error('Failed to parse subscription response:', responseText)
-      return { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
+      return null
     }
     
     if (data.data && data.data.length > 0) {
@@ -158,7 +181,12 @@ export async function getUserSubscription(userId: string, broadcasterToken?: str
       }
     }
 
-    return { isSubscriber: false, subMonths: 0, tier: '1000', isGift: false }
+    return {
+      isSubscriber: false,
+      subMonths: 0,
+      tier: '1000',
+      isGift: false,
+    }
   } catch (error) {
     console.error('Error fetching subscription:', error)
     return null

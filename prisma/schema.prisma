@@ -47,6 +47,7 @@ model User {
   totalWeight       Float    @default(1.0) // Calculated total weight for this stream
   
   // Metadata
+  needsResync       Boolean  @default(false)
   lastUpdated       DateTime @default(now())
   createdAt         DateTime @default(now())
   lastActive        DateTime @default(now())

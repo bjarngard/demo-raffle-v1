@@ -113,17 +113,13 @@ function RaffleForm() {
       setFollowStatus('checking')
       setFollowReason(null)
       checkFollowStatus()
-      // Hint-only sync to refresh Twitch-derived state after login without blocking UI.
-      fetch('/api/twitch/sync', { method: 'POST' }).catch((err) => {
-        console.error('Twitch sync on login failed:', err)
-      })
     } else {
       setFollowStatus(null)
       setFollowReason(null)
     }
 
     return () => clearInterval(interval)
-  }, [session, checkFollowStatus])
+  }, [session?.user?.id, checkFollowStatus])
 
   useEffect(() => {
     setSessionOverride(null)

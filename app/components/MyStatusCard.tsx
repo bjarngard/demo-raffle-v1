@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import type { WeightBreakdown, WeightSettings } from '@/lib/weight-settings'
 
@@ -28,15 +28,8 @@ export default function MyStatusCard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // UI display (C): poll the canonical weight API, never recompute client-side.
-  useEffect(() => {
+  const fetchWeightInfo = useCallback(async () => {
     if (!session?.user?.id) return
-    fetchWeightInfo()
-    const interval = setInterval(fetchWeightInfo, 30 * 1000)
-    return () => clearInterval(interval)
-  }, [session?.user?.id])
-
-  const fetchWeightInfo = async () => {
     try {
       const response = await fetch('/api/weight/me', { cache: 'no-store' })
       if (!response.ok) {
@@ -57,7 +50,21 @@ export default function MyStatusCard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.user?.id])
+
+  // UI display (C): poll the canonical weight API, never recompute client-side.
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setWeightInfo(null)
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    fetchWeightInfo()
+    const interval = setInterval(fetchWeightInfo, 30 * 1000)
+    return () => clearInterval(interval)
+  }, [session?.user?.id, fetchWeightInfo])
 
   if (!session?.user) {
     return null
@@ -159,20 +166,6 @@ export default function MyStatusCard() {
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={async () => {
-          try {
-            await fetch('/api/twitch/sync', { method: 'POST' })
-            await fetchWeightInfo()
-          } catch (err) {
-            console.error('Force refresh from Twitch failed:', err)
-          }
-        }}
-        className="mt-4 text-xs text-purple-100 underline underline-offset-2 hover:text-white"
-      >
-        Force refresh from Twitch
-      </button>
     </div>
   )
 }

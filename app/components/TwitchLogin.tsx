@@ -1,7 +1,7 @@
 'use client'
 
 import { signIn, signOut, useSession } from 'next-auth/react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 
 type UserWeightSummary = {
@@ -19,9 +19,8 @@ type UserWeightSummary = {
   carryOverWeight: number
 }
 
-type UserWeightResponse = {
-  success: boolean
-  user?: UserWeightSummary
+type WeightMeResponse = {
+  user: UserWeightSummary
 }
 
 export default function TwitchLogin() {
@@ -29,31 +28,32 @@ export default function TwitchLogin() {
   const [loading, setLoading] = useState(false)
   const [userWeight, setUserWeight] = useState<UserWeightSummary | null>(null)
 
-  useEffect(() => {
+  const fetchUserWeight = useCallback(async () => {
     if (!session?.user?.id) return
-    fetchUserWeight()
-    const interval = setInterval(fetchUserWeight, 2 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [session?.user?.id])
-
-  const fetchUserWeight = async () => {
     try {
-      const response = await fetch('/api/twitch/sync', {
-        method: 'POST',
-      })
-
-      if (response.status === 429) {
+      const response = await fetch('/api/weight/me', { cache: 'no-store' })
+      if (!response.ok) {
+        if (response.status === 401) {
+          setUserWeight(null)
+        }
         return
       }
-
-      if (response.ok) {
-        const data: UserWeightResponse = await response.json()
-        setUserWeight(data.user ?? null)
-      }
+      const data: WeightMeResponse = await response.json()
+      setUserWeight(data.user)
     } catch (error) {
       console.error('Error fetching user weight:', error)
     }
-  }
+  }, [session?.user?.id])
+
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setUserWeight(null)
+      return
+    }
+    fetchUserWeight()
+    const interval = setInterval(fetchUserWeight, 2 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [session?.user?.id, fetchUserWeight])
 
   const handleSignIn = async () => {
     setLoading(true)

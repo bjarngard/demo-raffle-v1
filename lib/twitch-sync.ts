@@ -30,7 +30,9 @@ export async function syncUserFromTwitch(
   }
 
   const lastUpdatedMs = existingUser.lastUpdated?.getTime() ?? 0
-  if (!options?.force && lastUpdatedMs && Date.now() - lastUpdatedMs < USER_TWITCH_SYNC_COOLDOWN_MS) {
+  const withinCooldown = Boolean(lastUpdatedMs) && Date.now() - lastUpdatedMs < USER_TWITCH_SYNC_COOLDOWN_MS
+
+  if (!options?.force && !existingUser.needsResync && withinCooldown) {
     return { user: existingUser, updated: false, reason: 'cooldown' }
   }
 
@@ -39,7 +41,16 @@ export async function syncUserFromTwitch(
     broadcasterToken = await getBroadcasterAccessToken()
   } catch (error) {
     console.error('Failed to fetch broadcaster token for Twitch sync:', error)
-    return { user: existingUser, updated: false, reason: 'missing_broadcaster_token' }
+    try {
+      const cleared = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { needsResync: false },
+      })
+      return { user: cleared, updated: false, reason: 'missing_broadcaster_token' }
+    } catch (updateError) {
+      console.error('Failed to clear needsResync after broadcaster token error:', updateError)
+      return { user: existingUser, updated: false, reason: 'missing_broadcaster_token' }
+    }
   }
 
   try {
@@ -56,8 +67,22 @@ export async function syncUserFromTwitch(
     }
 
     const subscription = await getUserSubscription(existingUser.twitchId, broadcasterToken)
-    const isSubscriber = subscription?.isSubscriber ?? false
-    const subMonths = subscription?.subMonths ?? 0
+    let isSubscriber = existingUser.isSubscriber
+    let subMonths = existingUser.subMonths
+
+    if (subscription) {
+      isSubscriber = subscription.isSubscriber
+      subMonths = subscription.subMonths
+    }
+
+    console.log(
+      '[syncUserFromTwitch] userId=%s follower=%s subscriber=%s subMonths=%d reason=%s',
+      existingUser.id,
+      isFollower,
+      isSubscriber,
+      subMonths,
+      syncReason ?? 'none'
+    )
 
     const totalWeight = await calculateUserWeight({
       isSubscriber,
@@ -80,8 +105,16 @@ export async function syncUserFromTwitch(
         currentWeight: totalWeight - existingUser.carryOverWeight,
         lastUpdated: new Date(),
         lastActive: new Date(),
+        needsResync: false,
       },
     })
+
+    console.log(
+      '[syncUserFromTwitch] persisted userId=%s subscriber=%s subMonths=%d',
+      updatedUser.id,
+      updatedUser.isSubscriber,
+      updatedUser.subMonths
+    )
 
     return {
       user: updatedUser,
@@ -90,10 +123,23 @@ export async function syncUserFromTwitch(
     }
   } catch (error) {
     console.error('Error syncing user from Twitch API:', error)
-    return {
-      user: existingUser,
-      updated: false,
-      reason: error instanceof Error ? error.message : 'unknown_error',
+    try {
+      const cleared = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { needsResync: false },
+      })
+      return {
+        user: cleared,
+        updated: false,
+        reason: error instanceof Error ? error.message : 'unknown_error',
+      }
+    } catch (updateError) {
+      console.error('Failed to clear needsResync after Twitch sync error:', updateError)
+      return {
+        user: existingUser,
+        updated: false,
+        reason: error instanceof Error ? error.message : 'unknown_error',
+      }
     }
   }
 }

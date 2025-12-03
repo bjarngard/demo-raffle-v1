@@ -6,33 +6,47 @@ import { describeWeightBreakdown, getWeightSettings } from '@/lib/weight-setting
 import { ensureUser } from '@/lib/user'
 import { syncUserFromTwitch } from '@/lib/twitch-sync'
 
+const STALE_WEIGHT_MAX_AGE_MS = 6 * 60 * 60 * 1000 // 6 hours
+
 export async function GET() {
   const session = await auth()
 
-  if (!session?.user?.id) {
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Weight/odds (B): always normalize the viewer before using cached state.
   await ensureUser(session.user)
 
-  let resolvedUser: User | null = null
-  // Twitch is ground truth: attempt a lazy sync unless cooldown blocks it.
-  try {
-    const syncResult = await syncUserFromTwitch(session.user.id)
-    resolvedUser = syncResult.user
-  } catch (error) {
-    console.error('Lazy Twitch sync failed in /api/weight/me:', error)
-  }
-
-  if (!resolvedUser) {
-    resolvedUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-    })
-  }
+  let resolvedUser: User | null = await prisma.user.findUnique({
+    where: { id: session.user.id },
+  })
 
   if (!resolvedUser) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  }
+
+  const now = Date.now()
+  const lastUpdatedMs = resolvedUser.lastUpdated?.getTime() ?? 0
+  const isStale = !lastUpdatedMs || now - lastUpdatedMs > STALE_WEIGHT_MAX_AGE_MS
+
+  if (resolvedUser.needsResync) {
+    try {
+      const syncResult = await syncUserFromTwitch(resolvedUser.id)
+      if (syncResult.updated) {
+        resolvedUser = syncResult.user
+      }
+    } catch (error) {
+      console.error('Lazy Twitch sync failed in /api/weight/me:', error)
+    }
+  } else if (isStale) {
+    try {
+      const syncResult = await syncUserFromTwitch(resolvedUser.id)
+      if (syncResult.updated) {
+        resolvedUser = syncResult.user
+      }
+    } catch (error) {
+      console.error('Lazy Twitch sync failed in /api/weight/me:', error)
+    }
   }
 
   const breakdown = await describeWeightBreakdown({
@@ -52,6 +66,7 @@ export async function GET() {
       id: resolvedUser.id,
       username: resolvedUser.username,
       displayName: resolvedUser.displayName,
+      isFollower: resolvedUser.isFollower,
       isSubscriber: resolvedUser.isSubscriber,
       subMonths: resolvedUser.subMonths,
       resubCount: resolvedUser.resubCount,
