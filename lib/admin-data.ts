@@ -1,6 +1,7 @@
 import { prisma } from './prisma'
 import type { AdminEntry } from '@/types/admin'
 import { entryStateExclusion } from './submissions-state'
+import { describeWeightBreakdown } from './weight-settings'
 
 type EntrySortBy = 'weight' | 'name'
 type EntrySortOrder = 'asc' | 'desc'
@@ -34,6 +35,7 @@ export async function getAdminEntries({
           displayName: true,
           totalWeight: true,
           isSubscriber: true,
+          isFollower: true,
           subMonths: true,
           resubCount: true,
           totalCheerBits: true,
@@ -60,25 +62,75 @@ export async function getAdminEntries({
       })
     : entries
 
-  const formattedEntries: AdminEntry[] = filteredEntries.map((entry) => ({
-    id: entry.id,
-    name: entry.name || entry.user?.displayName || entry.user?.username || 'Unknown',
-    username: entry.user?.username || '',
-    displayName: entry.user?.displayName || '',
-    demoLink: entry.demoLink || null,
-    totalWeight: entry.user?.totalWeight || 1.0,
-    weightBreakdown: {
-      base: 1.0,
-      subMonths: entry.user?.subMonths || 0,
-      resubCount: entry.user?.resubCount || 0,
-      cheerBits: entry.user?.totalCheerBits || 0,
-      donations: entry.user?.totalDonations || 0,
-      giftedSubs: entry.user?.totalGiftedSubs || 0,
-      carryOver: entry.user?.carryOverWeight || 0,
-    },
-    createdAt: entry.createdAt.toISOString(),
-    userId: entry.userId,
-  }))
+  const formattedEntries: AdminEntry[] = await Promise.all(
+    filteredEntries.map(async (entry) => {
+      const user = entry.user
+      let canonicalBreakdown = null
+
+      if (user) {
+        canonicalBreakdown = await describeWeightBreakdown({
+          isSubscriber: user.isSubscriber ?? false,
+          subMonths: user.subMonths ?? 0,
+          resubCount: user.resubCount ?? 0,
+          totalCheerBits: user.totalCheerBits ?? 0,
+          totalDonations: user.totalDonations ?? 0,
+          totalGiftedSubs: user.totalGiftedSubs ?? 0,
+          carryOverWeight: user.carryOverWeight ?? 0,
+        })
+      }
+
+      const weightSummary = canonicalBreakdown
+        ? {
+            baseWeight: canonicalBreakdown.baseWeight,
+            loyalty: {
+              monthsComponent: canonicalBreakdown.loyalty.monthsComponent,
+              resubComponent: canonicalBreakdown.loyalty.resubComponent,
+              total: canonicalBreakdown.loyalty.cappedTotal,
+            },
+            support: {
+              cheerWeight: canonicalBreakdown.support.cheerWeight,
+              donationsWeight: canonicalBreakdown.support.donationsWeight,
+              giftedSubsWeight: canonicalBreakdown.support.giftedSubsWeight,
+              total: canonicalBreakdown.support.cappedTotal,
+            },
+            carryOverWeight: canonicalBreakdown.carryOverWeight,
+            totalWeight: canonicalBreakdown.totalWeight,
+          }
+        : {
+            baseWeight: 1,
+            loyalty: {
+              monthsComponent: 0,
+              resubComponent: 0,
+              total: 0,
+            },
+            support: {
+              cheerWeight: 0,
+              donationsWeight: 0,
+              giftedSubsWeight: 0,
+              total: 0,
+            },
+            carryOverWeight: user?.carryOverWeight ?? 0,
+            totalWeight: user?.totalWeight ?? 1,
+          }
+
+      return {
+        id: entry.id,
+        name: entry.name || user?.displayName || user?.username || 'Unknown',
+        username: user?.username || '',
+        displayName: user?.displayName || '',
+        demoLink: entry.demoLink || null,
+        totalWeight: weightSummary.totalWeight,
+        weightBreakdown: {
+          ...weightSummary,
+          isSubscriber: user?.isSubscriber ?? false,
+          isFollower: user?.isFollower ?? false,
+          subMonths: user?.subMonths ?? 0,
+        },
+        createdAt: entry.createdAt.toISOString(),
+        userId: entry.userId,
+      }
+    })
+  )
 
   if (sortBy === 'weight') {
     formattedEntries.sort((a, b) => {

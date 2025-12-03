@@ -6,13 +6,23 @@ export type AdminEntry = {
   demoLink: string | null
   totalWeight: number
   weightBreakdown: {
-    base: number
+    baseWeight: number
+    loyalty: {
+      monthsComponent: number
+      resubComponent: number
+      total: number
+    }
+    support: {
+      cheerWeight: number
+      donationsWeight: number
+      giftedSubsWeight: number
+      total: number
+    }
+    carryOverWeight: number
+    totalWeight: number
+    isSubscriber: boolean
+    isFollower: boolean
     subMonths: number
-    resubCount: number
-    cheerBits: number
-    donations: number
-    giftedSubs: number
-    carryOver: number
   }
   createdAt: string
   userId: string | null

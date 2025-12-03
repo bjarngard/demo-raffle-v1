@@ -233,9 +233,10 @@ function computeWeightComponents(
 ): WeightComponents {
   const baseWeight = settings.baseWeight
 
-  const monthsComponent = user.isSubscriber
+  const effectiveSubMonths = getEffectiveSubMonths(user.isSubscriber, user.subMonths)
+  const monthsComponent = effectiveSubMonths
     ? Math.min(
-        user.subMonths * settings.subMonthsMultiplier,
+        effectiveSubMonths * settings.subMonthsMultiplier,
         settings.subMonthsCap * settings.subMonthsMultiplier
       )
     : 0
@@ -279,4 +280,11 @@ function computeWeightComponents(
     supportWeightRaw,
     supportWeightCapped,
   }
+}
+
+function getEffectiveSubMonths(isSubscriber: boolean, subMonths: number): number {
+  if (!isSubscriber) {
+    return 0
+  }
+  return Math.max(1, subMonths)
 }
