@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { SessionProvider, useSession } from 'next-auth/react'
 import TwitchLogin from './components/TwitchLogin'
+import WeightInfoModal from './components/WeightInfoModal'
 
 interface Winner {
   id: number
@@ -37,6 +38,7 @@ function RaffleForm() {
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true)
   const [sessionOverride, setSessionOverride] = useState<boolean | null>(null)
   const [submissionsOverride, setSubmissionsOverride] = useState<boolean | null>(null)
+  const [weightInfoOpen, setWeightInfoOpen] = useState(false)
   const sessionActive = leaderboard?.sessionId ? true : false
   const submissionsOpen = leaderboard?.submissionsOpen === true
   const effectiveSessionActive = sessionOverride ?? sessionActive
@@ -338,6 +340,15 @@ function RaffleForm() {
             <p className="text-center text-gray-600 dark:text-gray-400 mb-8">
               Enter below to participate
             </p>
+            <div className="flex justify-center mb-4">
+              <button
+                type="button"
+                onClick={() => setWeightInfoOpen(true)}
+                className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-100"
+              >
+                How are my odds calculated?
+              </button>
+            </div>
 
           <TwitchLogin />
 
@@ -522,6 +533,7 @@ function RaffleForm() {
             )}
           </div>
         </div>
+        <WeightInfoModal open={weightInfoOpen} onClose={() => setWeightInfoOpen(false)} />
       </main>
     </div>
   )

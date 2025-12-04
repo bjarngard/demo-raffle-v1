@@ -156,23 +156,14 @@ export default function MyStatusCard() {
         
         <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
           <span className="text-purple-100">
-            {user.isSubscriber
-              ? `Subscriber loyalty (tracked months: ${Math.max(1, user.subMonths)})`
-              : 'Subscriber loyalty'}
+            Subscriber Months ({user.isSubscriber ? Math.max(1, user.subMonths || 0) : 0})
           </span>
           <span className="font-semibold">
             +{breakdown.loyalty.monthsComponent.toFixed(2)}x
           </span>
         </div>
-        
-        {user.resubCount > 0 && (
-          <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
-            <span className="text-purple-100">
-              Resubs ({user.resubCount})
-            </span>
-            <span className="font-semibold">+{breakdown.loyalty.resubComponent.toFixed(2)}x</span>
-          </div>
-        )}
+        {/* NOTE: We intentionally do not render a separate "Resubs" row in the viewer UI.
+            Any resub-based loyalty (if used) is folded into the total loyalty bonus. */}
 
         <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
           <span className="text-purple-100">Total Loyalty Bonus</span>
