@@ -5,7 +5,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/admin-auth'
 import { getAdminEntries } from '@/lib/admin-data'
-import { getCurrentSession } from '@/lib/session'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,18 +24,11 @@ export async function GET(request: NextRequest) {
     const sortBy = request.nextUrl.searchParams.get('sortBy') || 'weight'
     const sortOrder = request.nextUrl.searchParams.get('sortOrder') || 'desc'
 
-    const currentSession = await getCurrentSession()
-    const entries = currentSession
-      ? await getAdminEntries({
-          search,
-          sortBy:
-            sortBy === 'name'
-              ? 'name'
-              : 'weight',
-          sortOrder: sortOrder === 'asc' ? 'asc' : 'desc',
-          sessionId: currentSession.id,
-        })
-      : []
+    const entries = await getAdminEntries({
+      search,
+      sortBy: sortBy === 'name' ? 'name' : 'weight',
+      sortOrder: sortOrder === 'asc' ? 'asc' : 'desc',
+    })
 
     return NextResponse.json({
       success: true,

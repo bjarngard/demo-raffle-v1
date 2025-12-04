@@ -2,6 +2,7 @@ import { prisma } from './prisma'
 import type { AdminEntry } from '@/types/admin'
 import { entryStateExclusion } from './submissions-state'
 import { describeWeightBreakdown } from './weight-settings'
+import { getCurrentSession, getLatestEndedSession } from './session'
 
 type EntrySortBy = 'weight' | 'name'
 type EntrySortOrder = 'asc' | 'desc'
@@ -17,15 +18,17 @@ export async function getAdminEntries({
   sortOrder?: EntrySortOrder
   sessionId?: string | null
 } = {}): Promise<AdminEntry[]> {
+  const resolvedSessionId = await resolveAdminSessionId(sessionId)
+
+  if (!resolvedSessionId) {
+    return []
+  }
+
   const entries = await prisma.entry.findMany({
     where: {
       isWinner: false,
       ...entryStateExclusion,
-      ...(sessionId
-        ? {
-            sessionId,
-          }
-        : {}),
+      sessionId: resolvedSessionId,
     },
     include: {
       user: {
@@ -141,5 +144,19 @@ export async function getAdminEntries({
   }
 
   return formattedEntries
+}
+
+async function resolveAdminSessionId(explicitSessionId?: string | null) {
+  if (explicitSessionId) {
+    return explicitSessionId
+  }
+
+  const activeSession = await getCurrentSession()
+  if (activeSession) {
+    return activeSession.id
+  }
+
+  const latestEnded = await getLatestEndedSession()
+  return latestEnded?.id ?? null
 }
 
