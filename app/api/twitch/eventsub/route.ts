@@ -134,6 +134,16 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      await handleAggregation(subscriptionType, event, twitchUserId)
+    } catch (error) {
+      console.error('[eventsub] aggregation_error', {
+        subscriptionType,
+        twitchUserId,
+        error,
+      })
+    }
+
+    try {
       const result = await prisma.user.updateMany({
         where: { twitchId: twitchUserId },
         data: { needsResync: true },
@@ -184,6 +194,102 @@ function extractTwitchUserId(event: Record<string, unknown> | null | undefined):
   }
 
   return null
+}
+
+type CheerEventPayload = {
+  user_id?: string | null
+  bits?: number
+  is_anonymous?: boolean
+}
+
+type SubscriptionGiftEventPayload = {
+  user_id?: string | null
+  total?: number
+  is_anonymous?: boolean
+}
+
+async function handleAggregation(
+  subscriptionType: string,
+  event: Record<string, unknown>,
+  twitchUserId: string
+) {
+  if (subscriptionType === 'channel.cheer') {
+    await aggregateCheer(event as CheerEventPayload, twitchUserId)
+  } else if (subscriptionType === 'channel.subscription.gift') {
+    await aggregateGift(event as SubscriptionGiftEventPayload, twitchUserId)
+  }
+}
+
+async function aggregateCheer(event: CheerEventPayload, twitchUserId: string) {
+  if (event.is_anonymous) {
+    return
+  }
+  const bits =
+    typeof event.bits === 'number' && Number.isFinite(event.bits) ? Math.max(0, Math.floor(event.bits)) : 0
+  if (bits <= 0) {
+    return
+  }
+
+  const result = await prisma.user.updateMany({
+    where: { twitchId: twitchUserId },
+    data: {
+      totalCheerBits: {
+        increment: bits,
+      },
+    },
+  })
+
+  if (result.count === 0) {
+    console.warn('[eventsub] aggregation_user_missing', {
+      twitchUserId,
+      subscriptionType: 'channel.cheer',
+      context: 'cheer',
+    })
+    return
+  }
+
+  console.log('[eventsub] cheer_aggregated', {
+    twitchUserId,
+    bits,
+  })
+}
+
+async function aggregateGift(event: SubscriptionGiftEventPayload, twitchUserId: string) {
+  if (event.is_anonymous) {
+    return
+  }
+  const total =
+    typeof event.total === 'number' && Number.isFinite(event.total) ? Math.max(0, Math.floor(event.total)) : null
+  const giftCount = total ?? 1
+  if (!total || total <= 0) {
+    console.warn('[eventsub] gift_total_invalid', {
+      twitchUserId,
+      provided: event.total,
+    })
+  }
+
+  const result = await prisma.user.updateMany({
+    where: { twitchId: twitchUserId },
+    data: {
+      totalGiftedSubs: {
+        increment: giftCount,
+      },
+    },
+  })
+
+  if (result.count === 0) {
+    console.warn('[eventsub] aggregation_user_missing', {
+      twitchUserId,
+      subscriptionType: 'channel.subscription.gift',
+      context: 'gift',
+    })
+    return
+  }
+
+  console.log('[eventsub] gift_aggregated', {
+    twitchUserId,
+    giftCount,
+  })
 }
 
 function verifySignature(
