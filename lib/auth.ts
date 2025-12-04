@@ -131,7 +131,8 @@ export const authOptions: NextAuthConfig = {
       authorization: {
         params: {
           // OIDC identity, email, and broadcaster scopes needed for Helix calls
-          scope: 'openid user:read:email user:read:follows moderator:read:followers channel:read:subscriptions',
+          scope:
+            'openid user:read:email user:read:follows moderator:read:followers channel:read:subscriptions bits:read',
         },
       },
       checks: ['state', 'pkce'],

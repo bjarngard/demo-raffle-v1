@@ -12,7 +12,8 @@
     "prisma:migrate:reset": "prisma migrate reset",
     "prisma:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "twitch:diagnose": "tsx scripts/twitch-diagnose.ts"
+    "twitch:diagnose": "tsx scripts/twitch-diagnose.ts",
+    "twitch:eventsub:provision": "node scripts/eventsub-provision.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
