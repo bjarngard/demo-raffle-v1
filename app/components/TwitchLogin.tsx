@@ -141,9 +141,7 @@ export default function TwitchLogin() {
               <div>
                 <p className="text-purple-100">Subscriber</p>
                 <p className="text-lg font-semibold">
-                  {userWeight.isSubscriber
-                    ? `✓ ${Math.max(1, userWeight.subMonths || 0)} months`
-                    : 'No'}
+                  {userWeight.isSubscriber ? '✓ Subscriber' : 'Not subscribed'}
                 </p>
               </div>
               <div>
@@ -153,10 +151,6 @@ export default function TwitchLogin() {
               <div>
                 <p className="text-purple-100">Gifted Subs</p>
                 <p className="text-lg font-semibold">{userWeight.totalGiftedSubs.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-purple-100">Resubs</p>
-                <p className="text-lg font-semibold">{userWeight.resubCount.toLocaleString()}</p>
               </div>
             </div>
           </div>

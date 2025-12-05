@@ -34,8 +34,7 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
           How your raffle weight works
         </h2>
         <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-4 text-center">
-          Your odds are based on a few simple components. The card on the right shows your live weight exactly
-          as the system sees it.
+          Your odds are based on a few simple components. The card on the right shows your current weight.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -46,14 +45,13 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
                 raffle.
               </p>
             </Section>
-            <Section title="Subscriber loyalty">
+            <Section title="Subscriber">
               <p>
-                If you&apos;re subscribed, you get a loyalty bonus on top of the base weight. We treat all active subs
-                as having at least one tracked month – this does not necessarily match Twitch&apos;s tenure or streak
-                numbers exactly.
+                If you&apos;re a subscriber, you get a loyalty bonus on top of the base weight. This bonus is static
+                and doesn&apos;t increase depending on sub streaks or resubs.
               </p>
             </Section>
-            <Section title="Support this session only">
+            <Section title="Boosts during current session">
               <p>
                 Bits, gifted subs and donations increase your weight for the <strong>current</strong> raffle session
                 only. When a new session starts, these support stats are reset back to zero for everyone.
@@ -72,7 +70,7 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
             <Section title="Requirements">
               <p>
                 You must be logged in with Twitch and follow the channel to participate. All weights are calculated
-                server-side from Twitch data and the weight settings visible in the admin panel.
+                server-side from Twitch data.
               </p>
             </Section>
           </div>

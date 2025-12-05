@@ -123,7 +123,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, demoLink } = body as { name?: string; demoLink?: string }
+    const { name, displayName, demoLink } = body as {
+      name?: unknown
+      displayName?: unknown
+      demoLink?: unknown
+    }
+    const normalizedDisplayName = typeof displayName === 'string' ? displayName.trim() : ''
+    const normalizedName = typeof name === 'string' ? name.trim() : ''
+    const normalizedDemoLink = typeof demoLink === 'string' ? demoLink.trim() : ''
 
     const viewer = await ensureUser(session.user)
 
@@ -160,10 +167,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate demo link if provided
-    if (demoLink && demoLink.trim()) {
+    if (normalizedDemoLink) {
       let url: URL
       try {
-        url = new URL(demoLink.trim())
+        url = new URL(normalizedDemoLink)
       } catch {
         return NextResponse.json(
           { success: false, error: 'Invalid demo link URL format' },
@@ -213,15 +220,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const displayName =
-      name?.trim() ||
+    const resolvedDisplayName =
+      normalizedDisplayName ||
+      normalizedName ||
       viewer.displayName ||
       viewer.username ||
       session.user.name ||
+      viewer.twitchId ||
       'Raffle Viewer'
 
     const entryData: Prisma.EntryCreateInput = {
-      name: displayName,
+      name: resolvedDisplayName,
       user: {
         connect: { id: viewer.id },
       },
@@ -230,10 +239,7 @@ export async function POST(request: NextRequest) {
           id: currentSession.id,
         },
       },
-    }
-
-    if (demoLink && demoLink.trim()) {
-      entryData.demoLink = demoLink.trim()
+      demoLink: normalizedDemoLink || null,
     }
 
     let entry

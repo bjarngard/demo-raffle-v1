@@ -155,9 +155,7 @@ export default function MyStatusCard() {
         </div>
         
         <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
-          <span className="text-purple-100">
-            Subscriber Months ({user.isSubscriber ? Math.max(1, user.subMonths || 0) : 0})
-          </span>
+          <span className="text-purple-100">Subscriber loyalty bonus</span>
           <span className="font-semibold">
             +{breakdown.loyalty.monthsComponent.toFixed(2)}x
           </span>

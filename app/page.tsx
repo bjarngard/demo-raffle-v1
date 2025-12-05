@@ -27,6 +27,7 @@ interface LeaderboardData {
 function RaffleForm() {
   const { data: session, status } = useSession()
   const [name, setName] = useState('')
+  const [demoLink, setDemoLink] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -157,7 +158,10 @@ function RaffleForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: name.trim() || undefined }),
+        body: JSON.stringify({
+          displayName: name.trim() || undefined,
+          demoLink: demoLink.trim() || undefined,
+        }),
       })
 
       const contentType = response.headers.get('content-type')
@@ -198,6 +202,7 @@ function RaffleForm() {
       if (data.success) {
         setSubmitted(true)
         setName('')
+        setDemoLink('')
       } else {
         setError(data.error || 'An error occurred')
       }
@@ -344,7 +349,7 @@ function RaffleForm() {
               <button
                 type="button"
                 onClick={() => setWeightInfoOpen(true)}
-                className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-300 hover:text-indigo-800 dark:hover:text-indigo-100"
+                className="inline-flex items-center gap-2 text-base md:text-lg font-semibold text-indigo-600 dark:text-indigo-300 underline underline-offset-4 hover:text-indigo-800 dark:hover:text-indigo-100"
               >
                 How are my odds calculated?
               </button>
@@ -454,6 +459,22 @@ function RaffleForm() {
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   If left empty, your Twitch display name will be used
+                </p>
+              </div>
+              <div>
+                <label htmlFor="demoLink" className="block text-sm font-medium text-gray-200 mb-1">
+                  Link to your demo
+                </label>
+                <input
+                  id="demoLink"
+                  type="url"
+                  value={demoLink}
+                  onChange={(e) => setDemoLink(e.target.value)}
+                  className="w-full rounded-md bg-gray-900/60 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="https://..."
+                />
+                <p className="mt-1 text-xs text-gray-400">
+                  Paste a direct link to your track (Google Drive, Dropbox, SoundCloud, etc.).
                 </p>
               </div>
 
