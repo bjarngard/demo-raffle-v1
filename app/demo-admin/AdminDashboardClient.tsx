@@ -343,6 +343,20 @@ export default function AdminDashboardClient({
 
           {activeTab === 'raffle' && (
             <div className="space-y-6">
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={fetchLeaderboard}
+                  disabled={leaderboardLoading}
+                  className={`inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium transition ${
+                    leaderboardLoading
+                      ? 'border-gray-300 text-gray-400 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {leaderboardLoading ? 'Refreshing…' : 'Refresh'}
+                </button>
+              </div>
               <RaffleWheel entries={raffleEntries} onWinnerPicked={handleWinnerPicked} />
               <TopList entries={leaderboard} loading={leaderboardLoading} />
             </div>
@@ -368,6 +382,8 @@ function AdminWinnerModal({
     entry.name?.trim() ||
     entry.username?.trim() ||
     'Winner'
+  const demoLink = entry.demoLink ?? null
+  const demoLabel = demoLink ? formatDemoLinkLabel(demoLink) : null
   const notes = entry.notes?.trim()
   return (
     <div
@@ -388,14 +404,14 @@ function AdminWinnerModal({
           <div className="text-5xl">🎉</div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Winner drawn</h2>
           <p className="text-xl font-semibold text-gray-800 dark:text-gray-100">{displayName}</p>
-          {entry.demoLink ? (
+          {demoLink ? (
             <a
-              href={entry.demoLink}
+              href={demoLink}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition"
             >
-              Open demo link
+              {demoLabel}
             </a>
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400">No demo link provided.</p>
@@ -421,5 +437,11 @@ function AdminWinnerModal({
       </div>
     </div>
   )
+}
+
+function formatDemoLinkLabel(raw: string): string {
+  const trimmed = raw.trim()
+  if (trimmed.length <= 80) return trimmed
+  return `${trimmed.slice(0, 77)}…`
 }
 

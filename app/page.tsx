@@ -138,6 +138,7 @@ function RaffleForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    const trimmedDemoLink = demoLink.trim()
 
     if (!effectiveSessionActive) {
       setError('The raffle is not currently running. Please check back later.')
@@ -151,6 +152,11 @@ function RaffleForm() {
       return
     }
 
+    if (!trimmedDemoLink) {
+      setError('You must add a link to participate.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -161,7 +167,7 @@ function RaffleForm() {
         },
         body: JSON.stringify({
           displayName: name.trim() || undefined,
-          demoLink: demoLink.trim() || undefined,
+          demoLink: trimmedDemoLink,
           notes: notes ? notes : undefined,
         }),
       })
@@ -195,6 +201,8 @@ function RaffleForm() {
         } else if (errorCode === 'NOT_FOLLOWING') {
           setFollowStatus('not_following')
           setError('You need to follow the channel on Twitch before entering.')
+        } else if (errorCode === 'DEMO_LINK_REQUIRED') {
+          setError('You must add a link to participate.')
         } else if (errorCode === 'NOTES_TOO_LONG') {
           setError('Notes must be 500 characters or fewer.')
         } else if (errorCode === 'NOTES_INVALID') {
@@ -477,6 +485,8 @@ function RaffleForm() {
                   type="url"
                   value={demoLink}
                   onChange={(e) => setDemoLink(e.target.value)}
+                  required
+                  aria-invalid={Boolean(error) && demoLink.trim().length === 0}
                   className="w-full rounded-md bg-gray-900/60 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="https://..."
                 />

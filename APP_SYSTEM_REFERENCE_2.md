@@ -40,7 +40,7 @@
 
 | Route | Method | Auth | Description |
 | --- | --- | --- | --- |
-| `/api/enter` | POST | Viewer session (`auth()`) | Creates a new raffle entry if submissions are open, a session is active, the user follows, and they have no pending entry. Uses `resolveRaffleSubmissionState(viewer.id)` (see §6) as the single gatekeeper before any writes. Accepts `displayName`, `demoLink`, and optional `notes` (trimmed, HTML-stripped, ≤500 chars) which are stored on the entry for admin’s winner context. Returns `{ success: true, id }` or structured error codes. |
+| `/api/enter` | POST | Viewer session (`auth()`) | Creates a new raffle entry if submissions are open, a session is active, the user follows, and they have no pending entry. Uses `resolveRaffleSubmissionState(viewer.id)` (see §6) as the single gatekeeper before any writes. Accepts `displayName`, required `demoLink` (trimmed, validated; missing link → `DEMO_LINK_REQUIRED`), and optional `notes` (trimmed, HTML-stripped, ≤500 chars) which are stored on the entry for admin’s winner context. Returns `{ success: true, id }` or structured error codes. |
 | `/api/leaderboard` | GET | Public | Returns `{ submissionsOpen, totalEntries, entries[], sessionId }` from the canonical helper `lib/leaderboard-data.ts`, ensuring weight breakdown + probabilities match `/api/weight/me`. |
 | `/api/winner` | GET | Public | Returns latest winner for the active session; falls back to the most recent ended session. |
 | `/api/user/submission` | GET | Viewer session | Returns `{ hasSubmission, submission }` prioritizing the current session, then any pending entry. |
@@ -206,6 +206,7 @@ All models live in `prisma/schema.prisma`. Key tables:
     - **Submissions closed:** Inline card referencing latest winner (from `/api/winner` if available). Form disabled.
     - **Submissions open + active session:** Form enabled unless user already submitted.
   - Success state shows “Thank you for entering!” card.
+  - The “Link to your demo” input is required: the client guards empty submissions, and `/api/enter` returns `DEMO_LINK_REQUIRED` with “You must add a link to participate.” if a link is missing or only whitespace.
   - Includes a CTA opening `WeightInfoModal`, which uses `useWeightData` to read live `WeightSettings` values and presents a neutral rules table (base weight, subscriber loyalty caps, bits/gifts boosts, carry-over limits, participation requirements). It no longer embeds the viewer’s personal status card.
 - Error handling from `/api/enter`:
   - `SUBMISSIONS_CLOSED` → “Submissions are currently closed.”
@@ -214,6 +215,7 @@ All models live in `prisma/schema.prisma`. Key tables:
   - `PENDING_ENTRY_FROM_PREVIOUS_SESSION` → “You already have a pending submission with accumulated weight...”
   - `EMAIL_ALREADY_REGISTERED` → Unique email conflict.
   - `NOT_FOLLOWING` (403) → Not explicitly coded with `errorCode`, but upstream UI already blocks form for non-followers.
+  - `DEMO_LINK_REQUIRED` → “You must add a link to participate.”
 
 ### `/demo-portal` (Viewer Dashboard)
 - Client page with `SessionProvider`. Polls `/api/leaderboard`, `/api/winner`, `/api/admin/weight-settings` (for weight table), and `/api/user/submission`.
@@ -265,6 +267,7 @@ All models live in `prisma/schema.prisma`. Key tables:
 | `PENDING_ENTRY_FROM_PREVIOUS_SESSION` | `/api/enter` | User has a carry-over entry from an older session; must wait for it to win. | Form shows “pending submission with accumulated weight...” |
 | `EMAIL_ALREADY_REGISTERED` | `/api/enter` | Prisma unique constraint triggered (same email reused). | Form shows “This email is already registered for this round.” |
 | `NOT_FOLLOWING` | `/api/enter` (403, plain string) | Viewer doesn’t follow the channel. | UI instructs user to follow on Twitch. |
+| `DEMO_LINK_REQUIRED` | `/api/enter` | Viewer left the demo link blank (or only whitespace). | Form shows “You must add a link to participate.” |
 | `NO_ACTIVE_SESSION` (admin JSON) | `/api/admin/session/end`, `/api/twitch/carry-over` | There is nothing to end or carry over. | Admin UI surfaces toast/message. |
 | Generic `{ success: false, error: 'Unauthorized access' }` | All admin APIs | Missing broadcaster session. | Client redirects or shows login prompt. |
 

@@ -153,6 +153,17 @@ export async function POST(request: NextRequest) {
     const normalizedDisplayName = typeof displayName === 'string' ? displayName.trim() : ''
     const normalizedName = typeof name === 'string' ? name.trim() : ''
     const normalizedDemoLink = typeof demoLink === 'string' ? demoLink.trim() : ''
+
+    if (!normalizedDemoLink) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'You must add a link to participate.',
+          errorCode: 'DEMO_LINK_REQUIRED',
+        },
+        { status: 400 }
+      )
+    }
     let normalizedNotes = ''
 
     if (notes !== undefined && notes !== null) {

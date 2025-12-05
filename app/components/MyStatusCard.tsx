@@ -7,11 +7,12 @@ export default function MyStatusCard() {
   const { data: session } = useSession()
   const userId = session?.user?.id
   const isSignedIn = Boolean(userId)
-  const { data, status, error } = useWeightData({
+  const { data, status, error, lastUpdated } = useWeightData({
     enabled: isSignedIn,
     pollIntervalMs: 30_000,
   })
   const weightInfo = userId && data?.user.id === userId ? data : null
+  const formattedLastUpdated = formatLastUpdated(lastUpdated ?? null)
 
   if (!session?.user) {
     return (
@@ -146,6 +147,11 @@ export default function MyStatusCard() {
           </div>
         )}
       </div>
+      {formattedLastUpdated && (
+        <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+          Last updated: {formattedLastUpdated}
+        </p>
+      )}
 
     </div>
   )
@@ -172,5 +178,36 @@ function StatusBadge({
       <p className={`text-sm font-semibold ${valueColor}`}>{value}</p>
     </div>
   )
+}
+
+function formatLastUpdated(timestamp: number | null): string | null {
+  if (!timestamp) {
+    return null
+  }
+
+  const diff = Date.now() - timestamp
+  if (diff < 0) {
+    return 'just now'
+  }
+
+  const seconds = Math.round(diff / 1000)
+  if (seconds < 15) {
+    return 'just now'
+  }
+  if (seconds < 60) {
+    return `${seconds}s ago`
+  }
+
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) {
+    return `${minutes} min ago`
+  }
+
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) {
+    return `${hours} h ago`
+  }
+
+  return 'More than a day ago'
 }
 
