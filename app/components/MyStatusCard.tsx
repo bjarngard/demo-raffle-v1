@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useWeightData } from '@/app/hooks/useWeightData'
 
@@ -8,17 +7,11 @@ export default function MyStatusCard() {
   const { data: session } = useSession()
   const userId = session?.user?.id
   const isSignedIn = Boolean(userId)
-  const { data, status, error, refetch } = useWeightData({
+  const { data, status, error } = useWeightData({
     enabled: isSignedIn,
     pollIntervalMs: 30_000,
   })
   const weightInfo = userId && data?.user.id === userId ? data : null
-
-  useEffect(() => {
-    if (userId) {
-      void refetch()
-    }
-  }, [userId, refetch])
 
   if (!session?.user) {
     return (

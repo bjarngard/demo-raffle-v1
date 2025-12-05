@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { WeightBreakdown, WeightSettings } from '@/lib/weight-settings'
 
 export type WeightStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -48,13 +48,14 @@ type Subscriber = (state: WeightStoreState) => void
 type SubscriberOptions = { enabled: boolean; interval: number }
 
 const DEFAULT_POLL_INTERVAL = 30_000
-
-let store: WeightStoreState = {
+const INITIAL_STORE: WeightStoreState = {
   data: null,
   status: 'idle',
   error: null,
   lastUpdated: null,
 }
+
+let store: WeightStoreState = { ...INITIAL_STORE }
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let activeIntervalMs = DEFAULT_POLL_INTERVAL
@@ -81,6 +82,11 @@ function stopPolling() {
   }
 }
 
+function resetStore() {
+  store = { ...INITIAL_STORE }
+  notifySubscribers()
+}
+
 function recomputePolling() {
   let hasEnabled = false
   let nextInterval: number | null = null
@@ -94,6 +100,14 @@ function recomputePolling() {
 
   if (!hasEnabled) {
     stopPolling()
+    if (
+      store.data !== null ||
+      store.status !== 'idle' ||
+      store.error !== null ||
+      store.lastUpdated !== null
+    ) {
+      resetStore()
+    }
     return false
   }
 
@@ -164,44 +178,30 @@ export function useWeightData(
   const enabled = options?.enabled ?? true
   const interval = options?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL
   const [state, setState] = useState<WeightStoreState>(store)
-  const subscriberRef = useRef<Subscriber>()
-
-  if (!subscriberRef.current) {
-    subscriberRef.current = (nextState) => setState(nextState)
-  }
+  const subscriber = useCallback<Subscriber>((nextState) => {
+    setState(nextState)
+  }, [])
 
   useEffect(() => {
-    const subscriber = subscriberRef.current!
     subscribers.add(subscriber)
-    subscriberOptions.set(subscriber, { enabled, interval })
-    subscriber(store)
-    const hasEnabled = recomputePolling()
-    if (enabled && hasEnabled && store.status === 'idle') {
-      void fetchWeightData()
-    }
 
     return () => {
       subscribers.delete(subscriber)
       subscriberOptions.delete(subscriber)
       recomputePolling()
       if (subscribers.size === 0 && !pollTimer) {
-        store = {
-          ...store,
-          status: 'idle',
-          error: null,
-        }
+        resetStore()
       }
     }
-  }, [])
+  }, [subscriber])
 
   useEffect(() => {
-    const subscriber = subscriberRef.current!
     subscriberOptions.set(subscriber, { enabled, interval })
     const hasEnabled = recomputePolling()
     if (enabled && hasEnabled && store.status === 'idle') {
       void fetchWeightData()
     }
-  }, [enabled, interval])
+  }, [subscriber, enabled, interval])
 
   const refetch = useCallback(() => fetchWeightData(), [])
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { signIn, signOut, useSession } from 'next-auth/react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import { useWeightData } from '@/app/hooks/useWeightData'
 
@@ -10,17 +10,11 @@ export default function TwitchLogin() {
   const [loading, setLoading] = useState(false)
   const userId = session?.user?.id
   const isSignedIn = Boolean(userId)
-  const { data, refetch } = useWeightData({
+  const { data } = useWeightData({
     enabled: isSignedIn,
     pollIntervalMs: 2 * 60 * 1000,
   })
   const userWeight = userId && data?.user.id === userId ? data.user : null
-
-  useEffect(() => {
-    if (userId) {
-      void refetch()
-    }
-  }, [userId, refetch])
 
   const handleSignIn = async () => {
     setLoading(true)
