@@ -42,6 +42,7 @@ export default function AdminDashboardClient({
   const [entries, setEntries] = useState<AdminEntry[]>(initialEntries)
   const [weightSettings, setWeightSettings] = useState<AdminWeightSettings>(initialSettings)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'users' | 'weights' | 'raffle'>('users')
   const [submissionsOpen, setSubmissionsOpen] = useState(initialSubmissionsOpen)
@@ -82,6 +83,7 @@ export default function AdminDashboardClient({
   }, [])
 
   const fetchLeaderboard = useCallback(async () => {
+    setLeaderboardLoading(true)
     try {
       const response = await fetch('/api/leaderboard', {
         cache: 'no-store',
@@ -92,6 +94,8 @@ export default function AdminDashboardClient({
       }
     } catch (error) {
       console.error('Error fetching leaderboard:', error)
+    } finally {
+      setLeaderboardLoading(false)
     }
   }, [])
 
@@ -333,12 +337,7 @@ export default function AdminDashboardClient({
           {activeTab === 'raffle' && (
             <div className="space-y-6">
               <RaffleWheel entries={raffleEntries} onWinnerPicked={handleWinnerPicked} />
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  Top 20 for Stream Display
-                </h3>
-                <TopList entries={leaderboard} loading={loading} />
-              </div>
+              <TopList entries={leaderboard} loading={leaderboardLoading} />
             </div>
           )}
         </div>

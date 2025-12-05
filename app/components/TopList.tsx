@@ -13,7 +13,10 @@ interface TopListProps {
 }
 
 export default function TopList({ entries, loading }: TopListProps) {
-  if (loading) {
+  const isInitialLoading = !!loading && entries.length === 0
+  const isRefreshing = !!loading && entries.length > 0
+
+  if (isInitialLoading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <p className="text-gray-500 text-center">Loading leaderboard...</p>
@@ -21,7 +24,7 @@ export default function TopList({ entries, loading }: TopListProps) {
     )
   }
 
-  if (entries.length === 0) {
+  if (!loading && entries.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <p className="text-gray-500 text-center">No entries yet</p>
@@ -31,9 +34,12 @@ export default function TopList({ entries, loading }: TopListProps) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-        Top {entries.length} Leaderboard
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Leaderboard</h3>
+        {isRefreshing && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">Refreshing…</span>
+        )}
+      </div>
       <div className="space-y-2 max-h-[600px] overflow-y-auto">
         {entries.map((entry, index) => (
           <div

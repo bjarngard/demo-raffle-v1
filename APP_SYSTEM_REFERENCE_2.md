@@ -40,7 +40,7 @@
 
 | Route | Method | Auth | Description |
 | --- | --- | --- | --- |
-| `/api/enter` | POST | Viewer session (`auth()`) | Creates a new raffle entry if submissions are open, a session is active, the user follows, and they have no pending entry. Normalizes `name`/`displayName`/`demoLink`, resolves the final display name with fallback chain ending in `viewer.twitchId` before `'Raffle Viewer'`, and returns `{ success: true, id }` or structured error codes. |
+| `/api/enter` | POST | Viewer session (`auth()`) | Creates a new raffle entry if submissions are open, a session is active, the user follows, and they have no pending entry. Uses `resolveRaffleSubmissionState(viewer.id)` (see §6) as the single gatekeeper before any writes. Normalizes `name`/`displayName`/`demoLink`, resolves the final display name with fallback chain ending in `viewer.twitchId` before `'Raffle Viewer'`, and returns `{ success: true, id }` or structured error codes. |
 | `/api/leaderboard` | GET | Public | Returns `{ submissionsOpen, totalEntries, entries[], sessionId }` from the canonical helper `lib/leaderboard-data.ts`, ensuring weight breakdown + probabilities match `/api/weight/me`. |
 | `/api/winner` | GET | Public | Returns latest winner for the active session; falls back to the most recent ended session. |
 | `/api/user/submission` | GET | Viewer session | Returns `{ hasSubmission, submission }` prioritizing the current session, then any pending entry. |
@@ -206,7 +206,7 @@ All models live in `prisma/schema.prisma`. Key tables:
     - **Submissions closed:** Inline card referencing latest winner (from `/api/winner` if available). Form disabled.
     - **Submissions open + active session:** Form enabled unless user already submitted.
   - Success state shows “Thank you for entering!” card.
-  - Includes a CTA opening `WeightInfoModal`, which embeds `MyStatusCard` for live data plus textual sections covering base weight, subscriber loyalty, support boosts (bits/gifts/donations), carry-over, and eligibility requirements.
+- Includes a CTA opening `WeightInfoModal`, which uses `useWeightData` to read live `WeightSettings` values and presents a neutral rules table (base weight, subscriber loyalty caps, bits/gifts boosts, carry-over limits, participation requirements). It no longer embeds the viewer’s personal status card.
 - Error handling from `/api/enter`:
   - `SUBMISSIONS_CLOSED` → “Submissions are currently closed.”
   - `NO_ACTIVE_SESSION` → “The raffle is not currently running.”
@@ -222,7 +222,7 @@ All models live in `prisma/schema.prisma`. Key tables:
   - Submissions closed + winner → “Submissions are currently closed. Latest winner: <name>.”
   - Submissions closed + no winner → “Submissions are currently closed.”
 - `DemoSubmissionForm` receives `submissionsOpen` + `sessionActive` flags, disables itself when either is false, and surfaces all error codes described above.
-- Additional components: `MyStatusCard` (viewer’s submission + sync data, follower/subscriber `StatusBadge`s, loyalty/support/carry-over breakdown sourced from `/api/weight/me`), `TopList` (leaderboard), `WeightTable`.
+- Additional components: `MyStatusCard` (viewer’s submission + sync data, follower/subscriber `StatusBadge`s, loyalty/support/carry-over breakdown sourced from `/api/weight/me` via the shared `useWeightData` hook), `TopList` (leaderboard), `WeightTable`.
 
 ### `/demo-admin`
 - Server component ensures broadcaster session; otherwise shows “Admin Access Required” card.
@@ -234,6 +234,23 @@ All models live in `prisma/schema.prisma`. Key tables:
     - “End session” → `/api/admin/session/end`.
   - Displays separate submissions panel for toggling `/api/admin/submissions`.
   - Tabs for user table, weight settings form, and raffle wheel (triggers `/api/pick-winner`).
+
+### 9.4 Shared Weight Hook (`useWeightData`)
+
+- Location: `app/hooks/useWeightData.ts`. Client-only hook that is the **only approved interface** for fetching `/api/weight/me`.
+- API contract:
+  - `useWeightData(options?: { enabled?: boolean; pollIntervalMs?: number })` → `{ data, status, error, lastUpdated, refetch }`.
+  - `data` mirrors the API response (`user`, `breakdown`, `settings`), `status` is `'idle' | 'loading' | 'success' | 'error'`, and `lastUpdated` is a millisecond timestamp of the last successful fetch.
+  - `enabled` defaults to `true`; `pollIntervalMs` defaults to `30_000` (viewer baseline) but components may pass higher values (e.g., TwitchLogin uses `120_000ms`). Intervals must never be shorter than historical values without a product decision.
+- Behavior:
+  - Maintains a **single polling timer per browser tab**. When multiple subscribers are enabled, the hook uses the smallest requested interval. When no subscribers are enabled, the timer is cleared and cached data is wiped.
+  - Fetches use `cache: 'no-store'`, with a `fetchPromise` guard so overlapping calls coalesce.
+  - Errors set `status: 'error'` and populate `error`, but `data` retains the last known good payload so the UI can continue rendering stale-but-valid information.
+  - `refetch()` triggers an immediate fetch without altering the shared interval; components should only call it for user-driven retries, not on mount.
+- Usage policy:
+  - **Client components MUST NOT call `/api/weight/me` directly.** Every consumer (current and future) must use `useWeightData`.
+  - Components must scope weight data to the active viewer: always verify `data?.user.id === session.user.id` before rendering to prevent cross-user leakage when accounts switch.
+  - Avoid stacking redundant intervals. If a component needs a one-off read, call the hook with `enabled: false` then invoke `refetch()`; do not reintroduce bespoke `setInterval` loops.
 
 ---
 

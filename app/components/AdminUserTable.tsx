@@ -151,37 +151,36 @@ export default function AdminUserTable({
                 </td>
                 <td className="py-3">
                   <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                    {entry.totalWeight.toFixed(2)}x
+                    {entry.weightBreakdown.totalWeight.toFixed(2)}x
                   </span>
                 </td>
                 <td className="py-3">
                   <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                    <div>
-                      Loyalty:{' '}
-                      <span className="font-semibold text-gray-900 dark:text-gray-200">
-                        +{entry.weightBreakdown.loyalty.total.toFixed(2)}x
-                      </span>
-                    </div>
-                    <div className="ml-3 text-[11px] text-gray-500 dark:text-gray-400">
-                      Months +{entry.weightBreakdown.loyalty.monthsComponent.toFixed(2)}x • Resubs +{entry.weightBreakdown.loyalty.resubComponent.toFixed(2)}x
-                    </div>
-                    <div>
-                      Support:{' '}
-                      <span className="font-semibold text-gray-900 dark:text-gray-200">
-                        +{entry.weightBreakdown.support.total.toFixed(2)}x
-                      </span>
-                    </div>
-                    <div className="ml-3 text-[11px] text-gray-500 dark:text-gray-400">
-                      Bits +{entry.weightBreakdown.support.cheerWeight.toFixed(2)}x • Donations +{entry.weightBreakdown.support.donationsWeight.toFixed(2)}x • Gifts +{entry.weightBreakdown.support.giftedSubsWeight.toFixed(2)}x
-                    </div>
-                    {entry.weightBreakdown.carryOverWeight > 0 && (
-                      <div>
-                        Carry-over:{' '}
-                        <span className="font-semibold text-gray-900 dark:text-gray-200">
-                          +{entry.weightBreakdown.carryOverWeight.toFixed(2)}x
-                        </span>
-                      </div>
-                    )}
+                    <BreakdownRow
+                      label="Base weight"
+                      value={`${entry.weightBreakdown.baseWeight.toFixed(2)}x`}
+                    />
+                    <BreakdownRow
+                      label="Subscriber loyalty"
+                      value={`+${entry.weightBreakdown.loyalty.monthsComponent.toFixed(2)}x`}
+                    />
+                    <BreakdownRow
+                      label="Bits (cheers)"
+                      value={`+${entry.weightBreakdown.support.cheerWeight.toFixed(2)}x`}
+                    />
+                    <BreakdownRow
+                      label="Gifted subs"
+                      value={`+${entry.weightBreakdown.support.giftedSubsWeight.toFixed(2)}x`}
+                    />
+                    <BreakdownRow
+                      label="Carry-over"
+                      value={`+${entry.weightBreakdown.carryOverWeight.toFixed(2)}x`}
+                    />
+                    <BreakdownRow
+                      label="Total weight"
+                      value={`${entry.weightBreakdown.totalWeight.toFixed(2)}x`}
+                      highlight
+                    />
                   </div>
                 </td>
                 <td className="py-3">
@@ -217,6 +216,29 @@ function StatusChip({
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${styles}`}>
       {label}
     </span>
+  )
+}
+
+function BreakdownRow({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string
+  value: string
+  highlight?: boolean
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-gray-500 dark:text-gray-400">{label}</span>
+      <span
+        className={`font-semibold ${
+          highlight ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-gray-200'
+        }`}
+      >
+        {value}
+      </span>
+    </div>
   )
 }
 
