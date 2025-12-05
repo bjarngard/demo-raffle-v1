@@ -241,12 +241,9 @@ function computeWeightComponents(
       )
     : 0
 
-  const resubComponent = Math.min(
-    user.resubCount * settings.resubMultiplier,
-    settings.resubCap * settings.resubMultiplier
-  )
+  const resubComponent = 0
 
-  const loyaltyWeightRaw = monthsComponent + resubComponent
+  const loyaltyWeightRaw = monthsComponent
   const loyaltyWeightCapped = Math.min(loyaltyWeightRaw, settings.loyaltyMaxBonus)
 
   const cheerWeight = Math.min(

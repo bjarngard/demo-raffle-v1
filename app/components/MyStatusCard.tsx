@@ -1,82 +1,24 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import type { WeightBreakdown, WeightSettings } from '@/lib/weight-settings'
-
-type WeightResponse = {
-  user: {
-    id: string
-    username: string
-    displayName: string
-    isFollower: boolean
-    isSubscriber: boolean
-    subMonths: number
-    resubCount: number
-    totalCheerBits: number
-    totalDonations: number
-    totalGiftedSubs: number
-    carryOverWeight: number
-    totalWeight: number
-  }
-  breakdown: WeightBreakdown
-  settings: WeightSettings
-}
+import { useWeightData } from '@/app/hooks/useWeightData'
 
 export default function MyStatusCard() {
   const { data: session } = useSession()
-  const [weightInfo, setWeightInfo] = useState<WeightResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const initialLoadRef = useRef(true)
+  const userId = session?.user?.id
+  const isSignedIn = Boolean(userId)
+  const { data, status, error, refetch } = useWeightData({
+    enabled: isSignedIn,
+    pollIntervalMs: 30_000,
+  })
+  const weightInfo = userId && data?.user.id === userId ? data : null
 
-  const fetchWeightInfo = useCallback(async () => {
-    if (!session?.user?.id) return
-    const isInitial = initialLoadRef.current
-    if (isInitial) {
-      setLoading(true)
-    }
-    try {
-      const response = await fetch('/api/weight/me', { cache: 'no-store' })
-      if (!response.ok) {
-        if (response.status === 401) {
-          setWeightInfo(null)
-          setError('You must be signed in to view your raffle status.')
-        } else {
-          setError('Unable to load your weight breakdown right now.')
-        }
-        return
-      }
-      const data: WeightResponse = await response.json()
-      setWeightInfo(data)
-      setError(null)
-    } catch (error) {
-      console.error('Error fetching user weight:', error)
-      setError('Unable to load your weight breakdown right now.')
-    } finally {
-      if (isInitial) {
-        setLoading(false)
-        initialLoadRef.current = false
-      }
-    }
-  }, [session?.user?.id])
-
-  // UI display (C): poll the canonical weight API, never recompute client-side.
   useEffect(() => {
-    if (!session?.user?.id) {
-      setWeightInfo(null)
-      setError('Sign in with Twitch to view your raffle status.')
-      setLoading(false)
-      initialLoadRef.current = true
-      return
+    if (userId) {
+      void refetch()
     }
-
-    initialLoadRef.current = true
-    setLoading(true)
-    fetchWeightInfo()
-    const interval = setInterval(fetchWeightInfo, 30 * 1000)
-    return () => clearInterval(interval)
-  }, [session?.user?.id, fetchWeightInfo])
+  }, [userId, refetch])
 
   if (!session?.user) {
     return (
@@ -88,7 +30,9 @@ export default function MyStatusCard() {
     )
   }
 
-  if (loading) {
+  const shouldShowLoading = isSignedIn && !weightInfo && status !== 'error'
+
+  if (shouldShowLoading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <p className="text-gray-500">Loading your raffle status…</p>
@@ -100,7 +44,7 @@ export default function MyStatusCard() {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <p className="text-gray-500">
-          {error || 'Unable to load your raffle status. Please try again later.'}
+          {error?.message || 'Unable to load your raffle status. Please try again later.'}
         </p>
       </div>
     )
@@ -135,9 +79,9 @@ export default function MyStatusCard() {
         />
       </div>
 
-      {error && (
+      {status === 'error' && error && (
         <p className="mb-3 text-sm text-amber-100 bg-amber-500/30 rounded-md px-3 py-2">
-          {error}
+          {error.message}
         </p>
       )}
       

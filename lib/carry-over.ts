@@ -78,7 +78,8 @@ export async function applyCarryOverForSession(
         newCarry = 0
       } else {
         // Normal carry-over behaviour for non-winners.
-        const carryFromSession = user.totalWeight * settings.carryOverMultiplier
+        const sessionWeight = Math.max(0, user.totalWeight - user.carryOverWeight) // weight earned this session only
+        const carryFromSession = sessionWeight * settings.carryOverMultiplier
         const newCarryRaw = user.carryOverWeight + carryFromSession
         newCarry = Math.min(newCarryRaw, settings.carryOverMaxBonus)
       }

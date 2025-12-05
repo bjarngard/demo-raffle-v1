@@ -1,59 +1,26 @@
 'use client'
 
 import { signIn, signOut, useSession } from 'next-auth/react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
-
-type UserWeightSummary = {
-  id: string
-  username: string
-  displayName?: string | null
-  isFollower: boolean
-  isSubscriber: boolean
-  subMonths: number
-  totalCheerBits: number
-  totalDonations: number
-  resubCount: number
-  totalGiftedSubs: number
-  totalWeight: number
-  carryOverWeight: number
-}
-
-type WeightMeResponse = {
-  user: UserWeightSummary
-}
+import { useWeightData } from '@/app/hooks/useWeightData'
 
 export default function TwitchLogin() {
   const { data: session, status } = useSession()
   const [loading, setLoading] = useState(false)
-  const [userWeight, setUserWeight] = useState<UserWeightSummary | null>(null)
-
-  const fetchUserWeight = useCallback(async () => {
-    if (!session?.user?.id) return
-    try {
-      const response = await fetch('/api/weight/me', { cache: 'no-store' })
-      if (!response.ok) {
-        if (response.status === 401) {
-          setUserWeight(null)
-        }
-        return
-      }
-      const data: WeightMeResponse = await response.json()
-      setUserWeight(data.user)
-    } catch (error) {
-      console.error('Error fetching user weight:', error)
-    }
-  }, [session?.user?.id])
+  const userId = session?.user?.id
+  const isSignedIn = Boolean(userId)
+  const { data, refetch } = useWeightData({
+    enabled: isSignedIn,
+    pollIntervalMs: 2 * 60 * 1000,
+  })
+  const userWeight = userId && data?.user.id === userId ? data.user : null
 
   useEffect(() => {
-    if (!session?.user?.id) {
-      setUserWeight(null)
-      return
+    if (userId) {
+      void refetch()
     }
-    fetchUserWeight()
-    const interval = setInterval(fetchUserWeight, 2 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [session?.user?.id, fetchUserWeight])
+  }, [userId, refetch])
 
   const handleSignIn = async () => {
     setLoading(true)
@@ -70,7 +37,6 @@ export default function TwitchLogin() {
     setLoading(true)
     try {
       await signOut()
-      setUserWeight(null)
     } catch (error) {
       console.error('Sign out error:', error)
     } finally {

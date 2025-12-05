@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { Prisma } from '@prisma/client'
 import { entryStateExclusion, getSubmissionsOpen } from '@/lib/submissions-state'
-import { getCurrentSession } from '@/lib/session'
 import { ensureUser } from '@/lib/user'
 import { evaluateFollowStatus } from '@/lib/follow-status'
+import { resolveRaffleSubmissionState } from '@/lib/raffle-logic'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,9 +35,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const currentSession = await getCurrentSession()
+    const viewer = await ensureUser(session.user)
 
-    if (!currentSession) {
+    const submissionState = await resolveRaffleSubmissionState(viewer.id)
+    let eligibleSessionId: string | null = null
+
+    if (submissionState.kind === 'NO_ACTIVE_SESSION') {
       return NextResponse.json(
         {
           success: false,
@@ -52,6 +55,24 @@ export async function POST(request: NextRequest) {
         }
       )
     }
+
+    if (submissionState.kind === 'HAS_ENTRY_IN_ACTIVE_SESSION') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'You already have an active submission for this session.',
+          errorCode: 'ALREADY_SUBMITTED_THIS_SESSION',
+        },
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
+    eligibleSessionId = submissionState.sessionId
 
     const submissionsOpen = await getSubmissionsOpen()
 
@@ -132,40 +153,6 @@ export async function POST(request: NextRequest) {
     const normalizedName = typeof name === 'string' ? name.trim() : ''
     const normalizedDemoLink = typeof demoLink === 'string' ? demoLink.trim() : ''
 
-    const viewer = await ensureUser(session.user)
-
-    // Global pending entry check
-    const pendingEntry = await prisma.entry.findFirst({
-      where: {
-        userId: viewer.id,
-        isWinner: false,
-        ...entryStateExclusion,
-      },
-      orderBy: { createdAt: 'desc' },
-    })
-
-    if (pendingEntry) {
-      if (pendingEntry.sessionId === currentSession.id) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'You already have an active submission for this session.',
-            errorCode: 'ALREADY_SUBMITTED_THIS_SESSION',
-          },
-          { status: 400 }
-        )
-      }
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'You already have a pending submission carried over from a previous session.',
-          errorCode: 'PENDING_ENTRY_FROM_PREVIOUS_SESSION',
-        },
-        { status: 400 }
-      )
-    }
-
     // Validate demo link if provided
     if (normalizedDemoLink) {
       let url: URL
@@ -220,6 +207,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!eligibleSessionId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unable to verify your submission status. Please try again.',
+        },
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    }
+
     const resolvedDisplayName =
       normalizedDisplayName ||
       normalizedName ||
@@ -236,7 +238,7 @@ export async function POST(request: NextRequest) {
       },
       session: {
         connect: {
-          id: currentSession.id,
+          id: eligibleSessionId,
         },
       },
       demoLink: normalizedDemoLink || null,
@@ -252,9 +254,8 @@ export async function POST(request: NextRequest) {
         const target = error.meta?.target
         const targetParts = Array.isArray(target) ? target : typeof target === 'string' ? [target] : []
         if (targetParts.includes('sessionId_userId') || (targetParts.includes('sessionId') && targetParts.includes('userId'))) {
-          const activeSession = currentSession ?? (await getCurrentSession())
-          if (!activeSession) {
-            console.error('P2002 triggered but no active session found')
+          if (!eligibleSessionId) {
+            console.error('P2002 triggered but no eligible session id available')
             return NextResponse.json(
               {
                 success: false,
@@ -272,7 +273,7 @@ export async function POST(request: NextRequest) {
           const existingEntry = await prisma.entry.findFirst({
             where: {
               userId: viewer.id,
-              sessionId: activeSession.id,
+              sessionId: eligibleSessionId,
               ...entryStateExclusion,
             },
             select: { id: true, isWinner: true },
