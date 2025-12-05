@@ -42,6 +42,7 @@ export default function AdminDashboardClient({
   const [entries, setEntries] = useState<AdminEntry[]>(initialEntries)
   const [weightSettings, setWeightSettings] = useState<AdminWeightSettings>(initialSettings)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [winnerModalEntry, setWinnerModalEntry] = useState<AdminEntry | null>(null)
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'users' | 'weights' | 'raffle'>('users')
@@ -141,14 +142,20 @@ export default function AdminDashboardClient({
   }, [fetchAdminData, fetchLeaderboard])
 
   const handleWinnerPicked = useCallback(
-    (_winner: RaffleWinner) => {
-      void _winner
+    (winnerData: RaffleWinner) => {
+      const entry = entries.find((candidate) => candidate.id === winnerData.id)
+      if (entry) {
+        setWinnerModalEntry(entry)
+      } else {
+        console.warn('[admin] winner entry not found in current list', winnerData)
+      }
+
       setTimeout(() => {
         fetchAdminData()
         fetchLeaderboard()
       }, 1000)
     },
-    [fetchAdminData, fetchLeaderboard]
+    [entries, fetchAdminData, fetchLeaderboard]
   )
 
   const raffleEntries = useMemo(
@@ -342,6 +349,65 @@ export default function AdminDashboardClient({
           )}
         </div>
       </main>
+      {winnerModalEntry && (
+        <AdminWinnerModal entry={winnerModalEntry} onClose={() => setWinnerModalEntry(null)} />
+      )}
+    </div>
+  )
+}
+
+function AdminWinnerModal({
+  entry,
+  onClose,
+}: {
+  entry: AdminEntry
+  onClose: () => void
+}) {
+  const displayName =
+    entry.displayName?.trim() ||
+    entry.name?.trim() ||
+    entry.username?.trim() ||
+    'Winner'
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 shadow-2xl p-6">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          aria-label="Close winner modal"
+        >
+          ✕
+        </button>
+        <div className="text-center space-y-4">
+          <div className="text-5xl">🎉</div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Winner drawn</h2>
+          <p className="text-xl font-semibold text-gray-800 dark:text-gray-100">{displayName}</p>
+          {entry.demoLink ? (
+            <a
+              href={entry.demoLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition"
+            >
+              Open demo link
+            </a>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No demo link provided.</p>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-2 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

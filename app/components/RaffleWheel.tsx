@@ -33,24 +33,51 @@ export default function RaffleWheel({
 }: RaffleWheelProps) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [scrollingName, setScrollingName] = useState('')
-  const [winner, setWinner] = useState<RaffleWinner | null>(null)
   const [error, setError] = useState('')
 
   const handleDraw = async () => {
+    if (isDrawing || entries.length === 0) {
+      return
+    }
+
     setIsDrawing(true)
     setError('')
-    setWinner(null)
     setScrollingName('')
 
-    // Animation: scroll through names
     let currentIndex = 0
-    const scrollInterval = setInterval(() => {
-      if (entries.length > 0) {
+    let scrollInterval: ReturnType<typeof setInterval> | null = null
+    let finalScroll: ReturnType<typeof setInterval> | null = null
+    const timeouts: ReturnType<typeof setTimeout>[] = []
+
+    const clearAnimations = () => {
+      if (scrollInterval) {
+        clearInterval(scrollInterval)
+        scrollInterval = null
+      }
+      if (finalScroll) {
+        clearInterval(finalScroll)
+        finalScroll = null
+      }
+      while (timeouts.length) {
+        const timer = timeouts.pop()
+        if (timer) {
+          clearTimeout(timer)
+        }
+      }
+    }
+
+    const startScroll = () => {
+      scrollInterval = setInterval(() => {
+        if (entries.length === 0) {
+          return
+        }
         const entry = entries[currentIndex % entries.length]
         setScrollingName(entry.name)
-        currentIndex++
-      }
-    }, 100) // Change name every 100ms
+        currentIndex += 1
+      }, 100)
+    }
+
+    startScroll()
 
     try {
       const response = await fetch('/api/pick-winner', {
@@ -62,44 +89,50 @@ export default function RaffleWheel({
 
       const data: PickWinnerResponse = await response.json()
 
-      if (data.success && data.winner) {
-        const winnerData = data.winner
-        // Stop scrolling after 2 seconds, then show winner
+      if (!data.success || !data.winner) {
+        throw new Error(data.error || 'Failed to draw winner')
+      }
+
+      const winnerData = data.winner
+
+      timeouts.push(
         setTimeout(() => {
-          clearInterval(scrollInterval)
-          
-          // Final scroll animation to winner
+          clearAnimations()
+
           let scrollCount = 0
-          const finalScroll = setInterval(() => {
-            if (entries.length > 0) {
-              const entry = entries[currentIndex % entries.length]
-              setScrollingName(entry.name)
-              currentIndex++
-              scrollCount++
-              
-              // Slow down as we approach the winner
-              if (scrollCount > 15) {
-                clearInterval(finalScroll)
-                // Final reveal
+          finalScroll = setInterval(() => {
+            if (entries.length === 0) {
+              return
+            }
+            const entry = entries[currentIndex % entries.length]
+            setScrollingName(entry.name)
+            currentIndex += 1
+            scrollCount += 1
+
+            if (scrollCount > 15) {
+              clearAnimations()
+              timeouts.push(
                 setTimeout(() => {
                   setScrollingName(winnerData.name)
-                  setWinner(winnerData)
-                  setIsDrawing(false)
-                  onWinnerPicked(winnerData)
+                  timeouts.push(
+                    setTimeout(() => {
+                      setScrollingName('')
+                      setIsDrawing(false)
+                      onWinnerPicked(winnerData)
+                    }, 600)
+                  )
                 }, 300)
-              }
+              )
             }
           }, scrollCount < 10 ? 80 : 120)
         }, 2000)
-      } else {
-        clearInterval(scrollInterval)
-        setError(data.error || 'Failed to draw winner')
-        setIsDrawing(false)
-      }
+      )
     } catch (error) {
       console.error('Error drawing winner:', error)
-      setError('An error occurred')
+      clearAnimations()
+      setError(error instanceof Error ? error.message : 'An error occurred')
       setIsDrawing(false)
+      setScrollingName('')
     }
   }
 
@@ -123,17 +156,15 @@ export default function RaffleWheel({
         </div>
       )}
 
-      {!winner && (
-        <div className="text-center mb-6">
-          <button
-            onClick={handleDraw}
-            disabled={isDrawing}
-            className="bg-indigo-600 text-white py-4 px-8 rounded-lg font-bold text-xl hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {isDrawing ? 'Drawing...' : '🎲 DRAW WINNER'}
-          </button>
-        </div>
-      )}
+      <div className="text-center mb-6">
+        <button
+          onClick={handleDraw}
+          disabled={isDrawing}
+          className="bg-indigo-600 text-white py-4 px-8 rounded-lg font-bold text-xl hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
+        >
+          {isDrawing ? 'Drawing...' : '🎲 DRAW WINNER'}
+        </button>
+      </div>
 
       {(isDrawing || scrollingName) && (
         <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg p-8 mb-6">
@@ -142,17 +173,6 @@ export default function RaffleWheel({
               {scrollingName || '...'}
             </div>
           </div>
-        </div>
-      )}
-
-      {winner && (
-        <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg p-8 text-center">
-          <div className="text-5xl mb-4">🎉</div>
-          <h4 className="text-3xl font-bold text-white mb-2">Winner!</h4>
-          <p className="text-2xl font-semibold text-white">{winner.name}</p>
-          <p className="text-lg text-white/90 mt-2">
-            Weight: {winner.weight?.toFixed(2) || 'N/A'}x
-          </p>
         </div>
       )}
     </div>
