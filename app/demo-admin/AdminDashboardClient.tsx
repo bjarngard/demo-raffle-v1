@@ -368,6 +368,7 @@ function AdminWinnerModal({
     entry.name?.trim() ||
     entry.username?.trim() ||
     'Winner'
+  const notes = entry.notes?.trim()
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
@@ -398,6 +399,16 @@ function AdminWinnerModal({
             </a>
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400">No demo link provided.</p>
+          )}
+          {notes && (
+            <div className="w-full rounded-lg bg-gray-100 dark:bg-gray-800/60 px-4 py-3 text-left">
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                Notes
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-words">
+                {notes}
+              </p>
+            </div>
           )}
           <button
             type="button"

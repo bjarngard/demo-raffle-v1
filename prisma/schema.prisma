@@ -65,6 +65,7 @@ model Entry {
   name       String
   email      String?
   demoLink   String?        // Demo link (SoundCloud, Drive, etc.)
+  notes      String?        @db.Text
   createdAt  DateTime       @default(now())
   isWinner   Boolean        @default(false)
   streamId   String?        // Identifier for which stream this entry belongs to

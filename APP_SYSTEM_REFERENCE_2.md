@@ -40,7 +40,7 @@
 
 | Route | Method | Auth | Description |
 | --- | --- | --- | --- |
-| `/api/enter` | POST | Viewer session (`auth()`) | Creates a new raffle entry if submissions are open, a session is active, the user follows, and they have no pending entry. Uses `resolveRaffleSubmissionState(viewer.id)` (see §6) as the single gatekeeper before any writes. Normalizes `name`/`displayName`/`demoLink`, resolves the final display name with fallback chain ending in `viewer.twitchId` before `'Raffle Viewer'`, and returns `{ success: true, id }` or structured error codes. |
+| `/api/enter` | POST | Viewer session (`auth()`) | Creates a new raffle entry if submissions are open, a session is active, the user follows, and they have no pending entry. Uses `resolveRaffleSubmissionState(viewer.id)` (see §6) as the single gatekeeper before any writes. Accepts `displayName`, `demoLink`, and optional `notes` (trimmed, HTML-stripped, ≤500 chars) which are stored on the entry for admin’s winner context. Returns `{ success: true, id }` or structured error codes. |
 | `/api/leaderboard` | GET | Public | Returns `{ submissionsOpen, totalEntries, entries[], sessionId }` from the canonical helper `lib/leaderboard-data.ts`, ensuring weight breakdown + probabilities match `/api/weight/me`. |
 | `/api/winner` | GET | Public | Returns latest winner for the active session; falls back to the most recent ended session. |
 | `/api/user/submission` | GET | Viewer session | Returns `{ hasSubmission, submission }` prioritizing the current session, then any pending entry. |
@@ -206,7 +206,7 @@ All models live in `prisma/schema.prisma`. Key tables:
     - **Submissions closed:** Inline card referencing latest winner (from `/api/winner` if available). Form disabled.
     - **Submissions open + active session:** Form enabled unless user already submitted.
   - Success state shows “Thank you for entering!” card.
-- Includes a CTA opening `WeightInfoModal`, which uses `useWeightData` to read live `WeightSettings` values and presents a neutral rules table (base weight, subscriber loyalty caps, bits/gifts boosts, carry-over limits, participation requirements). It no longer embeds the viewer’s personal status card.
+  - Includes a CTA opening `WeightInfoModal`, which uses `useWeightData` to read live `WeightSettings` values and presents a neutral rules table (base weight, subscriber loyalty caps, bits/gifts boosts, carry-over limits, participation requirements). It no longer embeds the viewer’s personal status card.
 - Error handling from `/api/enter`:
   - `SUBMISSIONS_CLOSED` → “Submissions are currently closed.”
   - `NO_ACTIVE_SESSION` → “The raffle is not currently running.”
@@ -234,6 +234,7 @@ All models live in `prisma/schema.prisma`. Key tables:
     - “End session” → `/api/admin/session/end`.
   - Displays separate submissions panel for toggling `/api/admin/submissions`.
   - Tabs for user table, weight settings form, and raffle wheel (triggers `/api/pick-winner`).
+  - Winner modal (triggered after a draw) shows the entry’s display name, demo link, and any optional viewer notes captured during submission.
 
 ### 9.4 Shared Weight Hook (`useWeightData`)
 

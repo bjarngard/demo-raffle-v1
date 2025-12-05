@@ -4,6 +4,7 @@ export type AdminEntry = {
   username: string
   displayName: string
   demoLink: string | null
+  notes?: string | null
   totalWeight: number
   weightBreakdown: {
     baseWeight: number

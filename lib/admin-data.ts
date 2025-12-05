@@ -30,7 +30,13 @@ export async function getAdminEntries({
       ...entryStateExclusion,
       sessionId: resolvedSessionId,
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      userId: true,
+      demoLink: true,
+      notes: true,
+      createdAt: true,
       user: {
         select: {
           id: true,
@@ -122,6 +128,7 @@ export async function getAdminEntries({
         username: user?.username || '',
         displayName: user?.displayName || '',
         demoLink: entry.demoLink || null,
+        notes: entry.notes ?? null,
         totalWeight: weightSummary.totalWeight,
         weightBreakdown: {
           ...weightSummary,

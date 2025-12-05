@@ -28,6 +28,7 @@ function RaffleForm() {
   const { data: session, status } = useSession()
   const [name, setName] = useState('')
   const [demoLink, setDemoLink] = useState('')
+  const [notes, setNotes] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -161,6 +162,7 @@ function RaffleForm() {
         body: JSON.stringify({
           displayName: name.trim() || undefined,
           demoLink: demoLink.trim() || undefined,
+          notes: notes ? notes : undefined,
         }),
       })
 
@@ -193,6 +195,10 @@ function RaffleForm() {
         } else if (errorCode === 'NOT_FOLLOWING') {
           setFollowStatus('not_following')
           setError('You need to follow the channel on Twitch before entering.')
+        } else if (errorCode === 'NOTES_TOO_LONG') {
+          setError('Notes must be 500 characters or fewer.')
+        } else if (errorCode === 'NOTES_INVALID') {
+          setError('Notes must be plain text.')
         } else {
           setError(data.error || 'An error occurred')
         }
@@ -203,6 +209,7 @@ function RaffleForm() {
         setSubmitted(true)
         setName('')
         setDemoLink('')
+        setNotes('')
       } else {
         setError(data.error || 'An error occurred')
       }
@@ -476,6 +483,24 @@ function RaffleForm() {
                 <p className="mt-1 text-xs text-gray-400">
                   Paste a direct link to your track (Google Drive, Dropbox, SoundCloud, etc.).
                 </p>
+              </div>
+              <div>
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-200 mb-1">
+                  Notes (optional)
+                </label>
+                <textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  maxLength={500}
+                  rows={4}
+                  className="w-full rounded-md bg-gray-900/60 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="What kind of feedback are you looking for? (max 500 characters)"
+                />
+                <div className="mt-1 flex items-center justify-between text-xs text-gray-400">
+                  <p>Let the broadcaster know what to listen for or any context we should know.</p>
+                  <span>{notes.length}/500</span>
+                </div>
               </div>
 
               {error && (

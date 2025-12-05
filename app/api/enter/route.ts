@@ -144,14 +144,42 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, displayName, demoLink } = body as {
+    const { name, displayName, demoLink, notes } = body as {
       name?: unknown
       displayName?: unknown
       demoLink?: unknown
+      notes?: unknown
     }
     const normalizedDisplayName = typeof displayName === 'string' ? displayName.trim() : ''
     const normalizedName = typeof name === 'string' ? name.trim() : ''
     const normalizedDemoLink = typeof demoLink === 'string' ? demoLink.trim() : ''
+    let normalizedNotes = ''
+
+    if (notes !== undefined && notes !== null) {
+      if (typeof notes !== 'string') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Notes must be text.',
+            errorCode: 'NOTES_INVALID',
+          },
+          { status: 400 }
+        )
+      }
+
+      normalizedNotes = notes.trim().replace(/\r\n?/g, '\n').replace(/<[^>]*>/g, '')
+
+      if (normalizedNotes.length > 500) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Notes must be 500 characters or fewer.',
+            errorCode: 'NOTES_TOO_LONG',
+          },
+          { status: 400 }
+        )
+      }
+    }
 
     // Validate demo link if provided
     if (normalizedDemoLink) {
@@ -242,6 +270,7 @@ export async function POST(request: NextRequest) {
         },
       },
       demoLink: normalizedDemoLink || null,
+      notes: normalizedNotes || null,
     }
 
     let entry
