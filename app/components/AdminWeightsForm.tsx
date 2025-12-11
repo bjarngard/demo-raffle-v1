@@ -171,6 +171,23 @@ export default function AdminWeightsForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Gifted Subs Multiplier
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={settings.giftedSubsMultiplier}
+              onChange={(e) =>
+                setSettings({ ...settings, giftedSubsMultiplier: parseFloat(e.target.value) || 0 })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Bonus per gifted sub before caps.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Gifted Subs Cap
             </label>
             <input
