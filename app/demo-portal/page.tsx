@@ -2,6 +2,7 @@
 
 import { SessionProvider, useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
+import AmbientBackground from '@/app/components/AmbientBackground'
 import TwitchLogin from '@/app/components/TwitchLogin'
 import DemoSubmissionForm from '@/app/components/DemoSubmissionForm'
 import MyStatusCard from '@/app/components/MyStatusCard'
@@ -109,14 +110,14 @@ function DemoPortalContent() {
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
         <p className="text-gray-500">Loading...</p>
-      </div>
+      </AmbientBackground>
     )
   }
 
   return (
-    <div className="bf-ambient-bg min-h-screen py-6 px-4">
+    <AmbientBackground contentClassName="min-h-screen py-6 px-4">
       <main className="max-w-7xl mx-auto">
         {/* Status Banner */}
         {leaderboard && Boolean(leaderboard.sessionId) && (
@@ -215,7 +216,7 @@ function DemoPortalContent() {
           </div>
         )}
       </main>
-    </div>
+    </AmbientBackground>
   )
 }
 

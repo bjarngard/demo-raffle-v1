@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { SessionProvider, useSession } from 'next-auth/react'
+import AmbientBackground from './components/AmbientBackground'
 import TwitchLogin from './components/TwitchLogin'
 import WeightInfoModal from './components/WeightInfoModal'
 
@@ -232,20 +233,20 @@ function RaffleForm() {
   // Loading state
   if (loadingWinner || status === 'loading') {
     return (
-      <div className="bf-ambient-bg flex min-h-screen items-center justify-center">
+      <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
         <main className="w-full max-w-2xl px-6 py-12">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12 text-center">
             <p className="text-gray-600 dark:text-gray-400">Loading...</p>
           </div>
         </main>
-      </div>
+      </AmbientBackground>
     )
   }
 
   // REQUIRE login - show login prompt if not logged in
   if (!session?.user) {
     return (
-      <div className="bf-ambient-bg flex min-h-screen items-center justify-center">
+      <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
         <main className="w-full max-w-2xl px-6 py-12">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12 space-y-6">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white text-center">
@@ -263,14 +264,14 @@ function RaffleForm() {
             </div>
           </div>
         </main>
-      </div>
+      </AmbientBackground>
     )
   }
 
   // Gatekeeping (A): only block when Twitch explicitly reports not_following; unknown just warns.
   if (followStatus === 'not_following') {
     return (
-      <div className="bf-ambient-bg flex min-h-screen items-center justify-center">
+      <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
         <main className="w-full max-w-2xl px-6 py-12">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 text-center">
@@ -292,13 +293,13 @@ function RaffleForm() {
             </div>
           </div>
         </main>
-      </div>
+      </AmbientBackground>
     )
   }
 
   // User is logged in and follows - show entry form
   return (
-    <div className="bf-ambient-bg min-h-screen py-6 px-4">
+    <AmbientBackground contentClassName="min-h-screen py-6 px-4">
       <main className="max-w-7xl mx-auto">
         {/* Status Banner */}
         {leaderboard && sessionActive && (
@@ -581,7 +582,7 @@ function RaffleForm() {
         </div>
         <WeightInfoModal open={weightInfoOpen} onClose={() => setWeightInfoOpen(false)} />
       </main>
-    </div>
+    </AmbientBackground>
   )
 }
 

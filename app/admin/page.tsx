@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import AmbientBackground from '@/app/components/AmbientBackground'
 
 interface Winner {
   id: number
@@ -69,7 +70,7 @@ export default function AdminPage() {
 
   if (!authenticated) {
     return (
-      <div className="bf-ambient-bg flex min-h-screen items-center justify-center">
+      <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
         <main className="w-full max-w-md px-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">
@@ -109,12 +110,12 @@ export default function AdminPage() {
             </p>
           </div>
         </main>
-      </div>
+      </AmbientBackground>
     )
   }
 
   return (
-    <div className="bf-ambient-bg flex min-h-screen items-center justify-center py-12">
+    <AmbientBackground contentClassName="flex min-h-screen items-center justify-center py-12">
       <main className="w-full max-w-2xl px-6">
         <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-xl p-8 md:p-12">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">
@@ -205,7 +206,7 @@ export default function AdminPage() {
           )}
         </div>
       </main>
-    </div>
+    </AmbientBackground>
   )
 }
 

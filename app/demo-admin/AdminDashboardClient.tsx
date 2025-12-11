@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import AmbientBackground from '@/app/components/AmbientBackground'
 import AdminUserTable from '@/app/components/AdminUserTable'
 import AdminWeightsForm from '@/app/components/AdminWeightsForm'
 import RaffleWheel, { type RaffleWinner } from '@/app/components/RaffleWheel'
@@ -219,7 +220,7 @@ export default function AdminDashboardClient({
   }, [fetchAdminData, fetchLeaderboard, previousSession])
 
   return (
-    <div className="bf-ambient-bg min-h-screen py-6 px-4">
+    <AmbientBackground contentClassName="min-h-screen py-6 px-4">
       <main className="max-w-7xl mx-auto">
         <div className="lg:flex lg:items-start lg:gap-4">
           <section className="flex-1">
@@ -346,7 +347,7 @@ export default function AdminDashboardClient({
       {winnerModalEntry && (
         <AdminWinnerModal entry={winnerModalEntry} onClose={() => setWinnerModalEntry(null)} />
       )}
-    </div>
+    </AmbientBackground>
   )
 }
 

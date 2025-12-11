@@ -44,53 +44,171 @@ h6,
   font-family: var(--font-body), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* Ambient background */
+/* Ambient background (floaty, no-blur orbs) */
 .bf-ambient-bg {
   position: relative;
-  isolation: isolate;
   min-height: 100vh;
-  background: #00141b;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  background: radial-gradient(circle at 20% 0%, #042b32 0, #00141b 55%, #000508 100%);
+}
+
+.bf-ambient-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.bf-orb {
+  position: fixed;
+  width: 100vw;
+  aspect-ratio: 1 / 1;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  will-change: transform;
+  z-index: 0;
+}
+
+.bf-orb::after {
+  content: "";
+  position: absolute;
+  inset: -15%;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: 0.2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='noStitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+.bf-orb-1 {
+  top: -50vh;
+  left: -60vw;
+  opacity: 0.26;
+  background: radial-gradient(
+    circle at 55% 55%,
+    rgba(4, 43, 50, 0.95) 0%,
+    rgba(4, 43, 50, 0.75) 16%,
+    rgba(4, 43, 50, 0.52) 32%,
+    rgba(4, 43, 50, 0.32) 52%,
+    rgba(4, 43, 50, 0.16) 72%,
+    rgba(4, 43, 50, 0.06) 84%,
+    rgba(4, 43, 50, 0) 100%
+  );
+  animation: bfOrbFloat1 80s ease-in-out infinite alternate;
+}
+
+.bf-orb-2 {
+  bottom: -60vh;
+  right: -65vw;
+  opacity: 0.22;
+  background: radial-gradient(
+    circle at 45% 45%,
+    rgba(1, 39, 48, 0.95) 0%,
+    rgba(1, 39, 48, 0.75) 16%,
+    rgba(1, 39, 48, 0.52) 32%,
+    rgba(1, 39, 48, 0.32) 52%,
+    rgba(1, 39, 48, 0.16) 72%,
+    rgba(1, 39, 48, 0.06) 84%,
+    rgba(1, 39, 48, 0) 100%
+  );
+  animation: bfOrbFloat2 95s ease-in-out infinite alternate;
+}
+
+.bf-orb-3 {
+  top: -10vh;
+  right: -50vw;
+  opacity: 0.2;
+  background: radial-gradient(
+    circle at 55% 50%,
+    rgba(25, 79, 79, 0.95) 0%,
+    rgba(25, 79, 79, 0.76) 16%,
+    rgba(25, 79, 79, 0.52) 34%,
+    rgba(25, 79, 79, 0.3) 54%,
+    rgba(25, 79, 79, 0.14) 72%,
+    rgba(25, 79, 79, 0.05) 86%,
+    rgba(25, 79, 79, 0) 100%
+  );
+  animation: bfOrbFloat3 110s ease-in-out infinite alternate;
+}
+
+@keyframes bfOrbFloat1 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  25% { transform: translate3d(60px, -60px, 0) scale(1.04); }
+  55% { transform: translate3d(120px, 30px, 0) scale(1.06); }
+  80% { transform: translate3d(50px, 90px, 0) scale(1.02); }
+  100% { transform: translate3d(-30px, 30px, 0) scale(1.04); }
+}
+
+@keyframes bfOrbFloat2 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  20% { transform: translate3d(-70px, 40px, 0) scale(1.04); }
+  50% { transform: translate3d(-130px, 0, 0) scale(1.07); }
+  80% { transform: translate3d(-90px, -50px, 0) scale(1.03); }
+  100% { transform: translate3d(-30px, -10px, 0) scale(1.02); }
+}
+
+@keyframes bfOrbFloat3 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  30% { transform: translate3d(50px, -40px, 0) scale(1.05); }
+  60% { transform: translate3d(10px, 90px, 0) scale(1.02); }
+  85% { transform: translate3d(-60px, 30px, 0) scale(1.06); }
+  100% { transform: translate3d(-30px, -20px, 0) scale(1.03); }
+}
+
+.bf-noise {
+  position: fixed;
+  inset: -50%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='noStitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+.bf-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
   overflow: hidden;
 }
 
-.bf-ambient-bg::before {
-  content: "";
-  position: fixed;
-  inset: -25%;
-  z-index: -1;
+.bf-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.28);
   pointer-events: none;
-  background:
-    radial-gradient(circle at 20% 15%, #042b3233 0, transparent 55%),
-    radial-gradient(circle at 80% 10%, #01273033 0, transparent 60%),
-    radial-gradient(circle at 15% 85%, #194f4f33 0, transparent 55%),
-    radial-gradient(circle at 85% 80%, #021f2733 0, transparent 60%),
-    radial-gradient(circle at 50% 50%, #042b321f 0, transparent 70%),
-    radial-gradient(circle at 30% 60%, #00141b1f 0, transparent 70%),
-    radial-gradient(circle at 70% 40%, #01273026 0, transparent 75%),
-    radial-gradient(circle at 60% 70%, #194f4f1f 0, transparent 75%);
-  background-size: 140% 140%;
-  filter: blur(8px);
-  animation: bfAmbientFloat 60s ease-in-out infinite alternate;
+  will-change: transform;
+  opacity: 0.85;
+  animation-name: bfParticleDrift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: var(--duration, 55s);
+  animation-delay: var(--delay, 0s);
 }
 
-@keyframes bfAmbientFloat {
-  0% {
-    background-position: 0% 0%, 100% 5%, 0% 100%, 100% 95%, 50% 50%, 30% 60%, 70% 40%, 60% 70%;
-    transform: scale(1);
-  }
-  50% {
-    background-position: 10% 5%, 90% 0%, 0% 95%, 95% 100%, 48% 52%, 32% 58%, 72% 42%, 58% 68%;
-    transform: scale(1.02);
-  }
-  100% {
-    background-position: 0% 10%, 100% 0%, 5% 100%, 90% 95%, 52% 48%, 28% 62%, 68% 38%, 62% 72%;
-    transform: scale(1.01);
-  }
+@keyframes bfParticleDrift {
+  0% { transform: translate3d(0, 0, 0) scale(0.9); }
+  33% { transform: translate3d(80px, -110px, 0) scale(1.05); }
+  66% { transform: translate3d(-90px, -40px, 0) scale(1.1); }
+  100% { transform: translate3d(60px, 130px, 0) scale(0.95); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bf-ambient-bg::before {
-    animation: none;
+  .bf-orb,
+  .bf-particle {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .bf-orb-3 {
+    display: none;
   }
 }
 
