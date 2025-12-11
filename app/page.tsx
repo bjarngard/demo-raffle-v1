@@ -304,13 +304,13 @@ function RaffleForm() {
         {leaderboard && sessionActive && (
           <div
             className={`mb-6 rounded-lg shadow-lg p-4 ${
-              leaderboard.submissionsOpen ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
+              leaderboard.submissionsOpen ? 'bg-[var(--bf-lime)] text-gray-900' : 'bg-orange-500 text-white'
             }`}
           >
             <div className="flex items-center justify-center gap-3">
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-orange-300'
+                  leaderboard.submissionsOpen ? 'bg-[var(--bf-lime)]' : 'bg-orange-300'
                 } animate-pulse`}
               ></div>
               <h2 className="text-3xl font-bold">
@@ -318,7 +318,7 @@ function RaffleForm() {
               </h2>
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-orange-300'
+                  leaderboard.submissionsOpen ? 'bg-[var(--bf-lime)]' : 'bg-orange-300'
                 } animate-pulse`}
               ></div>
             </div>

@@ -263,8 +263,8 @@ export default function AdminDashboardClient({
                       disabled={leaderboardLoading}
                       className={`inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium transition ${
                         leaderboardLoading
-                          ? 'border-gray-300 text-gray-400 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
-                          : 'border-bf-primary text-bf-primary hover:bg-bf-orange-soft'
+                          ? 'border-gray-700 text-gray-500 cursor-not-allowed opacity-60'
+                          : 'border-gray-500 text-gray-200 hover:border-[var(--bf-lime)] hover:text-[var(--bf-lime)] hover:bg-[#0f1d28]'
                       }`}
                     >
                       {leaderboardLoading ? 'Refreshing…' : 'Refresh'}
