@@ -231,7 +231,7 @@ export default function AdminDashboardClient({
                     onClick={() => setActiveTab(tab)}
                     className={`heading-text px-4 py-2 font-medium transition-colors ${
                       activeTab === tab
-                        ? 'border-b-2 border-bf-primary text-bf-primary'
+                        ? 'border-b-2 border-[var(--bf-lime)] text-bf-lime'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                     }`}
                   >
@@ -435,8 +435,8 @@ type AdminToggleProps = {
 
 function AdminToggle({ label, leftLabel, rightLabel, on, disabled, neutral, onToggle }: AdminToggleProps) {
   const toggleClasses = [
-    'relative inline-flex h-6 w-11 items-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bf-primary',
-    on ? 'bg-bf-primary border-bf-primary' : 'bg-gray-500 border-gray-500',
+    'relative inline-flex h-6 w-11 items-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--bf-lime)]',
+    on ? 'bg-[var(--bf-lime)] border-[var(--bf-lime)]' : 'bg-gray-500 border-gray-500',
     disabled ? 'opacity-60 cursor-not-allowed' : '',
   ]
 
