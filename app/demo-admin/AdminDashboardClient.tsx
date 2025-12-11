@@ -286,14 +286,6 @@ export default function AdminDashboardClient({
           </section>
 
           <aside className="mt-4 lg:mt-0 lg:w-80 flex-shrink-0 space-y-3">
-            {loading && (
-              <div className="flex justify-end">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Refreshing...
-                </span>
-              </div>
-            )}
-
             <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -350,6 +342,14 @@ export default function AdminDashboardClient({
                   onToggle={() => toggleSubmissions(!submissionsOpen)}
                 />
               </div>
+            </div>
+
+            <div className="flex justify-end min-h-[18px]">
+              {loading && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Refreshing...
+                </span>
+              )}
             </div>
           </aside>
         </div>
