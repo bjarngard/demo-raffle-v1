@@ -88,18 +88,18 @@ export default function AdminPage() {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-bf-primary focus:border-transparent dark:bg-gray-700 dark:text-white outline-none transition"
                   placeholder="Enter admin password"
                 />
               </div>
               {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
               <button
                 type="submit"
-                className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+                className="w-full bg-bf-primary text-white py-3 px-6 rounded-lg font-medium hover:bg-bf-primary-dark transition-colors"
               >
                 Log in
               </button>
@@ -114,18 +114,18 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32] py-12">
       <main className="w-full max-w-2xl px-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12">
+        <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-xl p-8 md:p-12">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">
             Admin Panel
           </h1>
 
           {winnerDrawn && winner ? (
             <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-yellow-100 dark:bg-yellow-900 rounded-full mb-4">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-bf-orange-soft rounded-full mb-4">
                 <svg
-                  className="w-10 h-10 text-yellow-600 dark:text-yellow-400"
+                  className="w-10 h-10 text-bf-primary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -141,7 +141,7 @@ export default function AdminPage() {
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
                 Winner has been selected!
               </h2>
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+              <div className="bg-gray-50 dark:bg-[#0f1d28] rounded-lg p-6 mb-6">
                 <p className="text-lg text-gray-700 dark:text-gray-300 mb-1">
                   <span className="font-semibold">Name:</span> {winner.name}
                 </p>
@@ -155,10 +155,10 @@ export default function AdminPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-800 dark:text-blue-300">
+              <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-4">
+                <p className="text-sm text-gray-900">
                   <strong>NOTE:</strong> To pick a winner, you need to use your admin token.
-                  The token is set in the <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">ADMIN_TOKEN</code> environment variable.
+                  The token is set in the <code className="bg-bf-lime-soft px-1 rounded">ADMIN_TOKEN</code> environment variable.
                 </p>
               </div>
 
@@ -174,7 +174,7 @@ export default function AdminPage() {
                   id="adminToken"
                   value={adminToken}
                   onChange={(e) => setAdminToken(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-bf-primary focus:border-transparent dark:bg-gray-700 dark:text-white outline-none transition"
                   placeholder="Enter your admin token (from ADMIN_TOKEN environment variable)"
                 />
               </div>
@@ -188,7 +188,7 @@ export default function AdminPage() {
               <button
                 onClick={handlePickWinner}
                 disabled={loading || winnerDrawn}
-                className="w-full bg-indigo-600 text-white py-4 px-6 rounded-lg font-medium hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors text-lg"
+                className="w-full bg-bf-primary text-white py-4 px-6 rounded-lg font-medium hover:bg-bf-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors text-lg"
               >
                 {loading ? 'Picking winner...' : winnerDrawn ? 'Winner already selected' : 'Pick winner'}
               </button>

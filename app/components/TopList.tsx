@@ -11,15 +11,16 @@ interface TopListProps {
   entries: LeaderboardEntry[]
   loading?: boolean
   maxHeightClass?: string
+  hideRefreshingText?: boolean
 }
 
-export default function TopList({ entries, loading, maxHeightClass }: TopListProps) {
+export default function TopList({ entries, loading, maxHeightClass, hideRefreshingText }: TopListProps) {
   const isInitialLoading = !!loading && entries.length === 0
   const isRefreshing = !!loading && entries.length > 0
 
   if (isInitialLoading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+      <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-6">
         <p className="text-gray-500 text-center">Loading leaderboard...</p>
       </div>
     )
@@ -27,17 +28,17 @@ export default function TopList({ entries, loading, maxHeightClass }: TopListPro
 
   if (!loading && entries.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+      <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-6">
         <p className="text-gray-500 text-center">No entries yet</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+    <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="heading-text text-xl font-bold text-gray-900 dark:text-white">Leaderboard</h3>
-        {isRefreshing && (
+        {isRefreshing && !hideRefreshingText && (
           <span className="text-xs text-gray-500 dark:text-gray-400">Refreshing…</span>
         )}
       </div>
@@ -64,7 +65,7 @@ export default function TopList({ entries, loading, maxHeightClass }: TopListPro
                 </div>
               </div>
               <div className="flex-shrink-0 ml-4">
-                <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+        <p className="text-xl font-bold text-bf-primary">
                   {entry.probability.toFixed(2)}%
                 </p>
               </div>

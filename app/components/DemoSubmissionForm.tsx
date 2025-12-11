@@ -164,11 +164,11 @@ export default function DemoSubmissionForm({
 
   if (submission) {
     return (
-      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+      <div className="bg-bf-lime-soft border border-[#c4cf48] rounded-lg p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+          <div className="w-10 h-10 bg-bf-lime-soft rounded-full flex items-center justify-center">
             <svg
-              className="w-6 h-6 text-green-600 dark:text-green-400"
+              className="w-6 h-6 text-bf-primary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -181,20 +181,20 @@ export default function DemoSubmissionForm({
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-green-900 dark:text-green-100">
+          <h3 className="text-lg font-semibold text-gray-900">
             You have an active submission
           </h3>
         </div>
         {submission.demoLink && (
           <div className="mt-4">
-            <p className="text-sm text-green-700 dark:text-green-300 mb-2">
+            <p className="text-sm text-gray-900 mb-2">
               Demo Link:
             </p>
             <a
               href={submission.demoLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+              className="text-bf-primary hover:underline break-all"
             >
               {submission.demoLink}
             </a>
@@ -206,9 +206,9 @@ export default function DemoSubmissionForm({
 
   if (!effectiveSessionActive) {
     return (
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">No active session</h3>
-        <p className="text-sm text-blue-800 dark:text-blue-200">
+      <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No active session</h3>
+        <p className="text-sm text-gray-900">
           The broadcaster hasn&apos;t started a new session yet. Please check back during the next stream.
         </p>
       </div>
@@ -217,9 +217,9 @@ export default function DemoSubmissionForm({
 
   if (!effectiveSubmissionsOpen) {
     return (
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-yellow-900 dark:text-yellow-100 mb-2">Submissions are closed</h3>
-        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+      <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Submissions are closed</h3>
+        <p className="text-sm text-gray-900">
           The broadcaster has closed submissions for now. Please check back when the next round opens.
         </p>
       </div>
@@ -241,7 +241,7 @@ export default function DemoSubmissionForm({
           value={demoLink}
           onChange={(e) => setDemoLink(e.target.value)}
           placeholder="https://soundcloud.com/... or https://drive.google.com/..."
-          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white outline-none transition"
+          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-bf-primary focus:border-transparent dark:bg-gray-700 dark:text-white outline-none transition"
         />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Paste your SoundCloud, Google Drive, or other demo link here
@@ -249,7 +249,7 @@ export default function DemoSubmissionForm({
       </div>
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+        <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 px-4 py-3 rounded-lg text-sm">
           {error}
         </div>
       )}
@@ -257,7 +257,7 @@ export default function DemoSubmissionForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
+        className="w-full bg-bf-primary text-white py-3 px-6 rounded-lg font-medium hover:bg-bf-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
       >
         {loading ? 'Submitting...' : 'Submit Demo'}
       </button>

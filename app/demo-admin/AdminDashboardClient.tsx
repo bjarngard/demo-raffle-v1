@@ -219,11 +219,11 @@ export default function AdminDashboardClient({
   }, [fetchAdminData, fetchLeaderboard, previousSession])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-6 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32] py-6 px-4">
       <main className="max-w-7xl mx-auto">
         <div className="lg:flex lg:items-start lg:gap-4">
           <section className="flex-1">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-5 mb-5">
+            <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-5 mb-5">
               <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
                 {(['users', 'weights', 'raffle'] as const).map((tab) => (
                   <button
@@ -231,7 +231,7 @@ export default function AdminDashboardClient({
                     onClick={() => setActiveTab(tab)}
                     className={`heading-text px-4 py-2 font-medium transition-colors ${
                       activeTab === tab
-                        ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                        ? 'border-b-2 border-bf-primary text-bf-primary'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                     }`}
                   >
@@ -256,25 +256,26 @@ export default function AdminDashboardClient({
 
               {activeTab === 'raffle' && (
                 <div className="space-y-6">
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={fetchLeaderboard}
-                  disabled={leaderboardLoading}
-                  className={`inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium transition ${
-                    leaderboardLoading
-                      ? 'border-gray-300 text-gray-400 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  {leaderboardLoading ? 'Refreshing…' : 'Refresh'}
-                </button>
-              </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={fetchLeaderboard}
+                      disabled={leaderboardLoading}
+                      className={`inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium transition ${
+                        leaderboardLoading
+                          ? 'border-gray-300 text-gray-400 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
+                          : 'border-bf-primary text-bf-primary hover:bg-bf-orange-soft'
+                      }`}
+                    >
+                      {leaderboardLoading ? 'Refreshing…' : 'Refresh'}
+                    </button>
+                  </div>
                   <RaffleWheel entries={raffleEntries} onWinnerPicked={handleWinnerPicked} />
                   <TopList
                     entries={leaderboard}
                     loading={leaderboardLoading}
                     maxHeightClass="max-h-[800px]"
+                    hideRefreshingText
                   />
                 </div>
               )}
@@ -282,7 +283,7 @@ export default function AdminDashboardClient({
           </section>
 
           <aside className="mt-4 lg:mt-0 lg:w-80 flex-shrink-0 space-y-3">
-            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0f1d28]">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Session Status</p>
@@ -320,7 +321,7 @@ export default function AdminDashboardClient({
               )}
             </div>
 
-            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f1d28]">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Submissions Status</p>
@@ -386,7 +387,7 @@ function AdminWinnerModal({
               href={demoLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-bf-primary text-white hover:bg-bf-primary-dark transition"
             >
               {demoLabel}
             </a>
@@ -406,7 +407,7 @@ function AdminWinnerModal({
           <button
             type="button"
             onClick={onClose}
-            className="mt-2 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            className="mt-2 inline-flex items-center justify-center px-4 py-2 rounded-lg border border-bf-primary text-bf-primary hover:bg-bf-orange-soft transition"
           >
             Close
           </button>
@@ -434,8 +435,8 @@ type AdminToggleProps = {
 
 function AdminToggle({ label, leftLabel, rightLabel, on, disabled, neutral, onToggle }: AdminToggleProps) {
   const toggleClasses = [
-    'relative inline-flex h-6 w-11 items-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500',
-    on ? 'bg-green-500 border-green-500' : 'bg-gray-500 border-gray-500',
+    'relative inline-flex h-6 w-11 items-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bf-primary',
+    on ? 'bg-bf-primary border-bf-primary' : 'bg-gray-500 border-gray-500',
     disabled ? 'opacity-60 cursor-not-allowed' : '',
   ]
 

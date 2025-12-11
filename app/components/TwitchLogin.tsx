@@ -48,7 +48,7 @@ export default function TwitchLogin() {
 
   if (session?.user) {
     return (
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg p-6 mb-6 text-white">
+      <div className="bg-gradient-to-r from-[#EB2E70] to-[#A6178E] rounded-lg p-6 mb-6 text-white">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             {session.user.image && (
@@ -64,7 +64,7 @@ export default function TwitchLogin() {
               <h3 className="font-semibold text-lg">
                 {session.user.name || 'Twitch User'}
               </h3>
-              <p className="text-purple-100 text-sm">
+              <p className="text-gray-100 text-sm">
                 Logged in via Twitch
               </p>
             </div>
@@ -83,33 +83,33 @@ export default function TwitchLogin() {
             <h4 className="font-semibold mb-3">Your Raffle Stats</h4>
             <div className="mb-3 pb-3 border-b border-white/20">
               <div className="flex items-center justify-between">
-                <p className="text-purple-100">Following Channel</p>
-                <p className={`text-lg font-semibold ${userWeight.isFollower ? 'text-green-300' : 'text-red-300'}`}>
+                <p className="text-gray-100">Following Channel</p>
+                <p className={`text-lg font-semibold ${userWeight.isFollower ? 'text-bf-lime' : 'text-bf-orange'}`}>
                   {userWeight.isFollower ? '✓ Yes' : '✗ No'}
                 </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-purple-100">Total Weight</p>
+                <p className="text-gray-100">Total Weight</p>
                 <p className="text-2xl font-bold">{userWeight.totalWeight.toFixed(2)}x</p>
               </div>
               <div>
-                <p className="text-purple-100">Carry-Over Weight</p>
+                <p className="text-gray-100">Carry-Over Weight</p>
                 <p className="text-xl font-semibold">{userWeight.carryOverWeight.toFixed(2)}x</p>
               </div>
               <div>
-                <p className="text-purple-100">Subscriber</p>
+                <p className="text-gray-100">Subscriber</p>
                 <p className="text-lg font-semibold">
                   {userWeight.isSubscriber ? '✓ Subscriber' : 'Not subscribed'}
                 </p>
               </div>
               <div>
-                <p className="text-purple-100">Bits Cheered</p>
+                <p className="text-gray-100">Bits Cheered</p>
                 <p className="text-lg font-semibold">{userWeight.totalCheerBits.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-purple-100">Gifted Subs</p>
+                <p className="text-gray-100">Gifted Subs</p>
                 <p className="text-lg font-semibold">{userWeight.totalGiftedSubs.toLocaleString()}</p>
               </div>
             </div>
@@ -120,17 +120,17 @@ export default function TwitchLogin() {
   }
 
   return (
-    <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-6 mb-6">
+    <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-6 mb-6">
       <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
         Sign in with Twitch (Required)
       </h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+      <p className="text-sm text-gray-900 mb-4">
         Your subscriber status, bits, and gifted subs will automatically increase your chances of winning.
       </p>
       <button
         onClick={handleSignIn}
         disabled={loading}
-        className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full bg-bf-primary hover:bg-bf-primary-dark text-white py-3 px-6 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {loading ? (
           'Connecting...'

@@ -145,7 +145,7 @@ export default function RaffleWheel({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-5">
+    <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-5">
 
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
@@ -157,14 +157,14 @@ export default function RaffleWheel({
         <button
           onClick={handleDraw}
           disabled={isDrawing}
-          className="heading-text bg-indigo-600 text-white py-4 px-8 rounded-lg font-bold text-xl hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
+          className="heading-text bg-bf-primary text-white py-4 px-8 rounded-lg font-bold text-xl hover:bg-bf-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
           {isDrawing ? 'Drawing...' : '🎲 DRAW WINNER'}
         </button>
       </div>
 
       {(isDrawing || scrollingName) && (
-        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg p-6">
+        <div className="bg-gradient-to-br from-[#FA9857] to-[#EB2E70] rounded-lg p-6">
           <div className="text-center">
             <div className="text-4xl font-bold text-white mb-4 animate-pulse">
               {scrollingName || '...'}

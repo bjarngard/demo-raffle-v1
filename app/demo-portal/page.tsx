@@ -116,19 +116,19 @@ function DemoPortalContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-6 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32] py-6 px-4">
       <main className="max-w-7xl mx-auto">
         {/* Status Banner */}
         {leaderboard && Boolean(leaderboard.sessionId) && (
           <div
             className={`mb-6 rounded-lg shadow-lg p-4 ${
-              leaderboard.submissionsOpen ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
+              leaderboard.submissionsOpen ? 'bg-bf-lime-soft text-gray-900 border border-[#c4cf48]' : 'bg-bf-orange-soft text-gray-900 border border-[#f08e4c]'
             }`}
           >
             <div className="flex items-center justify-center gap-3">
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-orange-300'
+                  leaderboard.submissionsOpen ? 'bg-[#d8e86a]' : 'bg-[#f7b485]'
                 } animate-pulse`}
               ></div>
               <h2 className="text-3xl font-bold">
@@ -136,7 +136,7 @@ function DemoPortalContent() {
               </h2>
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-orange-300'
+                  leaderboard.submissionsOpen ? 'bg-[#d8e86a]' : 'bg-[#f7b485]'
                 } animate-pulse`}
               ></div>
             </div>
@@ -149,17 +149,17 @@ function DemoPortalContent() {
 
         {/* Inline status for session/submissions */}
         {leaderboard && !leaderboard.sessionId && (
-          <div className="mb-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 shadow p-4 text-yellow-900 dark:text-yellow-100">
+          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow p-4 text-gray-900">
             No active session is running right now. Please check back later.
           </div>
         )}
 
         {leaderboard && leaderboard.sessionId && !leaderboard.submissionsOpen && (
-          <div className="mb-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow p-4 text-gray-800 dark:text-gray-100">
+          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow p-4 text-gray-900">
             {winner ? (
               <p>
                 Submissions are currently paused. Latest winner:{' '}
-                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                <span className="font-semibold text-bf-primary">
                   {winner.name}
                 </span>
                 .
@@ -180,7 +180,7 @@ function DemoPortalContent() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column: Submission Form & Status */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+              <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                   Submit Your Demo
                 </h2>
@@ -205,7 +205,7 @@ function DemoPortalContent() {
             </div>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
+          <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               Please Sign In
             </h2>

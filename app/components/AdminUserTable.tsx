@@ -141,7 +141,7 @@ export default function AdminUserTable({
                       href={entry.demoLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline truncate max-w-xs block"
+                      className="text-bf-primary hover:underline truncate max-w-xs block"
                     >
                       {entry.demoLink}
                     </a>
@@ -150,7 +150,7 @@ export default function AdminUserTable({
                   )}
                 </td>
                 <td className="py-3">
-                  <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                  <span className="font-bold text-bf-primary">
                     {entry.weightBreakdown.totalWeight.toFixed(2)}x
                   </span>
                 </td>
@@ -210,8 +210,8 @@ function StatusChip({
 }) {
   const styles =
     variant === 'positive'
-      ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200'
-      : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+      ? 'bg-bf-lime-soft text-gray-900'
+      : 'bg-bf-orange-soft text-gray-900'
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${styles}`}>
       {label}
@@ -232,9 +232,7 @@ function BreakdownRow({
     <div className="flex items-center justify-between gap-2">
       <span className="text-gray-500 dark:text-gray-400">{label}</span>
       <span
-        className={`font-semibold ${
-          highlight ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-900 dark:text-gray-200'
-        }`}
+        className={`font-semibold ${highlight ? 'text-bf-primary' : 'text-gray-900 dark:text-gray-200'}`}
       >
         {value}
       </span>

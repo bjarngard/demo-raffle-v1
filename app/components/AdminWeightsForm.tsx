@@ -64,7 +64,7 @@ export default function AdminWeightsForm({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+    <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-6">
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
         Weight Settings
       </h3>
@@ -72,8 +72,8 @@ export default function AdminWeightsForm({
         <div
           className={`mb-4 px-4 py-3 rounded-lg ${
             message.type === 'success'
-              ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400'
-              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+              ? 'bg-bf-lime-soft border border-[#c4cf48] text-gray-900'
+              : 'bg-bf-orange-soft border border-[#f08e4c] text-gray-900'
           }`}
         >
           {message.text}
@@ -224,7 +224,7 @@ export default function AdminWeightsForm({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
+          className="w-full bg-bf-primary text-white py-3 px-6 rounded-lg font-medium hover:bg-bf-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? 'Saving...' : 'Save Settings'}
         </button>

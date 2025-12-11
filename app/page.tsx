@@ -232,7 +232,7 @@ function RaffleForm() {
   // Loading state
   if (loadingWinner || status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32]">
         <main className="w-full max-w-2xl px-6 py-12">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12 text-center">
             <p className="text-gray-600 dark:text-gray-400">Loading...</p>
@@ -245,7 +245,7 @@ function RaffleForm() {
   // REQUIRE login - show login prompt if not logged in
   if (!session?.user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32]">
         <main className="w-full max-w-2xl px-6 py-12">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12 space-y-6">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white text-center">
@@ -256,8 +256,8 @@ function RaffleForm() {
             </p>
             <TwitchLogin />
 
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mt-6">
-              <p className="text-sm text-yellow-800 dark:text-yellow-300 text-center">
+            <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-4 mt-6">
+              <p className="text-sm text-gray-900 text-center">
                 Log in with Twitch and follow the channel to take part in the raffle.
               </p>
             </div>
@@ -270,7 +270,7 @@ function RaffleForm() {
   // Gatekeeping (A): only block when Twitch explicitly reports not_following; unknown just warns.
   if (followStatus === 'not_following') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32]">
         <main className="w-full max-w-2xl px-6 py-12">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 text-center">
@@ -282,11 +282,11 @@ function RaffleForm() {
 
             <TwitchLogin />
 
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 mt-6 text-center">
-              <p className="text-red-800 dark:text-red-300 font-semibold mb-2">
+            <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-6 mt-6 text-center">
+              <p className="text-gray-900 font-semibold mb-2">
                 You are not following this channel
               </p>
-              <p className="text-sm text-red-700 dark:text-red-400">
+              <p className="text-sm text-gray-900">
                 Please follow the channel on Twitch and refresh this page to enter the raffle.
               </p>
             </div>
@@ -298,19 +298,19 @@ function RaffleForm() {
 
   // User is logged in and follows - show entry form
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-6 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32] py-6 px-4">
       <main className="max-w-7xl mx-auto">
         {/* Status Banner */}
         {leaderboard && sessionActive && (
           <div
             className={`mb-6 rounded-lg shadow-lg p-4 ${
-              leaderboard.submissionsOpen ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
+              leaderboard.submissionsOpen ? 'bg-bf-lime-soft text-gray-900 border border-[#c4cf48]' : 'bg-bf-orange-soft text-gray-900 border border-[#f08e4c]'
             }`}
           >
             <div className="flex items-center justify-center gap-3">
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-orange-300'
+                  leaderboard.submissionsOpen ? 'bg-[#d8e86a]' : 'bg-[#f7b485]'
                 } animate-pulse`}
               ></div>
               <h2 className="text-3xl font-bold">
@@ -318,7 +318,7 @@ function RaffleForm() {
               </h2>
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-orange-300'
+                  leaderboard.submissionsOpen ? 'bg-[#d8e86a]' : 'bg-[#f7b485]'
                 } animate-pulse`}
               ></div>
             </div>
@@ -329,17 +329,17 @@ function RaffleForm() {
         )}
 
         {leaderboard && !leaderboard.sessionId && (
-          <div className="mb-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 shadow p-4 text-yellow-900 dark:text-yellow-100">
+          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow p-4 text-gray-900">
             The raffle is not currently running. Please check back later.
           </div>
         )}
 
         {leaderboard && leaderboard.sessionId && !leaderboard.submissionsOpen && (
-          <div className="mb-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow p-4 text-gray-800 dark:text-gray-100">
+          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow p-4 text-gray-900">
             {winner ? (
               <p>
                 Submissions are currently paused. Latest winner:{' '}
-                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                <span className="font-semibold text-bf-primary">
                   {winner.name}
                 </span>
                 .
@@ -352,12 +352,12 @@ function RaffleForm() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column: Entry Form */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 md:p-8">
+          <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-xl p-6 md:p-8">
             <div className="flex justify-center mb-4">
               <button
                 type="button"
                 onClick={() => setWeightInfoOpen(true)}
-                className="heading-text inline-flex items-center gap-2 text-base md:text-lg font-semibold text-indigo-600 dark:text-indigo-300 underline underline-offset-4 hover:text-indigo-800 dark:hover:text-indigo-100"
+                className="heading-text inline-flex items-center gap-2 text-base md:text-lg font-semibold text-bf-primary dark:text-bf-primary underline underline-offset-4 hover:text-bf-primary-dark dark:hover:text-bf-primary-dark"
               >
                 How are my odds calculated?
               </button>
@@ -367,8 +367,8 @@ function RaffleForm() {
 
           {/* Warning only (A): uncertain follow state never blocks entry, just informs the user. */}
           {followStatus === 'unknown' && (
-            <div className="mt-4 mb-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            <div className="mt-4 mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] p-4">
+              <p className="text-sm text-gray-900">
                 We couldn&apos;t verify your follow status right now
                 {followReason ? ` (${followReason})` : ''}.{' '}
                 You should still be able to enter, but please try again later or let the broadcaster know if this keeps happening.
@@ -378,9 +378,9 @@ function RaffleForm() {
 
           {submitted ? (
             <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-bf-lime-soft rounded-full mb-4">
                 <svg
-                  className="w-8 h-8 text-green-600 dark:text-green-400"
+                  className="w-8 h-8 text-bf-primary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -402,9 +402,9 @@ function RaffleForm() {
             </div>
           ) : !effectiveSessionActive ? (
             <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-bf-orange-soft rounded-full mb-4">
                 <svg
-                  className="w-8 h-8 text-blue-600 dark:text-blue-300"
+                  className="w-8 h-8 text-bf-primary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -426,9 +426,9 @@ function RaffleForm() {
             </div>
           ) : submissionsClosed ? (
             <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 dark:bg-yellow-900 rounded-full mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-bf-orange-soft rounded-full mb-4">
                 <svg
-                  className="w-8 h-8 text-yellow-600 dark:text-yellow-400"
+                  className="w-8 h-8 text-bf-primary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -462,7 +462,7 @@ function RaffleForm() {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-bf-primary focus:border-transparent dark:bg-gray-700 dark:text-white outline-none transition"
                   placeholder={session.user.name || 'Your display name'}
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -480,7 +480,7 @@ function RaffleForm() {
                   onChange={(e) => setDemoLink(e.target.value)}
                   required
                   aria-invalid={Boolean(error) && demoLink.trim().length === 0}
-                  className="w-full rounded-md bg-gray-900/60 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-md bg-gray-900/60 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bf-primary"
                   placeholder="https://..."
                 />
                 <p className="mt-1 text-xs text-gray-400">
@@ -497,7 +497,7 @@ function RaffleForm() {
                   onChange={(e) => setNotes(e.target.value)}
                   maxLength={500}
                   rows={4}
-                  className="w-full rounded-md bg-gray-900/60 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-md bg-gray-900/60 border border-gray-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-bf-primary"
                   placeholder="What kind of feedback are you looking for? (max 500 characters)"
                 />
                 <div className="mt-1 flex items-center justify-between text-xs text-gray-400">
@@ -507,7 +507,7 @@ function RaffleForm() {
               </div>
 
               {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
+                <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 px-4 py-3 rounded-lg">
                   {error}
                 </div>
               )}
@@ -515,7 +515,7 @@ function RaffleForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="heading-text w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
+                className="heading-text w-full bg-bf-primary text-white py-3 px-6 rounded-lg font-medium hover:bg-bf-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Entering...' : 'Enter Raffle'}
               </button>
@@ -524,7 +524,7 @@ function RaffleForm() {
           </div>
 
           {/* Right Column: Top 20 Leaderboard */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 md:p-8">
+          <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-xl p-6 md:p-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 text-center">
               {sessionActive ? 'Leaderboard' : 'Last session results'}
             </h2>
@@ -543,7 +543,7 @@ function RaffleForm() {
                 {leaderboard.entries.map((entry, index) => (
                   <div
                     key={entry.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="flex-shrink-0 w-8 text-center">
@@ -562,7 +562,7 @@ function RaffleForm() {
                     </div>
                     <div className="flex-shrink-0 ml-4">
                       <div className="text-right">
-                        <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
+                        <p className="text-xl font-bold text-bf-primary">
                           {entry.probability.toFixed(2)}%
                         </p>
                       </div>
