@@ -81,7 +81,7 @@ All models live in `prisma/schema.prisma`. Key tables:
 ### `Entry`
 - `id Int @id @default(autoincrement())`
 - `userId String?` → optional relation to `User`.
-- `name String`, `email String?`, `demoLink String?`, `createdAt DateTime @default(now())`, `isWinner Boolean @default(false)`, `streamId String?` (legacy metadata).
+- `name String`, `email String?`, `demoLink String?`, `notes String? @db.Text`, `createdAt DateTime @default(now())`, `isWinner Boolean @default(false)`, `streamId String?` (legacy metadata).
 - `sessionId String` → required relation to `RaffleSession`.
 - Indexes: `@@index([sessionId])`, `@@unique([sessionId, userId])` to enforce "one entry per user per session".
 - **Sentinel row:** `lib/submissions-state.ts` creates/updates a special entry with `email = submissions-state@demo-raffle.local`, `userId = '__SYSTEM_SENTINEL__'`, `streamId = '__STATE__'`, and `sessionId` pointing to the system session. `entryStateExclusion` filters out this entry via `email: { not: SUBMISSIONS_STATE_EMAIL }`.
@@ -206,6 +206,7 @@ All models live in `prisma/schema.prisma`. Key tables:
     - **Submissions closed:** Inline card referencing latest winner (from `/api/winner` if available). Form disabled.
     - **Submissions open + active session:** Form enabled unless user already submitted.
   - Success state shows “Thank you for entering!” card.
+  - Entry fields: optional display name override; **required demoLink** (trimmed; missing link → `DEMO_LINK_REQUIRED`); optional `notes` textarea (trimmed, HTML-stripped, normalized newlines, max 500 chars; `NOTES_TOO_LONG` / `NOTES_INVALID` handled client-side).
   - The “Link to your demo” input is required: the client guards empty submissions, and `/api/enter` returns `DEMO_LINK_REQUIRED` with “You must add a link to participate.” if a link is missing or only whitespace.
   - Includes a CTA opening `WeightInfoModal`, which uses `useWeightData` to read live `WeightSettings` values and presents a neutral rules table (base weight, subscriber loyalty caps, bits/gifts boosts, carry-over limits, participation requirements). It no longer embeds the viewer’s personal status card.
 - Error handling from `/api/enter`:
