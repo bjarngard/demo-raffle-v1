@@ -229,7 +229,7 @@ export default function AdminDashboardClient({
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 font-medium transition-colors ${
+                    className={`heading-text px-4 py-2 font-medium transition-colors ${
                       activeTab === tab
                         ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -459,7 +459,7 @@ function AdminToggle({ label, leftLabel, rightLabel, on, disabled, neutral, onTo
   return (
     <div className="flex items-center gap-3">
       <div className="flex flex-col">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <span className="heading-text text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
           {label}
         </span>
         <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 mt-1">

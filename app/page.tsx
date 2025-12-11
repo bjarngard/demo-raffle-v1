@@ -249,10 +249,10 @@ function RaffleForm() {
         <main className="w-full max-w-2xl px-6 py-12">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12 space-y-6">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white text-center">
-              Sign in to enter the raffle
+              Sign in to enter the demo raffle!
             </h1>
             <p className="text-center text-gray-600 dark:text-gray-400 text-sm">
-              Submit your track and get a fair, weighted chance to be picked for feedback live.
+              Your subscriber status, bits, and gifted subs improve your odds once you are signed in.
             </p>
             <TwitchLogin />
 
@@ -357,7 +357,7 @@ function RaffleForm() {
               <button
                 type="button"
                 onClick={() => setWeightInfoOpen(true)}
-                className="inline-flex items-center gap-2 text-base md:text-lg font-semibold text-indigo-600 dark:text-indigo-300 underline underline-offset-4 hover:text-indigo-800 dark:hover:text-indigo-100"
+                className="heading-text inline-flex items-center gap-2 text-base md:text-lg font-semibold text-indigo-600 dark:text-indigo-300 underline underline-offset-4 hover:text-indigo-800 dark:hover:text-indigo-100"
               >
                 How are my odds calculated?
               </button>
@@ -515,7 +515,7 @@ function RaffleForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
+                className="heading-text w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Entering...' : 'Enter Raffle'}
               </button>

@@ -125,8 +125,7 @@ export default function TwitchLogin() {
         Sign in with Twitch (Required)
       </h3>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-        You must sign in with Twitch and follow the channel to enter the raffle.
-        Your subscriptions, bits, and donations will automatically increase your chances of winning!
+        Your subscriber status, bits, and gifted subs will automatically increase your chances of winning.
       </p>
       <button
         onClick={handleSignIn}

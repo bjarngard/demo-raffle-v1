@@ -36,7 +36,7 @@ export default function TopList({ entries, loading, maxHeightClass }: TopListPro
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white">Leaderboard</h3>
+        <h3 className="heading-text text-xl font-bold text-gray-900 dark:text-white">Leaderboard</h3>
         {isRefreshing && (
           <span className="text-xs text-gray-500 dark:text-gray-400">Refreshing…</span>
         )}

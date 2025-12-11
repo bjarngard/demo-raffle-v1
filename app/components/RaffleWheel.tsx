@@ -157,7 +157,7 @@ export default function RaffleWheel({
         <button
           onClick={handleDraw}
           disabled={isDrawing}
-          className="bg-indigo-600 text-white py-4 px-8 rounded-lg font-bold text-xl hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
+          className="heading-text bg-indigo-600 text-white py-4 px-8 rounded-lg font-bold text-xl hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
         >
           {isDrawing ? 'Drawing...' : '🎲 DRAW WINNER'}
         </button>
