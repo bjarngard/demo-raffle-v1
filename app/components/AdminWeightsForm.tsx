@@ -81,7 +81,7 @@ export default function AdminWeightsForm({
       )}
 
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Base Weight
@@ -113,9 +113,6 @@ export default function AdminWeightsForm({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Sub Months Cap
@@ -125,39 +122,6 @@ export default function AdminWeightsForm({
               value={settings.subMonthsCap}
               onChange={(e) =>
                 setSettings({ ...settings, subMonthsCap: parseInt(e.target.value) || 0 })
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Resub Multiplier
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={settings.resubMultiplier}
-              onChange={(e) =>
-                setSettings({
-                  ...settings,
-                  resubMultiplier: parseFloat(e.target.value) || 0,
-                })
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Resub Cap
-            </label>
-            <input
-              type="number"
-              value={settings.resubCap}
-              onChange={(e) =>
-                setSettings({ ...settings, resubCap: parseInt(e.target.value) || 0 })
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
@@ -176,23 +140,6 @@ export default function AdminWeightsForm({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Donations Cap
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              value={settings.donationsCap}
-              onChange={(e) =>
-                setSettings({ ...settings, donationsCap: parseFloat(e.target.value) || 0 })
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-            />
-          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Gifted Subs Cap
@@ -207,9 +154,6 @@ export default function AdminWeightsForm({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Carry-Over Multiplier
@@ -241,9 +185,6 @@ export default function AdminWeightsForm({
               Caps the accumulated carry-over bonus across sessions.
             </p>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Loyalty Max Bonus
@@ -258,7 +199,7 @@ export default function AdminWeightsForm({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Overall cap for sub tenure and resub loyalty contributions.
+              Overall cap for subscriber-tenure loyalty contributions.
             </p>
           </div>
           <div>
@@ -275,7 +216,7 @@ export default function AdminWeightsForm({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Caps the combined bits, donations, and gifted subs bonus.
+              Caps the combined cheer bits and gifted subs bonus.
             </p>
           </div>
         </div>

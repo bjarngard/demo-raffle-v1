@@ -6,7 +6,7 @@
 
 ## 1. Overview & Purpose
 
-`demo-raffle-v1` is a Twitch-authenticated demo raffle. Viewers sign in with Twitch, sync their engagement data, and submit exactly one demo per active raffle session. Entries are weighted using Twitch subscription stats, cheering, donations, gifted subs, and carry-over weight. The broadcaster-controlled admin dashboard manages raffle sessions, toggles submissions, applies carry-over, and deterministically picks winners without affecting the submissions toggle.
+`demo-raffle-v1` is a Twitch-authenticated demo raffle. Viewers sign in with Twitch, sync their engagement data, and submit exactly one demo per active raffle session. Entries are weighted using Twitch subscription stats, cheering, gifted subs, and carry-over weight (direct donations are tracked for future use but currently provide no bonus). The broadcaster-controlled admin dashboard manages raffle sessions, toggles submissions, applies carry-over, and deterministically picks winners without affecting the submissions toggle.
 
 ---
 
@@ -187,7 +187,7 @@ All models live in `prisma/schema.prisma`. Key tables:
 - `calculateUserWeight(user, weightSettings)` applies:
   - Base weight (always ≥ 1) with caps from settings.
   - Subscriber loyalty bonus using effective months and tier multipliers.
-  - Support boosts for cheer bits, gifted subs, and direct donations using per-session divisors/multipliers from `WeightSettings`.
+- Support boosts for cheer bits and gifted subs using per-session divisors/multipliers from `WeightSettings` (direct donation knobs remain in the schema but are currently inactive in the UI and math).
   - Carry-over bonus, respecting `maxCarryOverWeight`.
   - Final `totalWeight` persisted on the `User` record for quick leaderboard queries.
 - `describeWeightBreakdown(user, weightSettings)` returns a structured object consumed by `AdminUserTable`, `MyStatusCard`, `WeightInfoModal`, and `lib/leaderboard-data.ts`. Fields include `isFollower`, `isSubscriber`, loyalty/support subtotals, carry-over, and final weight.
