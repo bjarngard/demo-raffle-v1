@@ -257,8 +257,8 @@ function RaffleForm() {
             </p>
             <TwitchLogin />
 
-            <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-4 mt-6 shadow-md shadow-black/20">
-              <p className="text-sm text-gray-900 text-center">
+            <div className="rounded-lg border border-[var(--bf-lime)] bg-[#0f1d28] text-gray-100 p-4 mt-6 shadow-md shadow-black/20">
+              <p className="text-sm text-center">
                 Log in with Twitch and follow the channel to take part in the raffle.
               </p>
             </div>
@@ -283,11 +283,11 @@ function RaffleForm() {
 
             <TwitchLogin />
 
-            <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-6 mt-6 text-center shadow-md shadow-black/20">
-              <p className="text-gray-900 font-semibold mb-2">
+            <div className="rounded-lg border border-[var(--bf-lime)] bg-[#0f1d28] text-gray-100 p-6 mt-6 text-center shadow-md shadow-black/20">
+              <p className="font-semibold mb-2">
                 You are not following this channel
               </p>
-              <p className="text-sm text-gray-900">
+              <p className="text-sm">
                 Please follow the channel on Twitch and refresh this page to enter the raffle.
               </p>
             </div>
