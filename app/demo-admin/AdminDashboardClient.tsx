@@ -225,127 +225,133 @@ export default function AdminDashboardClient({
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-6 px-4">
       <main className="max-w-7xl mx-auto">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-5 mb-5">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Admin Panel
-            </h1>
+        <div className="lg:flex lg:items-start lg:gap-4">
+          <section className="flex-1">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-5 mb-5">
+              <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
+                {(['users', 'weights', 'raffle'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      activeTab === tab
+                        ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    }`}
+                  >
+                    {tab === 'users' ? 'Users' : tab === 'weights' ? 'Weights' : 'Raffle'}
+                  </button>
+                ))}
+              </div>
+
+              {activeTab === 'users' && (
+                <AdminUserTable
+                  entries={entries}
+                  onRefresh={fetchAdminData}
+                />
+              )}
+
+              {activeTab === 'weights' && (
+                <AdminWeightsForm
+                  settings={weightSettings}
+                  onSettingsChange={setWeightSettings}
+                />
+              )}
+
+              {activeTab === 'raffle' && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={fetchLeaderboard}
+                      disabled={leaderboardLoading}
+                      className={`inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium transition ${
+                        leaderboardLoading
+                          ? 'border-gray-300 text-gray-400 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      {leaderboardLoading ? 'Refreshing…' : 'Refresh'}
+                    </button>
+                  </div>
+                  <RaffleWheel entries={raffleEntries} onWinnerPicked={handleWinnerPicked} />
+                  <TopList
+                    entries={leaderboard}
+                    loading={leaderboardLoading}
+                    maxHeightClass="max-h-[800px]"
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="mt-4 lg:mt-0 lg:w-80 flex-shrink-0 space-y-3">
             {loading && (
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Refreshing...
-              </span>
+              <div className="flex justify-end">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Refreshing...
+                </span>
+              </div>
             )}
-          </div>
 
-          <div className="flex flex-col gap-3 mb-5">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Session Status</p>
-                <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {sessionInfo ? 'Active session' : 'No active session'}
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Session Status</p>
+                  <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                    {sessionInfo ? 'Active session' : 'No active session'}
+                  </p>
+                  {sessionInfo ? (
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                      Started {new Date(sessionInfo.createdAt).toLocaleString()}
+                      {sessionInfo.name ? ` • ${sessionInfo.name}` : ''}
+                    </p>
+                  ) : previousSession ? (
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                      Last session ended {new Date(previousSession.endedAt ?? previousSession.createdAt).toLocaleString()}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                      Start a session to begin accepting entries.
+                    </p>
+                  )}
+                </div>
+                <AdminToggle
+                  label="Session"
+                  leftLabel="Active"
+                  rightLabel="Closed"
+                  on={Boolean(sessionInfo)}
+                  disabled={sessionActionLoading}
+                  onToggle={() => (sessionInfo ? handleEndSession() : handleStartSession())}
+                />
+              </div>
+              {sessionActionMessage && (
+                <p className="mt-2 text-xs text-gray-600 dark:text-gray-300">
+                  {sessionActionMessage}
                 </p>
-                {sessionInfo ? (
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                    Started {new Date(sessionInfo.createdAt).toLocaleString()}
-                    {sessionInfo.name ? ` • ${sessionInfo.name}` : ''}
+              )}
+            </div>
+
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Submissions Status</p>
+                  <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                    {sessionInfo ? (submissionsOpen ? 'Open' : 'Paused') : 'No active session'}
                   </p>
-                ) : previousSession ? (
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                    Last session ended {new Date(previousSession.endedAt ?? previousSession.createdAt).toLocaleString()}
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                    Start a session to begin accepting entries.
-                  </p>
-                )}
+                </div>
+                <AdminToggle
+                  label="Submissions"
+                  leftLabel="Open"
+                  rightLabel="Paused"
+                  on={Boolean(sessionInfo) && submissionsOpen}
+                  disabled={!sessionInfo || isTogglingSubmissions}
+                  neutral={!sessionInfo}
+                  onToggle={() => toggleSubmissions(!submissionsOpen)}
+                />
               </div>
-              <AdminToggle
-                label="Session"
-                leftLabel="Active"
-                rightLabel="Closed"
-                on={Boolean(sessionInfo)}
-                disabled={sessionActionLoading}
-                onToggle={() => (sessionInfo ? handleEndSession() : handleStartSession())}
-              />
             </div>
-
-            {sessionActionMessage && (
-              <p className="text-sm text-gray-600 dark:text-gray-300">{sessionActionMessage}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Submissions Status</p>
-              <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                {sessionInfo ? (submissionsOpen ? 'Open' : 'Paused') : 'No active session'}
-              </p>
-            </div>
-            <AdminToggle
-              label="Submissions"
-              leftLabel="Open"
-              rightLabel="Paused"
-              on={Boolean(sessionInfo) && submissionsOpen}
-              disabled={!sessionInfo || isTogglingSubmissions}
-              neutral={!sessionInfo}
-              onToggle={() => toggleSubmissions(!submissionsOpen)}
-            />
-          </div>
-
-          <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
-            {(['users', 'weights', 'raffle'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 font-medium transition-colors ${
-                  activeTab === tab
-                    ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}
-              >
-                {tab === 'users' ? 'Users' : tab === 'weights' ? 'Weights' : 'Raffle'}
-              </button>
-            ))}
-          </div>
-
-          {activeTab === 'users' && (
-            <AdminUserTable
-              entries={entries}
-              onRefresh={fetchAdminData}
-            />
-          )}
-
-          {activeTab === 'weights' && (
-            <AdminWeightsForm
-              settings={weightSettings}
-              onSettingsChange={setWeightSettings}
-            />
-          )}
-
-          {activeTab === 'raffle' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={fetchLeaderboard}
-                  disabled={leaderboardLoading}
-                  className={`inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium transition ${
-                    leaderboardLoading
-                      ? 'border-gray-300 text-gray-400 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  {leaderboardLoading ? 'Refreshing…' : 'Refresh'}
-                </button>
-              </div>
-              <RaffleWheel entries={raffleEntries} onWinnerPicked={handleWinnerPicked} />
-              <TopList
-                entries={leaderboard}
-                loading={leaderboardLoading}
-                maxHeightClass="max-h-[800px]"
-              />
-            </div>
-          )}
+          </aside>
         </div>
       </main>
       {winnerModalEntry && (
@@ -386,8 +392,6 @@ function AdminWinnerModal({
           ✕
         </button>
         <div className="text-center space-y-4">
-          <div className="text-5xl">🎉</div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Winner drawn</h2>
           <p className="text-xl font-semibold text-gray-800 dark:text-gray-100">{displayName}</p>
           {demoLink ? (
             <a

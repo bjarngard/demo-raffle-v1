@@ -354,12 +354,6 @@ function RaffleForm() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column: Entry Form */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 md:p-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
-              Welcome to the raffle! 🎲
-            </h1>
-            <p className="text-center text-gray-600 dark:text-gray-400 mb-8">
-              Enter below to participate
-            </p>
             <div className="flex justify-center mb-4">
               <button
                 type="button"
@@ -533,16 +527,13 @@ function RaffleForm() {
           {/* Right Column: Top 20 Leaderboard */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 md:p-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 text-center">
-              {sessionActive ? '📊 Top 20 Leaderboard' : '📊 Last session results'}
+              {sessionActive ? 'Leaderboard' : 'Last session results'}
             </h2>
             {!sessionActive && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 text-center">
                 Showing the most recent completed session
               </p>
             )}
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
-              Win probability based on weights
-            </p>
 
             {loadingLeaderboard ? (
               <div className="text-center py-8">
