@@ -10,9 +10,10 @@ interface LeaderboardEntry {
 interface TopListProps {
   entries: LeaderboardEntry[]
   loading?: boolean
+  maxHeightClass?: string
 }
 
-export default function TopList({ entries, loading }: TopListProps) {
+export default function TopList({ entries, loading, maxHeightClass }: TopListProps) {
   const isInitialLoading = !!loading && entries.length === 0
   const isRefreshing = !!loading && entries.length > 0
 
@@ -40,7 +41,7 @@ export default function TopList({ entries, loading }: TopListProps) {
           <span className="text-xs text-gray-500 dark:text-gray-400">Refreshing…</span>
         )}
       </div>
-      <div className="max-h-[600px] overflow-y-auto">
+      <div className={`${maxHeightClass ?? 'max-h-[600px]'} overflow-y-auto`}>
         <div className="grid grid-cols-2 gap-2">
           {entries.map((entry, index) => (
             <div

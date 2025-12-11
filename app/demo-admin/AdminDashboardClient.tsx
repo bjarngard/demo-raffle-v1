@@ -225,7 +225,7 @@ export default function AdminDashboardClient({
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-6 px-4">
       <main className="max-w-7xl mx-auto">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-5 mb-5">
           <div className="flex items-center justify-between gap-4 mb-4">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               Admin Panel
@@ -237,8 +237,8 @@ export default function AdminDashboardClient({
             )}
           </div>
 
-          <div className="flex flex-col gap-4 mb-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+          <div className="flex flex-col gap-3 mb-5">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Session Status</p>
                 <p className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -259,24 +259,14 @@ export default function AdminDashboardClient({
                   </p>
                 )}
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleStartSession}
-                  disabled={sessionInfo !== null || sessionActionLoading}
-                  className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white disabled:bg-blue-300 disabled:cursor-not-allowed transition"
-                >
-                  Start new session
-                </button>
-                <button
-                  type="button"
-                  onClick={handleEndSession}
-                  disabled={!sessionInfo || sessionActionLoading}
-                  className="px-4 py-2 rounded-lg font-medium bg-amber-600 text-white disabled:bg-amber-300 disabled:cursor-not-allowed transition"
-                >
-                  End session
-                </button>
-              </div>
+              <AdminToggle
+                label="Session"
+                leftLabel="Active"
+                rightLabel="Closed"
+                on={Boolean(sessionInfo)}
+                disabled={sessionActionLoading}
+                onToggle={() => (sessionInfo ? handleEndSession() : handleStartSession())}
+              />
             </div>
 
             {sessionActionMessage && (
@@ -284,31 +274,22 @@ export default function AdminDashboardClient({
             )}
           </div>
 
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Submissions Status</p>
               <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {sessionInfo ? (submissionsOpen ? 'Open' : 'Paused') : 'No active session'}
+                {sessionInfo ? (submissionsOpen ? 'Open' : 'Paused') : 'No active session'}
               </p>
             </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => toggleSubmissions(true)}
-                  disabled={!sessionInfo || submissionsOpen || isTogglingSubmissions}
-                className="px-4 py-2 rounded-lg font-medium bg-green-600 text-white disabled:bg-green-300 disabled:cursor-not-allowed transition"
-              >
-                Open submissions
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleSubmissions(false)}
-                  disabled={!sessionInfo || !submissionsOpen || isTogglingSubmissions}
-                className="px-4 py-2 rounded-lg font-medium bg-orange-500 text-white disabled:bg-orange-300 disabled:cursor-not-allowed transition"
-              >
-                Pause submissions
-              </button>
-            </div>
+            <AdminToggle
+              label="Submissions"
+              leftLabel="Open"
+              rightLabel="Paused"
+              on={Boolean(sessionInfo) && submissionsOpen}
+              disabled={!sessionInfo || isTogglingSubmissions}
+              neutral={!sessionInfo}
+              onToggle={() => toggleSubmissions(!submissionsOpen)}
+            />
           </div>
 
           <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
@@ -358,7 +339,11 @@ export default function AdminDashboardClient({
                 </button>
               </div>
               <RaffleWheel entries={raffleEntries} onWinnerPicked={handleWinnerPicked} />
-              <TopList entries={leaderboard} loading={leaderboardLoading} />
+              <TopList
+                entries={leaderboard}
+                loading={leaderboardLoading}
+                maxHeightClass="max-h-[800px]"
+              />
             </div>
           )}
         </div>
@@ -443,5 +428,65 @@ function formatDemoLinkLabel(raw: string): string {
   const trimmed = raw.trim()
   if (trimmed.length <= 80) return trimmed
   return `${trimmed.slice(0, 77)}…`
+}
+
+type AdminToggleProps = {
+  label: string
+  leftLabel: string
+  rightLabel: string
+  on: boolean
+  disabled?: boolean
+  neutral?: boolean
+  onToggle: () => void
+}
+
+function AdminToggle({ label, leftLabel, rightLabel, on, disabled, neutral, onToggle }: AdminToggleProps) {
+  const toggleClasses = [
+    'relative inline-flex h-6 w-11 items-center rounded-full border transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500',
+    on ? 'bg-green-500 border-green-500' : 'bg-gray-500 border-gray-500',
+    disabled ? 'opacity-60 cursor-not-allowed' : '',
+  ]
+
+  const handleClasses = [
+    'inline-block h-5 w-5 transform rounded-full bg-white shadow transition',
+    on ? 'translate-x-5' : 'translate-x-1',
+  ]
+
+  const isNeutral = neutral && disabled
+
+  const leftLabelClasses = [
+    isNeutral ? 'text-gray-500 dark:text-gray-400' : on ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400',
+    'font-semibold',
+  ]
+
+  const rightLabelClasses = [
+    isNeutral ? 'text-gray-500 dark:text-gray-400' : on ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white',
+    'font-semibold',
+  ]
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex flex-col">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+          {label}
+        </span>
+        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 mt-1">
+          <span className={leftLabelClasses.join(' ')}>{leftLabel}</span>
+          <button
+            type="button"
+            onClick={disabled ? undefined : onToggle}
+            className={toggleClasses.join(' ')}
+            aria-pressed={on}
+            disabled={disabled}
+          >
+            <span
+              className={handleClasses.join(' ')}
+            />
+          </button>
+          <span className={rightLabelClasses.join(' ')}>{rightLabel}</span>
+        </div>
+      </div>
+    </div>
+  )
 }
 
