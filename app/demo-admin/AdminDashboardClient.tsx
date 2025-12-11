@@ -224,7 +224,7 @@ export default function AdminDashboardClient({
       <main className="max-w-7xl mx-auto">
         <div className="lg:flex lg:items-start lg:gap-4">
           <section className="flex-1">
-            <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-5 mb-5">
+            <div className="bf-glass-card rounded-lg p-5 mb-5">
               <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
                 {(['users', 'weights', 'raffle'] as const).map((tab) => (
                   <button
@@ -284,7 +284,7 @@ export default function AdminDashboardClient({
           </section>
 
           <aside className="mt-4 lg:mt-0 lg:w-80 flex-shrink-0 space-y-3">
-            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0f1d28]">
+            <div className="bf-glass-card p-5 rounded-lg">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Session Status</p>
@@ -322,7 +322,7 @@ export default function AdminDashboardClient({
               )}
             </div>
 
-            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0f1d28]">
+            <div className="bf-glass-card p-5 rounded-lg">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Submissions Status</p>

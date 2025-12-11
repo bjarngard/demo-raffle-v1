@@ -212,6 +212,27 @@ h6,
   }
 }
 
+.bf-glass-card {
+  position: relative;
+  background: rgba(0, 10, 20, 0.82);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+}
+
+:root:not(.dark) .bf-glass-card {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(4, 43, 50, 0.12);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .bf-glass-card {
+    background: #041018;
+  }
+}
+
 @layer utilities {
   .bg-bf-primary { background-color: var(--bf-primary); }
   .bg-bf-primary-dark { background-color: var(--bf-primary-dark); }

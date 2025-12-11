@@ -138,14 +138,14 @@ export default function RaffleWheel({
 
   if (entries.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-center">
+      <div className="bf-glass-card rounded-lg p-6 text-center">
         <p className="text-gray-500">No entries to draw from</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-5">
+    <div className="bf-glass-card rounded-lg p-5">
 
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-4">

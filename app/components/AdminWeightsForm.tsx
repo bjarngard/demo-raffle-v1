@@ -64,7 +64,7 @@ export default function AdminWeightsForm({
   }
 
   return (
-    <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-lg p-6">
+    <div className="bf-glass-card rounded-lg p-6">
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
         Weight Settings
       </h3>

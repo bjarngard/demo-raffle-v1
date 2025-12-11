@@ -235,7 +235,7 @@ function RaffleForm() {
     return (
       <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
         <main className="w-full max-w-2xl px-6 py-12">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12 text-center">
+          <div className="bf-glass-card rounded-lg p-8 md:p-12 text-center">
             <p className="text-gray-600 dark:text-gray-400">Loading...</p>
           </div>
         </main>
@@ -248,7 +248,7 @@ function RaffleForm() {
     return (
       <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
         <main className="w-full max-w-2xl px-6 py-12">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12 space-y-6">
+          <div className="bf-glass-card rounded-lg p-8 md:p-12 space-y-6">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white text-center">
               Sign in to enter the demo raffle!
             </h1>
@@ -273,7 +273,7 @@ function RaffleForm() {
     return (
       <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
         <main className="w-full max-w-2xl px-6 py-12">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12">
+          <div className="bf-glass-card rounded-lg p-8 md:p-12">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 text-center">
               Follow Required ❤️
             </h1>
@@ -353,7 +353,7 @@ function RaffleForm() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column: Entry Form */}
-          <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-xl p-6 md:p-8">
+          <div className="bf-glass-card rounded-lg p-6 md:p-8">
             <div className="flex justify-center mb-4">
               <button
                 type="button"
@@ -525,7 +525,7 @@ function RaffleForm() {
           </div>
 
           {/* Right Column: Top 20 Leaderboard */}
-          <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-xl p-6 md:p-8">
+          <div className="bf-glass-card rounded-lg p-6 md:p-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 text-center">
               {sessionActive ? 'Leaderboard' : 'Last session results'}
             </h2>
