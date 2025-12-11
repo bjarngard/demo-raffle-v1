@@ -98,7 +98,7 @@ export default function AdminWeightsForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Sub Months Multiplier
+              Subscriber Bonus Multiplier
             </label>
             <input
               type="number"
@@ -115,7 +115,7 @@ export default function AdminWeightsForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Sub Months Cap
+              Subscriber Bonus Cap (months)
             </label>
             <input
               type="number"

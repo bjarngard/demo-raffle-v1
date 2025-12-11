@@ -24,8 +24,8 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
           children: 'Everyone starts with the same base weight each session.',
         },
         {
-          title: 'Subscriber loyalty',
-          children: 'Active subscribers receive a static loyalty bonus on top of the base weight.',
+          title: 'Subscriber status',
+          children: 'Active subscribers receive a static bonus on top of the base weight.',
         },
         {
           title: 'Bits (cheers)',
@@ -45,8 +45,6 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
 
     const format = (value: number) => value.toFixed(2)
     const loyaltyPerMonth = settings.subMonthsMultiplier
-    const loyaltyMonthsCap = settings.subMonthsCap
-    const loyaltyCap = settings.loyaltyMaxBonus
     const bitsDivisor = settings.cheerBitsDivisor
     const bitsCap = settings.cheerBitsCap
     const supportCap = settings.supportMaxBonus
@@ -61,10 +59,8 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
         children: `Everyone starts at ${format(settings.baseWeight)}× each session.`,
       },
       {
-        title: 'Subscriber loyalty',
-        children: `Active subscribers gain +${format(loyaltyPerMonth)}× per sub month (up to ${loyaltyMonthsCap} months) with a maximum loyalty bonus of +${format(
-          loyaltyCap
-        )}×.`,
+        title: 'Subscriber status',
+        children: `Active subscribers get a static bonus: +${format(loyaltyPerMonth)}× applied once (we treat all subs as having at least 1 month).`,
       },
       {
         title: 'Bits (cheers)',

@@ -52,9 +52,9 @@ export default function WeightTable({ settings }: WeightTableProps) {
               </td>
             </tr>
             <tr className="border-b border-gray-100 dark:border-gray-800">
-              <td className="py-3 text-gray-900 dark:text-white">Sub Months</td>
+              <td className="py-3 text-gray-900 dark:text-white">Subscriber Bonus</td>
               <td className="py-3 text-gray-600 dark:text-gray-400">
-                min(months, {settings.subMonthsCap}) × {settings.subMonthsMultiplier}
+                min(effective months, {settings.subMonthsCap}) × {settings.subMonthsMultiplier} (effective months is at least 1 if subscribed)
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
                 {(settings.subMonthsCap * settings.subMonthsMultiplier).toFixed(1)}x
