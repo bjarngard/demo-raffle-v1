@@ -257,7 +257,7 @@ function RaffleForm() {
             </p>
             <TwitchLogin />
 
-            <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-4 mt-6">
+            <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-4 mt-6 shadow-md shadow-black/20">
               <p className="text-sm text-gray-900 text-center">
                 Log in with Twitch and follow the channel to take part in the raffle.
               </p>
@@ -283,7 +283,7 @@ function RaffleForm() {
 
             <TwitchLogin />
 
-            <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-6 mt-6 text-center">
+            <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-6 mt-6 text-center shadow-md shadow-black/20">
               <p className="text-gray-900 font-semibold mb-2">
                 You are not following this channel
               </p>
@@ -368,7 +368,7 @@ function RaffleForm() {
 
           {/* Warning only (A): uncertain follow state never blocks entry, just informs the user. */}
           {followStatus === 'unknown' && (
-            <div className="mt-4 mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] p-4">
+            <div className="mt-4 mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] p-4 shadow-md shadow-black/20">
               <p className="text-sm text-gray-900">
                 We couldn&apos;t verify your follow status right now
                 {followReason ? ` (${followReason})` : ''}.{' '}
@@ -508,7 +508,7 @@ function RaffleForm() {
               </div>
 
               {error && (
-                <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 px-4 py-3 rounded-lg">
+                <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 px-4 py-3 rounded-lg shadow-md shadow-black/20">
                   {error}
                 </div>
               )}

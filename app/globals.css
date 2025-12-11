@@ -214,23 +214,14 @@ h6,
 
 .bf-glass-card {
   position: relative;
-  background: rgba(4, 17, 23, 0.7);
+  background: rgba(2, 24, 30, 0.72);
   border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(18px) saturate(125%);
-  -webkit-backdrop-filter: blur(18px) saturate(125%);
-}
-
-:root:not(.dark) .bf-glass-card {
-  background: rgba(255, 255, 255, 0.68);
-  border-color: rgba(4, 43, 50, 0.14);
-}
-
-@supports not (backdrop-filter: blur(1px)) {
-  .bf-glass-card {
-    background: #041018;
-  }
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
 @layer utilities {
