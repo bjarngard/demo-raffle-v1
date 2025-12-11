@@ -353,7 +353,7 @@ function RaffleForm() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left Column: Entry Form */}
-          <div className="bf-glass-card rounded-lg p-[clamp(16px,2vw,24px)] max-h-[calc(100vh-240px)] overflow-y-auto space-y-6">
+          <div className="bf-glass-card rounded-lg p-[clamp(16px,2vw,24px)] space-y-6">
             <div className="flex justify-center mb-4">
               <button
                 type="button"
@@ -525,7 +525,7 @@ function RaffleForm() {
           </div>
 
           {/* Right Column: Top 20 Leaderboard */}
-          <div className="bf-glass-card rounded-lg p-[clamp(16px,2vw,24px)] max-h-[calc(100vh-240px)] overflow-y-auto">
+          <div className="bf-glass-card rounded-lg p-[clamp(16px,2vw,24px)]">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 text-center">
               {sessionActive ? 'Leaderboard' : 'Last session results'}
             </h2>
