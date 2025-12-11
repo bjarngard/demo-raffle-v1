@@ -219,6 +219,13 @@ export default function AdminDashboardClient({
     }
   }, [fetchAdminData, fetchLeaderboard, previousSession])
 
+  const formatBonus = (value: number | null | undefined, decimals = 2) =>
+    value === null || value === undefined ? '—' : `+${value.toFixed(decimals)}×`
+
+  const subscriberBonus = weightSettings?.subMonthsMultiplier ?? null
+  const bitsPer500 = weightSettings ? 500 / (weightSettings.cheerBitsDivisor || 1) : null
+  const giftBonus = weightSettings?.giftedSubsMultiplier ?? null
+
   return (
     <AmbientBackground contentClassName="min-h-screen py-6 px-4">
       <main className="max-w-7xl mx-auto">
@@ -340,6 +347,28 @@ export default function AdminDashboardClient({
                   onToggle={() => toggleSubmissions(!submissionsOpen)}
                 />
               </div>
+            </div>
+
+            <div className="bf-glass-card p-5 rounded-lg">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Current weight values</p>
+              {weightSettings ? (
+                <dl className="space-y-2 text-sm text-gray-900 dark:text-gray-100">
+                  <div className="flex items-center justify-between">
+                    <dt className="text-gray-600 dark:text-gray-400">Subscriber bonus</dt>
+                    <dd className="font-semibold">{formatBonus(subscriberBonus)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-gray-600 dark:text-gray-400">500 bits</dt>
+                    <dd className="font-semibold">{formatBonus(bitsPer500, 3)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-gray-600 dark:text-gray-400">1 gifted sub</dt>
+                    <dd className="font-semibold">{formatBonus(giftBonus, 3)}</dd>
+                  </div>
+                </dl>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">Loading settings…</p>
+              )}
             </div>
           </aside>
         </div>
