@@ -95,6 +95,9 @@ export default function AdminWeightsForm({
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Everyone starts at this weight each session.
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -112,6 +115,9 @@ export default function AdminWeightsForm({
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Static bonus added once for active subscribers.
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -125,6 +131,26 @@ export default function AdminWeightsForm({
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Treated as “effective months” cap for the static sub bonus.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Cheer Bits Divisor
+            </label>
+            <input
+              type="number"
+              step="1"
+              value={settings.cheerBitsDivisor}
+              onChange={(e) =>
+                setSettings({ ...settings, cheerBitsDivisor: parseFloat(e.target.value) || 1 })
+              }
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Every this many bits adds +1.0× before caps.
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -139,6 +165,9 @@ export default function AdminWeightsForm({
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Maximum bonus from bits alone (before combined support cap).
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -153,6 +182,9 @@ export default function AdminWeightsForm({
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Maximum bonus from gifted subs alone (before combined support cap).
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -167,6 +199,9 @@ export default function AdminWeightsForm({
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Portion of session weight that converts to carry-over if you don&apos;t win.
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
