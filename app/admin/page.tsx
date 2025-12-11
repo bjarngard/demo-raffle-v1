@@ -69,7 +69,7 @@ export default function AdminPage() {
 
   if (!authenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="bf-ambient-bg flex min-h-screen items-center justify-center">
         <main className="w-full max-w-md px-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">
@@ -114,7 +114,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32] py-12">
+    <div className="bf-ambient-bg flex min-h-screen items-center justify-center py-12">
       <main className="w-full max-w-2xl px-6">
         <div className="bg-white dark:bg-[#0b1722] rounded-lg shadow-xl p-8 md:p-12">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">

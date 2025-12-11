@@ -232,7 +232,7 @@ function RaffleForm() {
   // Loading state
   if (loadingWinner || status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32]">
+      <div className="bf-ambient-bg flex min-h-screen items-center justify-center">
         <main className="w-full max-w-2xl px-6 py-12">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12 text-center">
             <p className="text-gray-600 dark:text-gray-400">Loading...</p>
@@ -245,7 +245,7 @@ function RaffleForm() {
   // REQUIRE login - show login prompt if not logged in
   if (!session?.user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32]">
+      <div className="bf-ambient-bg flex min-h-screen items-center justify-center">
         <main className="w-full max-w-2xl px-6 py-12">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12 space-y-6">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white text-center">
@@ -270,7 +270,7 @@ function RaffleForm() {
   // Gatekeeping (A): only block when Twitch explicitly reports not_following; unknown just warns.
   if (followStatus === 'not_following') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32]">
+      <div className="bf-ambient-bg flex min-h-screen items-center justify-center">
         <main className="w-full max-w-2xl px-6 py-12">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 md:p-12">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 text-center">
@@ -298,7 +298,7 @@ function RaffleForm() {
 
   // User is logged in and follows - show entry form
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32] py-6 px-4">
+    <div className="bf-ambient-bg min-h-screen py-6 px-4">
       <main className="max-w-7xl mx-auto">
         {/* Status Banner */}
         {leaderboard && sessionActive && (
@@ -357,7 +357,7 @@ function RaffleForm() {
               <button
                 type="button"
                 onClick={() => setWeightInfoOpen(true)}
-                className="heading-text inline-flex items-center gap-2 text-base md:text-lg font-semibold text-bf-primary dark:text-bf-primary underline underline-offset-4 hover:text-bf-primary-dark dark:hover:text-bf-primary-dark"
+                className="heading-text inline-flex items-center gap-2 text-base md:text-lg font-semibold text-[var(--bf-primary)]/90 hover:text-bf-primary-dark hover:underline hover:underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bf-lime)] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0b1722] transition"
               >
                 How are my odds calculated?
               </button>

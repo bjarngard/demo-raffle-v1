@@ -116,7 +116,7 @@ function DemoPortalContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF3EE] to-[#FCE5F1] dark:from-[#020b12] dark:to-[#042B32] py-6 px-4">
+    <div className="bf-ambient-bg min-h-screen py-6 px-4">
       <main className="max-w-7xl mx-auto">
         {/* Status Banner */}
         {leaderboard && Boolean(leaderboard.sessionId) && (
