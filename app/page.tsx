@@ -304,13 +304,13 @@ function RaffleForm() {
         {leaderboard && sessionActive && (
           <div
             className={`mb-6 rounded-lg shadow-lg p-4 ${
-              leaderboard.submissionsOpen ? 'bg-bf-lime-soft text-gray-900 border border-[#c4cf48]' : 'bg-bf-orange-soft text-gray-900 border border-[#f08e4c]'
+              leaderboard.submissionsOpen ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
             }`}
           >
             <div className="flex items-center justify-center gap-3">
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-[#d8e86a]' : 'bg-[#f7b485]'
+                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-orange-300'
                 } animate-pulse`}
               ></div>
               <h2 className="text-3xl font-bold">
@@ -318,7 +318,7 @@ function RaffleForm() {
               </h2>
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-[#d8e86a]' : 'bg-[#f7b485]'
+                  leaderboard.submissionsOpen ? 'bg-green-300' : 'bg-orange-300'
                 } animate-pulse`}
               ></div>
             </div>
@@ -335,11 +335,11 @@ function RaffleForm() {
         )}
 
         {leaderboard && leaderboard.sessionId && !leaderboard.submissionsOpen && (
-          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow p-4 text-gray-900">
+          <div className="mb-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow p-4 text-gray-800 dark:text-gray-100">
             {winner ? (
               <p>
                 Submissions are currently paused. Latest winner:{' '}
-                <span className="font-semibold text-bf-primary">
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
                   {winner.name}
                 </span>
                 .
