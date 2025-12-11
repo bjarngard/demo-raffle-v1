@@ -1,13 +1,6 @@
 import type { Metadata } from "next";
-import { Orbitron, Roboto } from "next/font/google";
+import { Roboto } from "next/font/google";
 import "./globals.css";
-
-const orbitron = Orbitron({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-heading",
-});
 
 const roboto = Roboto({
   weight: ["300", "400"],
@@ -27,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${orbitron.variable} ${roboto.variable}`}>
+    <html lang="en" className={`${roboto.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );
