@@ -304,13 +304,13 @@ function RaffleForm() {
         {leaderboard && sessionActive && (
           <div
             className={`mb-6 rounded-lg shadow-lg p-4 ${
-              leaderboard.submissionsOpen ? 'bg-[var(--bf-lime)] text-gray-900' : 'bg-orange-500 text-white'
+              leaderboard.submissionsOpen ? 'bg-[#00c950] text-white' : 'bg-orange-500 text-white'
             }`}
           >
             <div className="flex items-center justify-center gap-3">
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-[var(--bf-lime)]' : 'bg-orange-300'
+                  leaderboard.submissionsOpen ? 'bg-[#3be178]' : 'bg-orange-300'
                 } animate-pulse`}
               ></div>
               <h2 className="text-3xl font-bold">
@@ -318,7 +318,7 @@ function RaffleForm() {
               </h2>
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-[var(--bf-lime)]' : 'bg-orange-300'
+                  leaderboard.submissionsOpen ? 'bg-[#3be178]' : 'bg-orange-300'
                 } animate-pulse`}
               ></div>
             </div>
@@ -515,7 +515,7 @@ function RaffleForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="heading-text w-full bg-[var(--bf-lime)] text-gray-900 py-3 px-6 rounded-lg font-medium hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                className="heading-text w-full bg-[var(--bf-pink)] text-white py-3 px-6 rounded-lg font-medium hover:bg-bf-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Entering...' : 'Enter Raffle'}
               </button>
