@@ -120,11 +120,9 @@ export default function TwitchLogin() {
   }
 
   return (
-    <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-6 mb-6">
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-        Sign in with Twitch (Required)
-      </h3>
-      <p className="text-sm text-gray-900 mb-4">
+    <div className="rounded-lg border border-[var(--bf-lime)] bg-[#0f1d28] text-gray-100 p-6 mb-6 shadow-md shadow-black/20">
+      <h3 className="font-semibold text-gray-100 mb-2">Sign in with Twitch (Required)</h3>
+      <p className="text-sm text-gray-200 mb-4">
         Your subscriber status, bits, and gifted subs will automatically increase your chances of winning.
       </p>
       <button
