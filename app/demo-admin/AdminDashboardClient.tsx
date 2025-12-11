@@ -44,7 +44,6 @@ export default function AdminDashboardClient({
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [winnerModalEntry, setWinnerModalEntry] = useState<AdminEntry | null>(null)
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
-  const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'users' | 'weights' | 'raffle'>('users')
   const [submissionsOpen, setSubmissionsOpen] = useState(initialSubmissionsOpen)
   const [isTogglingSubmissions, setIsTogglingSubmissions] = useState(false)
@@ -54,7 +53,6 @@ export default function AdminDashboardClient({
   const [sessionActionMessage, setSessionActionMessage] = useState<string | null>(null)
 
   const fetchAdminData = useCallback(async () => {
-    setLoading(true)
     try {
       const response = await fetch('/api/admin/dashboard', {
         cache: 'no-store',
@@ -78,8 +76,6 @@ export default function AdminDashboardClient({
       }
     } catch (error) {
       console.error('Error fetching admin data:', error)
-    } finally {
-      setLoading(false)
     }
   }, [])
 
@@ -260,20 +256,20 @@ export default function AdminDashboardClient({
 
               {activeTab === 'raffle' && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={fetchLeaderboard}
-                      disabled={leaderboardLoading}
-                      className={`inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium transition ${
-                        leaderboardLoading
-                          ? 'border-gray-300 text-gray-400 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
-                          : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
-                      }`}
-                    >
-                      {leaderboardLoading ? 'Refreshing…' : 'Refresh'}
-                    </button>
-                  </div>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={fetchLeaderboard}
+                  disabled={leaderboardLoading}
+                  className={`inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium transition ${
+                    leaderboardLoading
+                      ? 'border-gray-300 text-gray-400 dark:border-gray-700 dark:text-gray-500 cursor-not-allowed opacity-60'
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {leaderboardLoading ? 'Refreshing…' : 'Refresh'}
+                </button>
+              </div>
                   <RaffleWheel entries={raffleEntries} onWinnerPicked={handleWinnerPicked} />
                   <TopList
                     entries={leaderboard}
@@ -342,14 +338,6 @@ export default function AdminDashboardClient({
                   onToggle={() => toggleSubmissions(!submissionsOpen)}
                 />
               </div>
-            </div>
-
-            <div className="flex justify-end min-h-[18px]">
-              {loading && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Refreshing...
-                </span>
-              )}
             </div>
           </aside>
         </div>
