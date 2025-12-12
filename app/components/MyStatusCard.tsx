@@ -52,10 +52,17 @@ export default function MyStatusCard() {
   const giftedSubsCount = user.totalGiftedSubs.toString()
   const loyaltyBonus = breakdown.loyalty.cappedTotal
   const supportBonus = breakdown.support.cappedTotal
+  const sessionName = typeof session?.user?.name === 'string' ? session.user.name : ''
+  const viewerName =
+    user.displayName?.trim() ||
+    user.username?.trim() ||
+    sessionName.trim() ||
+    'Twitch user'
 
   return (
     <div className="bg-gradient-to-br from-[#EB2E70] to-[#A6178E] rounded-lg border border-[var(--bf-lime)] shadow-lg p-6 text-white">
-      <h3 className="text-2xl font-bold mb-4">My Status</h3>
+      <h3 className="text-2xl font-bold mb-1">My Status</h3>
+      <p className="text-sm text-white/80 mb-4">Signed in as {viewerName}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
         <StatusBadge
