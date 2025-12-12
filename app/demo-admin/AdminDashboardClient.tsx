@@ -219,8 +219,11 @@ export default function AdminDashboardClient({
     }
   }, [fetchAdminData, fetchLeaderboard, previousSession])
 
-  const formatBonus = (value: number | null | undefined, decimals = 2) =>
-    value === null || value === undefined ? '—' : `+${value.toFixed(decimals)}×`
+  const formatBonus = (value: number | null | undefined, decimals = 2) => {
+    if (value === null || value === undefined) return '—'
+    const formatted = value.toFixed(decimals).replace(/\.?0+$/, '')
+    return `+${formatted}×`
+  }
 
   const subscriberBonus = weightSettings?.subMonthsMultiplier ?? null
   const bitsPer500 = weightSettings ? 500 / (weightSettings.cheerBitsDivisor || 1) : null
@@ -359,11 +362,11 @@ export default function AdminDashboardClient({
                   </div>
                   <div className="flex items-center justify-between">
                     <dt className="text-gray-600 dark:text-gray-400">500 bits</dt>
-                    <dd className="font-semibold">{formatBonus(bitsPer500, 3)}</dd>
+                    <dd className="font-semibold">{formatBonus(bitsPer500, 2)}</dd>
                   </div>
                   <div className="flex items-center justify-between">
                     <dt className="text-gray-600 dark:text-gray-400">1 gifted sub</dt>
-                    <dd className="font-semibold">{formatBonus(giftBonus, 3)}</dd>
+                    <dd className="font-semibold">{formatBonus(giftBonus, 2)}</dd>
                   </div>
                 </dl>
               ) : (

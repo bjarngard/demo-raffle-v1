@@ -43,7 +43,7 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
       ]
     }
 
-    const format = (value: number) => value.toFixed(2)
+    const format = (value: number, decimals = 2) => value.toFixed(decimals).replace(/\.?0+$/, '')
     const loyaltyPerMonth = settings.subMonthsMultiplier
     const bitsDivisor = settings.cheerBitsDivisor
     const bitsCap = settings.cheerBitsCap
@@ -64,13 +64,29 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
       },
       {
         title: 'Bits (cheers)',
-        children: `Every ${bitsDivisor.toLocaleString()} bits adds +1.00× (capped at +${format(
-          bitsCap
-        )}× from bits and +${format(supportCap)}× from all support this session).`,
+        children: (
+          <>
+            <span className="block">
+              Every {format(bitsDivisor, 0)} bits adds +{format(1)}×, up to +{format(bitsCap)}× from bits.
+            </span>
+            <span className="block text-gray-600 dark:text-gray-400">
+              (This counts toward a shared +{format(supportCap)}× cap from all support each session.)
+            </span>
+          </>
+        ),
       },
       {
         title: 'Gifted subs',
-        children: `Each gifted sub adds +${format(giftMultiplier)}×, capped at +${format(giftCap)}× per session.`,
+        children: (
+          <>
+            <span className="block">
+              Each gifted sub adds +{format(giftMultiplier)}×, up to +{format(giftCap)}× from gifted subs.
+            </span>
+            <span className="block text-gray-600 dark:text-gray-400">
+              (This also counts toward the same +{format(supportCap)}× support cap.)
+            </span>
+          </>
+        ),
       },
       {
         title: 'Carry-over',

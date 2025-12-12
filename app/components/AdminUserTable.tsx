@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import type { AdminEntry } from '@/types/admin'
 
+const formatNumber = (value: number, decimals = 2) =>
+  value.toFixed(decimals).replace(/\.?0+$/, '')
+
 interface AdminUserTableProps {
   entries: AdminEntry[]
   onRefresh: () => void
@@ -58,7 +61,7 @@ export default function AdminUserTable({
   })
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+    <div className="bf-glass-card rounded-lg border border-[var(--bf-lime)] p-6">
       <div className="mb-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white">
           Active Entries ({sortedEntries.length})
@@ -151,34 +154,34 @@ export default function AdminUserTable({
                 </td>
                 <td className="py-3">
                   <span className="font-bold text-bf-primary">
-                    {entry.weightBreakdown.totalWeight.toFixed(2)}x
+                    {formatNumber(entry.weightBreakdown.totalWeight)}x
                   </span>
                 </td>
                 <td className="py-3">
                   <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                     <BreakdownRow
                       label="Base weight"
-                      value={`${entry.weightBreakdown.baseWeight.toFixed(2)}x`}
+                      value={`${formatNumber(entry.weightBreakdown.baseWeight)}x`}
                     />
                     <BreakdownRow
                       label="Subscriber loyalty"
-                      value={`+${entry.weightBreakdown.loyalty.monthsComponent.toFixed(2)}x`}
+                      value={`+${formatNumber(entry.weightBreakdown.loyalty.monthsComponent)}x`}
                     />
                     <BreakdownRow
                       label="Bits (cheers)"
-                      value={`+${entry.weightBreakdown.support.cheerWeight.toFixed(2)}x`}
+                      value={`+${formatNumber(entry.weightBreakdown.support.cheerWeight)}x`}
                     />
                     <BreakdownRow
                       label="Gifted subs"
-                      value={`+${entry.weightBreakdown.support.giftedSubsWeight.toFixed(2)}x`}
+                      value={`+${formatNumber(entry.weightBreakdown.support.giftedSubsWeight)}x`}
                     />
                     <BreakdownRow
                       label="Carry-over"
-                      value={`+${entry.weightBreakdown.carryOverWeight.toFixed(2)}x`}
+                      value={`+${formatNumber(entry.weightBreakdown.carryOverWeight)}x`}
                     />
                     <BreakdownRow
                       label="Total weight"
-                      value={`${entry.weightBreakdown.totalWeight.toFixed(2)}x`}
+                      value={`${formatNumber(entry.weightBreakdown.totalWeight)}x`}
                       highlight
                     />
                   </div>

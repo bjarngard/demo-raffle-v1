@@ -5,6 +5,9 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { useWeightData } from '@/app/hooks/useWeightData'
 
+const formatNumber = (value: number, decimals = 2) =>
+  value.toFixed(decimals).replace(/\.?0+$/, '')
+
 export default function TwitchLogin() {
   const { data: session, status } = useSession()
   const [loading, setLoading] = useState(false)
@@ -92,11 +95,11 @@ export default function TwitchLogin() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-100">Total Weight</p>
-                <p className="text-2xl font-bold">{userWeight.totalWeight.toFixed(2)}x</p>
+                <p className="text-2xl font-bold">{formatNumber(userWeight.totalWeight)}x</p>
               </div>
               <div>
                 <p className="text-gray-100">Carry-Over Weight</p>
-                <p className="text-xl font-semibold">{userWeight.carryOverWeight.toFixed(2)}x</p>
+                <p className="text-xl font-semibold">{formatNumber(userWeight.carryOverWeight)}x</p>
               </div>
               <div>
                 <p className="text-gray-100">Subscriber</p>
@@ -106,11 +109,11 @@ export default function TwitchLogin() {
               </div>
               <div>
                 <p className="text-gray-100">Bits Cheered</p>
-                <p className="text-lg font-semibold">{userWeight.totalCheerBits.toLocaleString()}</p>
+                <p className="text-lg font-semibold">{userWeight.totalCheerBits}</p>
               </div>
               <div>
                 <p className="text-gray-100">Gifted Subs</p>
-                <p className="text-lg font-semibold">{userWeight.totalGiftedSubs.toLocaleString()}</p>
+                <p className="text-lg font-semibold">{userWeight.totalGiftedSubs}</p>
               </div>
             </div>
           </div>

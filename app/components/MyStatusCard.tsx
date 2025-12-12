@@ -3,6 +3,9 @@
 import { useSession } from 'next-auth/react'
 import { useWeightData } from '@/app/hooks/useWeightData'
 
+const formatNumber = (value: number, decimals = 2) =>
+  value.toFixed(decimals).replace(/\.?0+$/, '')
+
 export default function MyStatusCard() {
   const { data: session } = useSession()
   const userId = session?.user?.id
@@ -46,14 +49,14 @@ export default function MyStatusCard() {
 
   const { user, breakdown } = weightInfo
   const donationsDollars = user.totalDonations / 100
-  const cheerCount = user.totalCheerBits.toLocaleString()
-  const donationCount = donationsDollars.toFixed(2)
-  const giftedSubsCount = user.totalGiftedSubs.toLocaleString()
+  const cheerCount = user.totalCheerBits.toString()
+  const donationCount = formatNumber(donationsDollars)
+  const giftedSubsCount = user.totalGiftedSubs.toString()
   const loyaltyBonus = breakdown.loyalty.cappedTotal
   const supportBonus = breakdown.support.cappedTotal
 
   return (
-    <div className="bg-gradient-to-br from-[#EB2E70] to-[#A6178E] rounded-lg shadow-lg p-6 text-white">
+    <div className="bg-gradient-to-br from-[#EB2E70] to-[#A6178E] rounded-lg border border-[var(--bf-lime)] shadow-lg p-6 text-white">
       <h3 className="text-2xl font-bold mb-4">My Status</h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
@@ -82,20 +85,20 @@ export default function MyStatusCard() {
       <div className="bg-white/10 rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-gray-100">Total Weight</span>
-          <span className="text-3xl font-bold">{breakdown.totalWeight.toFixed(2)}x</span>
+          <span className="text-3xl font-bold">{formatNumber(breakdown.totalWeight)}x</span>
         </div>
       </div>
 
       <div className="space-y-2 text-sm">
         <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
           <span className="text-gray-100">Base Weight</span>
-          <span className="font-semibold">{breakdown.baseWeight.toFixed(2)}x</span>
+          <span className="font-semibold">{formatNumber(breakdown.baseWeight)}x</span>
         </div>
         
         <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
           <span className="text-gray-100">Subscriber loyalty bonus</span>
           <span className="font-semibold">
-            +{breakdown.loyalty.monthsComponent.toFixed(2)}x
+            +{formatNumber(breakdown.loyalty.monthsComponent)}x
           </span>
         </div>
         {/* NOTE: We intentionally do not render a separate "Resubs" row in the viewer UI.
@@ -103,13 +106,13 @@ export default function MyStatusCard() {
 
         <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
           <span className="text-gray-100">Total Loyalty Bonus</span>
-          <span className="font-semibold">+{loyaltyBonus.toFixed(2)}x</span>
+          <span className="font-semibold">+{formatNumber(loyaltyBonus)}x</span>
         </div>
         
         {user.totalCheerBits > 0 && (
           <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
             <span className="text-gray-100">Cheer Bits ({cheerCount})</span>
-            <span className="font-semibold">+{breakdown.support.cheerWeight.toFixed(2)}x</span>
+            <span className="font-semibold">+{formatNumber(breakdown.support.cheerWeight)}x</span>
           </div>
         )}
         
@@ -119,7 +122,7 @@ export default function MyStatusCard() {
               Donations (${donationCount})
             </span>
             <span className="font-semibold">
-              +{breakdown.support.donationsWeight.toFixed(2)}x
+              +{formatNumber(breakdown.support.donationsWeight)}x
             </span>
           </div>
         )}
@@ -130,20 +133,20 @@ export default function MyStatusCard() {
               Gifted Subs ({giftedSubsCount})
             </span>
             <span className="font-semibold">
-              +{breakdown.support.giftedSubsWeight.toFixed(2)}x
+              +{formatNumber(breakdown.support.giftedSubsWeight)}x
             </span>
           </div>
         )}
 
         <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
           <span className="text-gray-100">Total Support Bonus</span>
-          <span className="font-semibold">+{supportBonus.toFixed(2)}x</span>
+          <span className="font-semibold">+{formatNumber(supportBonus)}x</span>
         </div>
         
         {breakdown.carryOverWeight > 0 && (
           <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
             <span className="text-gray-100">Carry-Over Weight</span>
-            <span className="font-semibold">+{breakdown.carryOverWeight.toFixed(2)}x</span>
+            <span className="font-semibold">+{formatNumber(breakdown.carryOverWeight)}x</span>
           </div>
         )}
       </div>

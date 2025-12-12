@@ -22,6 +22,9 @@ interface WeightTableProps {
   settings: WeightSettings
 }
 
+const formatNumber = (value: number, decimals = 2) =>
+  value.toFixed(decimals).replace(/\.?0+$/, '')
+
 export default function WeightTable({ settings }: WeightTableProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
@@ -48,7 +51,7 @@ export default function WeightTable({ settings }: WeightTableProps) {
               <td className="py-3 text-gray-900 dark:text-white">Base</td>
               <td className="py-3 text-gray-600 dark:text-gray-400">Fixed</td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
-                {settings.baseWeight.toFixed(1)}x
+                {formatNumber(settings.baseWeight, 2)}x
               </td>
             </tr>
             <tr className="border-b border-gray-100 dark:border-gray-800">
@@ -57,7 +60,7 @@ export default function WeightTable({ settings }: WeightTableProps) {
                 min(effective months, {settings.subMonthsCap}) × {settings.subMonthsMultiplier} (effective months is at least 1 if subscribed)
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
-                {(settings.subMonthsCap * settings.subMonthsMultiplier).toFixed(1)}x
+                {formatNumber(settings.subMonthsCap * settings.subMonthsMultiplier, 2)}x
               </td>
             </tr>
             <tr className="border-b border-gray-100 dark:border-gray-800">
@@ -66,7 +69,7 @@ export default function WeightTable({ settings }: WeightTableProps) {
                 min(resubs, {settings.resubCap}) × {settings.resubMultiplier}
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
-                {(settings.resubCap * settings.resubMultiplier).toFixed(1)}x
+                {formatNumber(settings.resubCap * settings.resubMultiplier, 2)}x
               </td>
             </tr>
             <tr className="border-b border-gray-100 dark:border-gray-800">
@@ -75,7 +78,7 @@ export default function WeightTable({ settings }: WeightTableProps) {
                 min(bits / {settings.cheerBitsDivisor}, {settings.cheerBitsCap})
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
-                {settings.cheerBitsCap.toFixed(1)}x
+                {formatNumber(settings.cheerBitsCap, 2)}x
               </td>
             </tr>
             <tr className="border-b border-gray-100 dark:border-gray-800">
@@ -84,7 +87,7 @@ export default function WeightTable({ settings }: WeightTableProps) {
                 min(USD / {settings.donationsDivisor}, {settings.donationsCap})
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
-                {settings.donationsCap.toFixed(1)}x
+                {formatNumber(settings.donationsCap, 2)}x
               </td>
             </tr>
             <tr className="border-b border-gray-100 dark:border-gray-800">
@@ -93,7 +96,7 @@ export default function WeightTable({ settings }: WeightTableProps) {
                 min(count × {settings.giftedSubsMultiplier}, {settings.giftedSubsCap})
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
-                {settings.giftedSubsCap.toFixed(1)}x
+                {formatNumber(settings.giftedSubsCap, 2)}x
               </td>
             </tr>
             <tr className="border-b border-gray-100 dark:border-gray-800">
@@ -102,7 +105,7 @@ export default function WeightTable({ settings }: WeightTableProps) {
                 Total loyalty bonus (sub months + resubs) is capped at this value
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
-                {settings.loyaltyMaxBonus.toFixed(1)}x
+                {formatNumber(settings.loyaltyMaxBonus, 2)}x
               </td>
             </tr>
             <tr className="border-b border-gray-100 dark:border-gray-800">
@@ -111,16 +114,19 @@ export default function WeightTable({ settings }: WeightTableProps) {
                 Combined bits + donations + gifted subs bonus cap
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
-                {settings.supportMaxBonus.toFixed(1)}x
+                {formatNumber(settings.supportMaxBonus, 2)}x
               </td>
             </tr>
             <tr>
               <td className="py-3 text-gray-900 dark:text-white">Carry-Over</td>
               <td className="py-3 text-gray-600 dark:text-gray-400">
-                Previous weight × {settings.carryOverMultiplier} (capped at {settings.carryOverMaxBonus.toFixed(1)}x)
+                Previous weight × {formatNumber(settings.carryOverMultiplier, 2)} (capped at {formatNumber(
+                  settings.carryOverMaxBonus,
+                  2
+                )}x)
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
-                {settings.carryOverMaxBonus.toFixed(1)}x max
+                {formatNumber(settings.carryOverMaxBonus, 2)}x max
               </td>
             </tr>
           </tbody>

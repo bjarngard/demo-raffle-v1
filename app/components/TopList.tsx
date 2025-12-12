@@ -14,6 +14,9 @@ interface TopListProps {
   hideRefreshingText?: boolean
 }
 
+const formatNumber = (value: number, decimals = 2) =>
+  value.toFixed(decimals).replace(/\.?0+$/, '')
+
 export default function TopList({ entries, loading, maxHeightClass, hideRefreshingText }: TopListProps) {
   const isInitialLoading = !!loading && entries.length === 0
   const isRefreshing = !!loading && entries.length > 0
@@ -60,13 +63,13 @@ export default function TopList({ entries, loading, maxHeightClass, hideRefreshi
                     {entry.name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Weight: {entry.weight.toFixed(2)}x
+                    Weight: {formatNumber(entry.weight)}x
                   </p>
                 </div>
               </div>
               <div className="flex-shrink-0 ml-4">
-        <p className="text-xl font-bold text-bf-primary">
-                  {entry.probability.toFixed(2)}%
+                <p className="text-xl font-bold text-bf-primary">
+                  {formatNumber(entry.probability)}%
                 </p>
               </div>
             </div>

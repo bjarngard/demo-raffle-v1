@@ -48,6 +48,9 @@ function RaffleForm() {
   const effectiveSubmissionsOpen = submissionsOverride ?? submissionsOpen
   const submissionsClosed = !effectiveSubmissionsOpen
 
+  const formatNumber = (value: number, decimals = 2) =>
+    value.toFixed(decimals).replace(/\.?0+$/, '')
+
   const checkFollowStatus = useCallback(async () => {
     if (!session?.user?.id) return
     try {
@@ -353,7 +356,7 @@ function RaffleForm() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Left Column: Entry Form */}
-          <div className="bf-glass-card rounded-lg p-[clamp(16px,2vw,24px)] space-y-6">
+          <div className="bf-glass-card rounded-lg border border-[var(--bf-lime)] p-[clamp(16px,2vw,24px)] space-y-6">
             <div className="flex justify-center mb-4">
               <button
                 type="button"
@@ -516,7 +519,7 @@ function RaffleForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="heading-text w-full bg-[var(--bf-pink)] text-white py-3 px-6 rounded-lg font-medium hover:bg-bf-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                className="heading-text w-full bg-[var(--bf-pink)] text-white py-3 px-6 rounded-lg font-medium shadow-md shadow-black/25 hover:bg-bf-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Entering...' : 'Enter Raffle'}
               </button>
@@ -525,7 +528,7 @@ function RaffleForm() {
           </div>
 
           {/* Right Column: Top 20 Leaderboard */}
-          <div className="bf-glass-card rounded-lg p-[clamp(16px,2vw,24px)]">
+          <div className="bf-glass-card rounded-lg border border-[var(--bf-lime)] p-[clamp(16px,2vw,24px)]">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 text-center">
               {sessionActive ? 'Leaderboard' : 'Last session results'}
             </h2>
@@ -557,14 +560,14 @@ function RaffleForm() {
                           {entry.name}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Weight: {entry.weight.toFixed(2)}x
+                          Weight: {formatNumber(entry.weight)}x
                         </p>
                       </div>
                     </div>
                     <div className="flex-shrink-0 ml-4">
                       <div className="text-right">
                         <p className="text-xl font-bold text-bf-primary">
-                          {entry.probability.toFixed(2)}%
+                          {formatNumber(entry.probability)}%
                         </p>
                       </div>
                     </div>
