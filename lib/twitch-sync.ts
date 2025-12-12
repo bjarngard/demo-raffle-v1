@@ -4,13 +4,41 @@ import { getBroadcasterAccessToken } from './twitch-oauth'
 import { checkUserFollowsChannel, getUserSubscription } from './twitch-api'
 import { calculateUserWeight } from './weight-settings'
 
-// Canonical bridge: Twitch → normalized DB → weight engine.
+/**
+ * Twitch sync overview (source of truth for user Twitch state → DB → weight engine)
+ * - Syncs: follower status, subscriber status + months (tier/months via Helix subscription), keeps totalSubs in sync.
+ * - Flags/fields: relies on user.needsResync (EventSub dirties), user.lastTwitchSyncAt (staleness), and an internal cooldown.
+ * - Callers: /api/weight/me (lazy, gated), /api/twitch/sync (manual force), sign-in/auth flows indirectly via needsResync.
+ */
+
+// Sync cadence controls
 export const USER_TWITCH_SYNC_COOLDOWN_MS = 60_000
+export const SYNC_STALE_AFTER_MS = 10 * 60 * 1000
 
 export type UserTwitchSyncResult = {
   user: User
   updated: boolean
   reason?: string
+}
+
+export type TwitchSyncTrigger =
+  | 'needsResync'
+  | 'missing_last_sync'
+  | 'stale'
+  | 'manual'
+  | 'cooldown_bypass'
+  | 'unknown'
+
+export function getTwitchSyncTrigger(user: Pick<User, 'needsResync' | 'lastTwitchSyncAt'>): TwitchSyncTrigger | null {
+  if (user.needsResync) return 'needsResync'
+  const lastSync = user.lastTwitchSyncAt?.getTime() ?? 0
+  if (!lastSync) return 'missing_last_sync'
+  if (Date.now() - lastSync > SYNC_STALE_AFTER_MS) return 'stale'
+  return null
+}
+
+export function shouldSyncTwitch(user: Pick<User, 'needsResync' | 'lastTwitchSyncAt'>): boolean {
+  return getTwitchSyncTrigger(user) !== null
 }
 
 /**
@@ -19,8 +47,9 @@ export type UserTwitchSyncResult = {
  */
 export async function syncUserFromTwitch(
   userId: string,
-  options?: { force?: boolean }
+  options?: { force?: boolean; trigger?: TwitchSyncTrigger }
 ): Promise<UserTwitchSyncResult> {
+  const started = Date.now()
   const existingUser = await prisma.user.findUnique({
     where: { id: userId },
   })
@@ -33,15 +62,18 @@ export async function syncUserFromTwitch(
     return { user: existingUser, updated: false, reason: 'missing_twitch_id' }
   }
 
-  const lastUpdatedMs = existingUser.lastUpdated?.getTime() ?? 0
-  const withinCooldown = Boolean(lastUpdatedMs) && Date.now() - lastUpdatedMs < USER_TWITCH_SYNC_COOLDOWN_MS
+  const lastSyncMs = existingUser.lastTwitchSyncAt?.getTime() ?? 0
+  const withinCooldown = Boolean(lastSyncMs) && Date.now() - lastSyncMs < USER_TWITCH_SYNC_COOLDOWN_MS
+  const trigger = options?.trigger ?? getTwitchSyncTrigger(existingUser) ?? (options?.force ? 'cooldown_bypass' : 'unknown')
 
   if (!options?.force && !existingUser.needsResync && withinCooldown) {
+    console.log('[twitch-sync] done status=skip trigger=cooldown user=%s %dms', existingUser.id, Date.now() - started)
     return { user: existingUser, updated: false, reason: 'cooldown' }
   }
 
   let broadcasterToken: string
   try {
+    console.log('[twitch-sync] start trigger=%s user=%s', trigger, existingUser.id)
     broadcasterToken = await getBroadcasterAccessToken()
   } catch (error) {
     console.error('Failed to fetch broadcaster token for Twitch sync', {
@@ -127,14 +159,16 @@ export async function syncUserFromTwitch(
         lastUpdated: new Date(),
         lastActive: new Date(),
         needsResync: false,
+        lastTwitchSyncAt: new Date(),
       },
     })
 
     console.log(
-      '[syncUserFromTwitch] persisted userId=%s subscriber=%s subMonths=%d',
+      '[twitch-sync] done status=success trigger=%s user=%s %dms reason=%s',
+      trigger,
       updatedUser.id,
-      updatedUser.isSubscriber,
-      updatedUser.subMonths
+      Date.now() - started,
+      syncReason ?? 'none'
     )
 
     return {
@@ -144,6 +178,13 @@ export async function syncUserFromTwitch(
     }
   } catch (error) {
     console.error('Error syncing user from Twitch API', { userId: existingUser.id, error })
+    console.log(
+      '[twitch-sync] done status=error trigger=%s user=%s %dms message=%s',
+      trigger,
+      existingUser.id,
+      Date.now() - started,
+      error instanceof Error ? error.message : 'unknown_error'
+    )
     try {
       const cleared = await prisma.user.update({
         where: { id: existingUser.id },

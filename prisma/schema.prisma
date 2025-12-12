@@ -48,6 +48,7 @@ model User {
   
   // Metadata
   needsResync       Boolean  @default(false)
+  lastTwitchSyncAt  DateTime?
   lastUpdated       DateTime @default(now())
   createdAt         DateTime @default(now())
   lastActive        DateTime @default(now())

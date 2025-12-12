@@ -4,10 +4,8 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { describeWeightBreakdown, getWeightSettings } from '@/lib/weight-settings'
 import { ensureUser } from '@/lib/user'
-import { syncUserFromTwitch } from '@/lib/twitch-sync'
+import { getTwitchSyncTrigger, shouldSyncTwitch, syncUserFromTwitch } from '@/lib/twitch-sync'
 import { getUserDisplayName } from '@/lib/user-display-name'
-
-const STALE_WEIGHT_MAX_AGE_MS = 6 * 60 * 60 * 1000 // 6 hours
 
 /**
  * Surface the viewer's canonical raffle weight. EventSub flags users via
@@ -36,15 +34,12 @@ export async function GET() {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
-  // EventSub marks dirty users (needsResync); also refresh stale cache entries.
-  const now = Date.now()
-  const lastUpdatedMs = resolvedUser.lastUpdated?.getTime() ?? 0
-  const isStale = !lastUpdatedMs || now - lastUpdatedMs > STALE_WEIGHT_MAX_AGE_MS
-  const syncTrigger = resolvedUser.needsResync ? 'event' : isStale ? 'stale' : null
+  // EventSub marks dirty users (needsResync); also refresh stale cache entries via gated Twitch sync.
+  const syncTrigger = getTwitchSyncTrigger(resolvedUser)
 
-  if (syncTrigger) {
+  if (shouldSyncTwitch(resolvedUser) && syncTrigger) {
     try {
-      const syncResult = await syncUserFromTwitch(resolvedUser.id)
+      const syncResult = await syncUserFromTwitch(resolvedUser.id, { trigger: syncTrigger })
       if (syncResult.updated) {
         resolvedUser = syncResult.user
       }
