@@ -10,11 +10,15 @@ export const dynamic = 'force-dynamic'
  * Get top 20 entries with their win probability
  */
 export async function GET() {
+  const started = Date.now()
+
   try {
     const submissionsOpen = await getSubmissionsOpen()
     const currentSession = await getCurrentSession()
+    console.log('[leaderboard] step=state', `${Date.now() - started}ms`)
 
     if (!currentSession) {
+      console.log('[leaderboard] step=no-session', `${Date.now() - started}ms`)
       return NextResponse.json({
         submissionsOpen,
         totalEntries: 0,
@@ -24,6 +28,9 @@ export async function GET() {
     }
 
     const { entries: leaderboardEntries, totalEntries } = await getLeaderboardEntries(currentSession.id)
+    console.log('[leaderboard] step=data', `${Date.now() - started}ms`)
+
+    console.log('[leaderboard] done', `${Date.now() - started}ms`)
 
     return NextResponse.json({
       submissionsOpen,

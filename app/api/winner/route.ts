@@ -7,14 +7,21 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
+  const started = Date.now()
+
   try {
     const currentSession = await getCurrentSession()
+    console.log('[winner] step=session', `${Date.now() - started}ms`)
     let winner = await findLatestWinner(currentSession?.id)
+    console.log('[winner] step=current-session', `${Date.now() - started}ms`)
 
     if (!winner) {
       const lastSession = await getLatestEndedSession()
+      console.log('[winner] step=latest-ended', `${Date.now() - started}ms`)
       winner = await findLatestWinner(lastSession?.id)
     }
+
+    console.log('[winner] done', `${Date.now() - started}ms`)
 
     return NextResponse.json({ winner: winner ?? null }, {
       headers: {

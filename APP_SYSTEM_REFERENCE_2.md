@@ -171,12 +171,15 @@ All models live in `prisma/schema.prisma`. Key tables:
 ## 8. Carry-over Logic
 
 - `lib/carry-over.ts` exports `applyCarryOverForSession(sessionId: string, resetWeights = false)`:
-  - Finds all users with non-winning entries in the target session (excluding sentinel entry).
-  - Processes users in batches of 25, updating each user’s `carryOverWeight`, `currentWeight` (reset to 1.0), `totalWeight` (1.0 + carryOver), and `lastUpdated`.
-  - If `resetWeights` is `true`, carry-over is set to `0`.
-  - After updating, resets the winner’s `carryOverWeight` (if the session already has a winner) to ensure they start fresh.
+  - Gathers all users with non-winning entries in the target session (excluding the sentinel entry) and the winner (if any).
+  - Loads `WeightSettings` once, fetches all participating users once, then uses `Promise.all` (no interactive transaction) to update each user in parallel.
+  - Formula is unchanged:
+    - Winner or `resetWeights === true` → `newCarry = 0`.
+    - Else: `sessionWeight = max(0, user.totalWeight - user.carryOverWeight)`; `carryFromSession = sessionWeight * settings.carryOverMultiplier`; `newCarry = min(user.carryOverWeight + carryFromSession, settings.carryOverMaxBonus)`.
+    - `totalWeight` = `calculateUserWeight({...user fields..., carryOverWeight: newCarry})`; `currentWeight = totalWeight - newCarry`.
+  - Persists `carryOverWeight`, `totalWeight`, `currentWeight`, and `lastUpdated` per user; returns `{ updatedCount, users[] }` with `{ id, username, carryOverWeight }`.
 - `/api/admin/session/end` automatically calls this helper before marking the session as ended.
-- `/api/twitch/carry-over` exposes the helper via API for manual runs or for targeting a specific `sessionId`. Returns `{ success, updatedCount, users[] }`.
+- `/api/twitch/carry-over` exposes the helper via API for manual runs or targeting a specific `sessionId`. Returns `{ success, updatedCount, users[] }`.
 - Intent: Each pending entry persists across sessions (same `Entry` row, new `sessionId` on start) and inherits increased weight until it wins; winners reset to base weight plus any fresh engagement.
 
 ---
@@ -563,5 +566,5 @@ Future refactors should:
 
 ---
 
-_Last updated: 2025-12-05 – Next 16.0.7 upgrade, bits:read scope, EventSub dedupe/aggregation notes, canonical weight helper usage, WeightInfoModal, and leaderboard helper alignment._
+_Last updated: 2025-12-12 – carry-over helper refactored to parallel updates (no interactive transaction) with unchanged formulas._
 

@@ -15,17 +15,22 @@ const STALE_WEIGHT_MAX_AGE_MS = 6 * 60 * 60 * 1000 // 6 hours
  * returning cached state to the frontend.
  */
 export async function GET() {
+  const started = Date.now()
+
   const session = await auth()
+  console.log('[weight/me] step=auth', `${Date.now() - started}ms`)
 
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   await ensureUser(session.user)
+  console.log('[weight/me] step=ensure-user', `${Date.now() - started}ms`)
 
   let resolvedUser: User | null = await prisma.user.findUnique({
     where: { id: session.user.id },
   })
+  console.log('[weight/me] step=db-user', `${Date.now() - started}ms`)
 
   if (!resolvedUser) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -43,6 +48,7 @@ export async function GET() {
       if (syncResult.updated) {
         resolvedUser = syncResult.user
       }
+      console.log('[weight/me] step=twitch-sync', `${Date.now() - started}ms`, 'trigger', syncTrigger)
     } catch (error) {
       console.error('Lazy Twitch sync failed in /api/weight/me:', {
         userId: resolvedUser.id,
@@ -61,8 +67,10 @@ export async function GET() {
     totalGiftedSubs: resolvedUser.totalGiftedSubs,
     carryOverWeight: resolvedUser.carryOverWeight,
   })
+  console.log('[weight/me] step=breakdown', `${Date.now() - started}ms`)
 
   const settings = await getWeightSettings()
+  console.log('[weight/me] step=settings', `${Date.now() - started}ms`)
 
   const effectiveDisplayName = getUserDisplayName(resolvedUser)
   const effectiveUsername =
@@ -70,6 +78,8 @@ export async function GET() {
     (resolvedUser.displayName ?? '').trim() ||
     (resolvedUser.twitchId ?? '').trim() ||
     resolvedUser.id
+
+  console.log('[weight/me] done', `${Date.now() - started}ms`)
 
   return NextResponse.json({
     user: {

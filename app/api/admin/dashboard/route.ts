@@ -9,8 +9,11 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
+  const started = Date.now()
+
   try {
     const session = await requireAdminSession()
+    console.log('[admin/dashboard] step=auth', `${Date.now() - started}ms`)
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized access' },
@@ -23,6 +26,7 @@ export async function GET() {
       getSubmissionsOpen(),
       getCurrentSession(),
     ])
+    console.log('[admin/dashboard] step=meta', `${Date.now() - started}ms`)
 
     const [entries, lastEndedSession] = await Promise.all([
       currentSession
@@ -32,6 +36,9 @@ export async function GET() {
         : Promise.resolve<Awaited<ReturnType<typeof getAdminEntries>>>([]),
       getLatestEndedSession(),
     ])
+    console.log('[admin/dashboard] step=data', `${Date.now() - started}ms`)
+
+    console.log('[admin/dashboard] done', `${Date.now() - started}ms`)
 
     return NextResponse.json({
       success: true,
