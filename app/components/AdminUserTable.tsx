@@ -2,9 +2,7 @@
 
 import { useState } from 'react'
 import type { AdminEntry } from '@/types/admin'
-
-const formatNumber = (value: number, decimals = 2) =>
-  value.toFixed(decimals).replace(/\.?0+$/, '')
+import { formatNumber } from '@/lib/format-number'
 
 interface AdminUserTableProps {
   entries: AdminEntry[]

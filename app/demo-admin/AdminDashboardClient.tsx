@@ -8,6 +8,7 @@ import RaffleWheel, { type RaffleWinner } from '@/app/components/RaffleWheel'
 import TopList from '@/app/components/TopList'
 import type { AdminEntry } from '@/types/admin'
 import type { WeightSettings } from '@/lib/weight-settings'
+import { formatNumber } from '@/lib/format-number'
 
 type AdminWeightSettings = WeightSettings
 
@@ -221,8 +222,7 @@ export default function AdminDashboardClient({
 
   const formatBonus = (value: number | null | undefined, decimals = 2) => {
     if (value === null || value === undefined) return '—'
-    const formatted = value.toFixed(decimals).replace(/\.?0+$/, '')
-    return `+${formatted}×`
+    return `+${formatNumber(value, decimals)}×`
   }
 
   const subscriberBonus = weightSettings?.subMonthsMultiplier ?? null

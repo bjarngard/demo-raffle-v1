@@ -4,9 +4,7 @@ import { signIn, signOut, useSession } from 'next-auth/react'
 import { useState } from 'react'
 import Image from 'next/image'
 import { useWeightData } from '@/app/hooks/useWeightData'
-
-const formatNumber = (value: number, decimals = 2) =>
-  value.toFixed(decimals).replace(/\.?0+$/, '')
+import { formatNumber } from '@/lib/format-number'
 
 export default function TwitchLogin() {
   const { data: session, status } = useSession()

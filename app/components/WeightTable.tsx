@@ -1,5 +1,7 @@
 'use client'
 
+import { formatNumber } from '@/lib/format-number'
+
 interface WeightSettings {
   baseWeight: number
   subMonthsMultiplier: number
@@ -21,9 +23,6 @@ interface WeightSettings {
 interface WeightTableProps {
   settings: WeightSettings
 }
-
-const formatNumber = (value: number, decimals = 2) =>
-  value.toFixed(decimals).replace(/\.?0+$/, '')
 
 export default function WeightTable({ settings }: WeightTableProps) {
   return (

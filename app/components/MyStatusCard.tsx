@@ -2,9 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useWeightData } from '@/app/hooks/useWeightData'
-
-const formatNumber = (value: number, decimals = 2) =>
-  value.toFixed(decimals).replace(/\.?0+$/, '')
+import { formatNumber } from '@/lib/format-number'
 
 export default function MyStatusCard() {
   const { data: session } = useSession()

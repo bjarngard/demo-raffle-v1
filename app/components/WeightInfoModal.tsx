@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useWeightData } from '@/app/hooks/useWeightData'
+import { formatNumber } from '@/lib/format-number'
 
 type WeightInfoModalProps = {
   open: boolean
@@ -43,7 +44,6 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
       ]
     }
 
-    const format = (value: number, decimals = 2) => value.toFixed(decimals).replace(/\.?0+$/, '')
     const subscriberBonus = settings.subMonthsMultiplier
     const bitsDivisor = settings.cheerBitsDivisor
     const bitsCap = settings.cheerBitsCap
@@ -56,21 +56,21 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
     return [
       {
         title: 'Base weight',
-        children: `Everyone starts at ${format(settings.baseWeight)}× each session.`,
+        children: `Everyone starts at ${formatNumber(settings.baseWeight)}× each session.`,
       },
       {
         title: 'Subscriber status',
-        children: `Active subscribers get a static bonus: +${format(subscriberBonus)}× applied once on top of the base weight.`,
+        children: `Active subscribers get a static bonus: +${formatNumber(subscriberBonus)}× applied once on top of the base weight.`,
       },
       {
         title: 'Bits (cheers)',
         children: (
           <>
             <span className="block">
-              Every {format(bitsDivisor, 0)} bits adds +{format(1)}×, up to +{format(bitsCap)}× from bits.
+              Every {formatNumber(bitsDivisor, 0)} bits adds +{formatNumber(1, 0)}×, up to +{formatNumber(bitsCap, 0)}× from bits.
             </span>
             <span className="block text-gray-600 dark:text-gray-400">
-              (This counts toward a shared +{format(supportCap)}× cap from all support each session.)
+              (This counts toward a shared +{formatNumber(supportCap, 0)}× cap from all support each session.)
             </span>
           </>
         ),
@@ -80,17 +80,17 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
         children: (
           <>
             <span className="block">
-              Each gifted sub adds +{format(giftMultiplier)}×, up to +{format(giftCap)}× from gifted subs.
+              Each gifted sub adds +{formatNumber(giftMultiplier)}×, up to +{formatNumber(giftCap, 0)}× from gifted subs.
             </span>
             <span className="block text-gray-600 dark:text-gray-400">
-              (This also counts toward the same +{format(supportCap)}× support cap.)
+              (This also counts toward the same +{formatNumber(supportCap, 0)}× support cap.)
             </span>
           </>
         ),
       },
       {
         title: 'Carry-over',
-        children: `If your entry doesn't win, ${carryPercent}% of that session's weight becomes carry-over (capped at +${format(
+        children: `If your entry doesn't win, ${formatNumber(carryPercent, 0)}% of that session's weight becomes carry-over (capped at +${formatNumber(
           carryCap
         )}×) and is the only bonus that persists into the next session.`,
       },

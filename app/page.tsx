@@ -5,6 +5,7 @@ import { SessionProvider, useSession } from 'next-auth/react'
 import AmbientBackground from './components/AmbientBackground'
 import TwitchLogin from './components/TwitchLogin'
 import WeightInfoModal from './components/WeightInfoModal'
+import { formatNumber } from '@/lib/format-number'
 
 interface Winner {
   id: number
@@ -47,9 +48,6 @@ function RaffleForm() {
   const effectiveSessionActive = sessionOverride ?? sessionActive
   const effectiveSubmissionsOpen = submissionsOverride ?? submissionsOpen
   const submissionsClosed = !effectiveSubmissionsOpen
-
-  const formatNumber = (value: number, decimals = 2) =>
-    value.toFixed(decimals).replace(/\.?0+$/, '')
 
   const checkFollowStatus = useCallback(async () => {
     if (!session?.user?.id) return

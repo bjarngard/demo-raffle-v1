@@ -7,15 +7,14 @@ interface LeaderboardEntry {
   probability: number
 }
 
+import { formatNumber } from '@/lib/format-number'
+
 interface TopListProps {
   entries: LeaderboardEntry[]
   loading?: boolean
   maxHeightClass?: string
   hideRefreshingText?: boolean
 }
-
-const formatNumber = (value: number, decimals = 2) =>
-  value.toFixed(decimals).replace(/\.?0+$/, '')
 
 export default function TopList({ entries, loading, maxHeightClass, hideRefreshingText }: TopListProps) {
   const isInitialLoading = !!loading && entries.length === 0
