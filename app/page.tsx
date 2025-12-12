@@ -6,6 +6,7 @@ import AmbientBackground from './components/AmbientBackground'
 import TwitchLogin from './components/TwitchLogin'
 import WeightInfoModal from './components/WeightInfoModal'
 import { formatNumber } from '@/lib/format-number'
+import { withJitter } from '@/lib/polling'
 
 interface Winner {
   id: number
@@ -70,6 +71,20 @@ function RaffleForm() {
     }
   }, [session?.user?.id])
 
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      const response = await fetch('/api/leaderboard', { cache: 'no-store' })
+      if (response.ok) {
+        const data = await response.json()
+        setLeaderboard(data)
+      }
+    } catch (error) {
+      console.error('Could not fetch leaderboard:', error)
+    } finally {
+      setLoadingLeaderboard(false)
+    }
+  }, [])
+
   // Fetch winner and leaderboard on page load
   useEffect(() => {
     async function fetchWinner() {
@@ -94,38 +109,30 @@ function RaffleForm() {
       }
     }
 
-    async function fetchLeaderboard() {
-      try {
-        const response = await fetch('/api/leaderboard', { cache: 'no-store' })
-        if (response.ok) {
-          const data = await response.json()
-          setLeaderboard(data)
-        }
-      } catch (error) {
-        console.error('Could not fetch leaderboard:', error)
-      } finally {
-        setLoadingLeaderboard(false)
-      }
-    }
-
     fetchWinner()
     fetchLeaderboard()
 
-    // Refresh leaderboard every 5 seconds for live updates
-    const interval = setInterval(fetchLeaderboard, 5000)
+    // Refresh follow status once when session/user changes
+    checkFollowStatus()
 
-    // Check follow status if logged in
-    if (session?.user?.id) {
-      setFollowStatus('checking')
-      setFollowReason(null)
-      checkFollowStatus()
-    } else {
-      setFollowStatus(null)
-      setFollowReason(null)
+    // Refresh leaderboard with jittered polling to reduce thundering herd and serverless spikes.
+    let cancelled = false
+    let leaderboardTimer: ReturnType<typeof setTimeout> | null = null
+    const pollLeaderboard = async () => {
+      await fetchLeaderboard()
+      if (!cancelled) {
+        leaderboardTimer = setTimeout(pollLeaderboard, withJitter(15_000))
+      }
     }
+    leaderboardTimer = setTimeout(pollLeaderboard, withJitter(15_000))
 
-    return () => clearInterval(interval)
-  }, [session?.user?.id, checkFollowStatus])
+    return () => {
+      cancelled = true
+      if (leaderboardTimer) {
+        clearTimeout(leaderboardTimer)
+      }
+    }
+  }, [checkFollowStatus, fetchLeaderboard])
 
   useEffect(() => {
     setSessionOverride(null)

@@ -9,6 +9,7 @@ import TopList from '@/app/components/TopList'
 import type { AdminEntry } from '@/types/admin'
 import type { WeightSettings } from '@/lib/weight-settings'
 import { formatNumber } from '@/lib/format-number'
+import { withJitter } from '@/lib/polling'
 
 type AdminWeightSettings = WeightSettings
 
@@ -132,11 +133,25 @@ export default function AdminDashboardClient({
 
   useEffect(() => {
     fetchLeaderboard()
-    const interval = setInterval(() => {
-      fetchAdminData()
-      fetchLeaderboard()
-    }, 10000)
-    return () => clearInterval(interval)
+    let cancelled = false
+    let pollTimer: ReturnType<typeof setTimeout> | null = null
+
+    const poll = async () => {
+      await fetchAdminData()
+      await fetchLeaderboard()
+      if (!cancelled) {
+        pollTimer = setTimeout(poll, withJitter(15_000))
+      }
+    }
+
+    pollTimer = setTimeout(poll, withJitter(15_000))
+
+    return () => {
+      cancelled = true
+      if (pollTimer) {
+        clearTimeout(pollTimer)
+      }
+    }
   }, [fetchAdminData, fetchLeaderboard])
 
   const handleWinnerPicked = useCallback(

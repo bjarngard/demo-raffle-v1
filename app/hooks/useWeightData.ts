@@ -47,7 +47,8 @@ type WeightStoreState = {
 type Subscriber = (state: WeightStoreState) => void
 type SubscriberOptions = { enabled: boolean; interval: number }
 
-const DEFAULT_POLL_INTERVAL = 30_000
+// Shared poller for viewer weight data; used by MyStatusCard, WeightInfoModal, TwitchLogin, etc.
+const DEFAULT_POLL_INTERVAL = 60_000
 const INITIAL_STORE: WeightStoreState = {
   data: null,
   status: 'idle',
