@@ -3,6 +3,7 @@ import type { AdminEntry } from '@/types/admin'
 import { entryStateExclusion } from './submissions-state'
 import { describeWeightBreakdown } from './weight-settings'
 import { getCurrentSession, getLatestEndedSession } from './session'
+import { getUserDisplayName } from './user-display-name'
 
 type EntrySortBy = 'weight' | 'name'
 type EntrySortOrder = 'asc' | 'desc'
@@ -122,9 +123,11 @@ export async function getAdminEntries({
             totalWeight: user?.totalWeight ?? 1,
           }
 
+      const effectiveName = getUserDisplayName(user)
+
       return {
         id: entry.id,
-        name: entry.name || user?.displayName || user?.username || 'Unknown',
+        name: entry.name || effectiveName,
         username: user?.username || '',
         displayName: user?.displayName || '',
         demoLink: entry.demoLink || null,

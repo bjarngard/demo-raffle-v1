@@ -1,6 +1,7 @@
 import { prisma } from './prisma'
 import { entryStateExclusion } from './submissions-state'
 import { describeWeightBreakdown } from './weight-settings'
+import { getUserDisplayName } from './user-display-name'
 
 type LeaderboardEntry = {
   id: number
@@ -61,7 +62,7 @@ export async function getLeaderboardEntries(sessionId: string): Promise<Leaderbo
 
       return {
         id: entry.id,
-        name: entry.name || user.displayName || user.username || 'Unknown',
+        name: entry.name || getUserDisplayName(user),
         weight: breakdown.totalWeight,
       }
     })

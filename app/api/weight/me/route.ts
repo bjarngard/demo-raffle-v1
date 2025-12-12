@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { describeWeightBreakdown, getWeightSettings } from '@/lib/weight-settings'
 import { ensureUser } from '@/lib/user'
 import { syncUserFromTwitch } from '@/lib/twitch-sync'
+import { getUserDisplayName } from '@/lib/user-display-name'
 
 const STALE_WEIGHT_MAX_AGE_MS = 6 * 60 * 60 * 1000 // 6 hours
 
@@ -63,11 +64,18 @@ export async function GET() {
 
   const settings = await getWeightSettings()
 
+  const effectiveDisplayName = getUserDisplayName(resolvedUser)
+  const effectiveUsername =
+    (resolvedUser.username ?? '').trim() ||
+    (resolvedUser.displayName ?? '').trim() ||
+    (resolvedUser.twitchId ?? '').trim() ||
+    resolvedUser.id
+
   return NextResponse.json({
     user: {
       id: resolvedUser.id,
-      username: resolvedUser.username,
-      displayName: resolvedUser.displayName,
+      username: effectiveUsername,
+      displayName: effectiveDisplayName,
       isFollower: resolvedUser.isFollower,
       isSubscriber: resolvedUser.isSubscriber,
       subMonths: resolvedUser.subMonths,
