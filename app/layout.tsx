@@ -1,13 +1,5 @@
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
 import "./globals.css";
-
-const roboto = Roboto({
-  weight: ["300", "400"],
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-body",
-});
 
 export const metadata: Metadata = {
   title: "Raffle - Enter Now!",
@@ -20,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${roboto.variable}`}>
+    <html lang="en">
       <body className="antialiased">{children}</body>
     </html>
   );

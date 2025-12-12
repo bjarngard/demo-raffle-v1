@@ -6,20 +6,20 @@ import { prisma } from './prisma'
 
 const DEFAULT_SETTINGS = {
   baseWeight: 1.0,
-  subMonthsMultiplier: 0.1,
+  subMonthsMultiplier: 0.5,
   subMonthsCap: 10,
   resubMultiplier: 0.2,
   resubCap: 5,
-  cheerBitsDivisor: 1000.0,
-  cheerBitsCap: 5.0,
+  cheerBitsDivisor: 100.0, // matches intended live profile (100 bits = +1×)
+  cheerBitsCap: 120.0,
   donationsDivisor: 1000.0,
   donationsCap: 5.0,
-  giftedSubsMultiplier: 0.1,
-  giftedSubsCap: 5.0,
+  giftedSubsMultiplier: 5.0,
+  giftedSubsCap: 120.0,
   carryOverMultiplier: 0.5,
   carryOverMaxBonus: 1.0,
-  loyaltyMaxBonus: 5.0,
-  supportMaxBonus: 10.0,
+  loyaltyMaxBonus: 3.0,
+  supportMaxBonus: 120.0,
 }
 
 export type WeightSettings = typeof DEFAULT_SETTINGS
@@ -67,21 +67,10 @@ export type WeightBreakdown = {
   totalWeight: number
 }
 
-let settingsCache: WeightSettings | null = null
-let cacheTimestamp = 0
-const CACHE_TTL = 60000 // 1 minute cache
-
 /**
  * Get current weight settings from database (with caching)
  */
 export async function getWeightSettings(): Promise<WeightSettings> {
-  const now = Date.now()
-
-  // Return cached settings if still valid
-  if (settingsCache && (now - cacheTimestamp) < CACHE_TTL) {
-    return settingsCache
-  }
-
   try {
     // Try to get settings from database
     let settings = await prisma.weightSettings.findFirst({
@@ -96,10 +85,6 @@ export async function getWeightSettings(): Promise<WeightSettings> {
     }
 
     const result = normalizeSettings(settings)
-
-    // Update cache
-    settingsCache = result
-    cacheTimestamp = now
 
     return result
   } catch (error) {
@@ -137,7 +122,7 @@ export async function updateWeightSettings(
     })
 
     // Invalidate cache
-    settingsCache = null
+    // no-op: cache removed
 
     return normalizeSettings(updated)
   } catch (error) {

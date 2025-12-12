@@ -60,7 +60,7 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
       },
       {
         title: 'Subscriber status',
-        children: `Active subscribers get a static bonus: +${format(subscriberBonus)}× applied once on top of the base weight (we treat all subs as having at least 1 month).`,
+        children: `Active subscribers get a static bonus: +${format(subscriberBonus)}× applied once on top of the base weight.`,
       },
       {
         title: 'Bits (cheers)',
