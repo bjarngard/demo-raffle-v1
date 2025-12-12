@@ -44,7 +44,7 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
     }
 
     const format = (value: number, decimals = 2) => value.toFixed(decimals).replace(/\.?0+$/, '')
-    const loyaltyPerMonth = settings.subMonthsMultiplier
+    const subscriberBonus = settings.subMonthsMultiplier
     const bitsDivisor = settings.cheerBitsDivisor
     const bitsCap = settings.cheerBitsCap
     const supportCap = settings.supportMaxBonus
@@ -60,7 +60,7 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
       },
       {
         title: 'Subscriber status',
-        children: `Active subscribers get a static bonus: +${format(loyaltyPerMonth)}× applied once (we treat all subs as having at least 1 month).`,
+        children: `Active subscribers get a static bonus: +${format(subscriberBonus)}× applied once on top of the base weight (we treat all subs as having at least 1 month).`,
       },
       {
         title: 'Bits (cheers)',
