@@ -59,17 +59,16 @@ export async function applyCarryOverForSession(
 
   const settings = await getWeightSettings()
 
-  const updatedUsers = await prisma.$transaction(async (tx) => {
-    const users = await tx.user.findMany({
-      where: { id: { in: participantIds } },
-    })
+  const users = await prisma.user.findMany({
+    where: { id: { in: participantIds } },
+  })
 
-    const userById = new Map(users.map((user) => [user.id, user]))
-    const updates: CarryOverResultUser[] = []
+  const userById = new Map(users.map((user) => [user.id, user]))
 
-    for (const userId of participantIds) {
+  const updatedUsers = await Promise.all(
+    participantIds.map(async (userId) => {
       const user = userById.get(userId)
-      if (!user) continue
+      if (!user) return null
 
       let newCarry = 0
 
@@ -94,7 +93,7 @@ export async function applyCarryOverForSession(
         carryOverWeight: newCarry,
       })
 
-      await tx.user.update({
+      await prisma.user.update({
         where: { id: user.id },
         data: {
           carryOverWeight: newCarry,
@@ -104,19 +103,21 @@ export async function applyCarryOverForSession(
         },
       })
 
-      updates.push({
+      return {
         id: user.id,
         username: user.username,
         carryOverWeight: newCarry,
-      })
-    }
+      }
+    })
+  )
 
-    return updates
-  })
+  const filtered = updatedUsers.filter(
+    (u): u is CarryOverResultUser => u !== null
+  )
 
   return {
-    updatedCount: updatedUsers.length,
-    users: updatedUsers,
+    updatedCount: filtered.length,
+    users: filtered,
   }
 }
 
