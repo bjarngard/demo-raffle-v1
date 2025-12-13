@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useWeightData } from '@/app/hooks/useWeightData'
 import { formatNumber } from '@/lib/format-number'
 import { getUserDisplayName } from '@/lib/user-display-name'
+import { formatChancePercent } from '@/lib/format-chance'
 
 export default function MyStatusCard() {
   const { data: session } = useSession()
@@ -97,7 +98,7 @@ export default function MyStatusCard() {
         {chancePercent !== null && !Number.isNaN(chancePercent) && (
           <div className="flex items-center justify-between mt-1">
             <span className="text-gray-100">Current chance</span>
-            <span className="text-lg font-semibold">{chancePercent.toFixed(2)}%</span>
+            <span className="text-lg font-semibold">{formatChancePercent(chancePercent)}</span>
           </div>
         )}
       </div>

@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useWeightData } from '@/app/hooks/useWeightData'
 import { formatNumber } from '@/lib/format-number'
 import { getUserDisplayName } from '@/lib/user-display-name'
+import { formatChancePercent } from '@/lib/format-chance'
 
 export default function TwitchLogin() {
   const { data: session, status } = useSession()
@@ -109,9 +110,11 @@ export default function TwitchLogin() {
                 <p className="text-xl font-semibold">{formatNumber(userWeight.carryOverWeight)}x</p>
               </div>
               {chancePercent !== null && !Number.isNaN(chancePercent) && (
-                <div className="col-span-2 flex items-center justify-between text-sm">
+                <div className="col-span-2 mt-1">
                   <p className="text-gray-100">Current chance</p>
-                  <p className="text-lg font-semibold">{chancePercent.toFixed(2)}%</p>
+                  <p className="text-xl font-semibold text-right">
+                    {formatChancePercent(chancePercent)}
+                  </p>
                 </div>
               )}
               <div>
