@@ -105,18 +105,18 @@ export default function TwitchLogin() {
                 <p className="text-gray-100">Total Weight</p>
                 <p className="text-2xl font-bold">{formatNumber(userWeight.totalWeight)}x</p>
               </div>
-              <div>
-                <p className="text-gray-100">Carry-Over Weight</p>
-                <p className="text-xl font-semibold">{formatNumber(userWeight.carryOverWeight)}x</p>
-              </div>
               {chancePercent !== null && !Number.isNaN(chancePercent) && (
-                <div className="col-span-2 mt-1">
+                <div>
                   <p className="text-gray-100">Current chance</p>
-                  <p className="text-xl font-semibold text-right">
+                  <p className="text-2xl font-bold">
                     {formatChancePercent(chancePercent)}
                   </p>
                 </div>
               )}
+              <div>
+                <p className="text-gray-100">Carry-Over Weight</p>
+                <p className="text-2xl font-bold">{formatNumber(userWeight.carryOverWeight)}x</p>
+              </div>
               <div>
                 <p className="text-gray-100">Subscriber</p>
                 <p className="text-lg font-semibold">
