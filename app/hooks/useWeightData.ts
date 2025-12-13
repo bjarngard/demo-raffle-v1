@@ -204,9 +204,7 @@ export function useWeightData(
     }
   }, [subscriber, enabled, interval])
 
-  const refetch = useCallback(async () => {
-    await fetchWeightData()
-  }, [fetchWeightData])
+  const refetch = fetchWeightData
 
   return {
     data: state.data,
