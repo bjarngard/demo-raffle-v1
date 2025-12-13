@@ -176,32 +176,34 @@ export default function LegalFooter() {
   const [showRules, setShowRules] = useState(false)
 
   return (
-    <>
-      <footer className="mt-12 pb-10 border-t border-white/10 pt-4 text-center text-xs text-gray-500 dark:text-gray-400 px-4 bg-transparent">
-        <p className="space-x-2">
-          <span>Bossfight Demo Raffle</span>
-          <span>·</span>
-          <span>Operated by Erik Bjärngard</span>
-          <span>·</span>
-          <span>Contact: bossfightswe@gmail.com</span>
-          <span>·</span>
-          <button
-            type="button"
-            onClick={() => setShowPrivacy(true)}
-            className="underline hover:text-gray-700 dark:hover:text-gray-200"
-          >
-            Privacy Policy
-          </button>
-          <span>·</span>
-          <button
-            type="button"
-            onClick={() => setShowRules(true)}
-            className="underline hover:text-gray-700 dark:hover:text-gray-200"
-          >
-            Raffle Rules
-          </button>
-        </p>
-      </footer>
+    <footer className="mt-12 mb-6 pb-6 pt-4 text-center text-xs text-gray-500 dark:text-gray-400 px-4 bg-transparent">
+      <p className="space-x-2">
+        <span>Bossfight Demo Raffle</span>
+        <span>·</span>
+        <span>Operated by Erik Bjärngard</span>
+        <span>·</span>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault()
+            setShowRules(true)
+          }}
+          className="underline hover:text-gray-300"
+        >
+          Rules &amp; Terms
+        </a>
+        <span>·</span>
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault()
+            setShowPrivacy(true)
+          }}
+          className="underline hover:text-gray-300"
+        >
+          Privacy Policy
+        </a>
+      </p>
 
       {showPrivacy && (
         <LegalModal
@@ -218,7 +220,7 @@ export default function LegalFooter() {
           onClose={() => setShowRules(false)}
         />
       )}
-    </>
+    </footer>
   )
 }
 
