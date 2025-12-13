@@ -177,7 +177,7 @@ export default function LegalFooter() {
 
   return (
     <>
-      <footer className="mt-10 border-t border-white/10 pt-4 text-center text-xs text-gray-500 dark:text-gray-400 px-4">
+      <footer className="mt-12 pb-10 border-t border-white/10 pt-4 text-center text-xs text-gray-500 dark:text-gray-400 px-4 bg-transparent">
         <p className="space-x-2">
           <span>Bossfight Demo Raffle</span>
           <span>·</span>
