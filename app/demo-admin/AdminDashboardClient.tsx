@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AmbientBackground from '@/app/components/AmbientBackground'
 import AdminUserTable from '@/app/components/AdminUserTable'
 import AdminWeightsForm from '@/app/components/AdminWeightsForm'
@@ -8,6 +8,7 @@ import RaffleWheel, { type RaffleWinner } from '@/app/components/RaffleWheel'
 import TopList from '@/app/components/TopList'
 import type { AdminEntry } from '@/types/admin'
 import type { WeightSettings } from '@/lib/weight-settings'
+import useStatus from '../hooks/useStatus'
 import { formatNumber } from '@/lib/format-number'
 import { withJitter } from '@/lib/polling'
 
@@ -54,6 +55,9 @@ export default function AdminDashboardClient({
   const [previousSession, setPreviousSession] = useState<DashboardSession | null>(lastEndedSession)
   const [sessionActionLoading, setSessionActionLoading] = useState(false)
   const [sessionActionMessage, setSessionActionMessage] = useState<string | null>(null)
+  const { data: statusData } = useStatus()
+  const lastEntryAtRef = useRef<string | null>(null)
+  const refreshInFlightRef = useRef(false)
 
   const fetchAdminData = useCallback(async () => {
     try {
@@ -155,7 +159,7 @@ export default function AdminDashboardClient({
   }, [fetchAdminData, fetchLeaderboard])
 
   const handleWinnerPicked = useCallback(
-    (winnerData: RaffleWinner) => {
+    async (winnerData: RaffleWinner) => {
       const entry = entries.find((candidate) => candidate.id === winnerData.id)
       if (entry) {
         setWinnerModalEntry(entry)
@@ -163,13 +167,50 @@ export default function AdminDashboardClient({
         console.warn('[admin] winner entry not found in current list', winnerData)
       }
 
-      setTimeout(() => {
-        fetchAdminData()
-        fetchLeaderboard()
-      }, 1000)
+      await Promise.all([fetchAdminData(), fetchLeaderboard()])
     },
     [entries, fetchAdminData, fetchLeaderboard]
   )
+
+  useEffect(() => {
+    if (!statusData) {
+      return
+    }
+
+    if (!statusData.hasActiveSession) {
+      lastEntryAtRef.current = null
+      refreshInFlightRef.current = false
+      return
+    }
+
+    if (!statusData.lastEntryAt) {
+      return
+    }
+
+    const previous = lastEntryAtRef.current
+    if (previous && previous === statusData.lastEntryAt) {
+      return
+    }
+
+    if (refreshInFlightRef.current) {
+      return
+    }
+
+    refreshInFlightRef.current = true
+
+    const nextLastEntryAt = statusData.lastEntryAt
+
+    const runRefresh = async () => {
+      try {
+        await Promise.all([fetchAdminData(), fetchLeaderboard()])
+        lastEntryAtRef.current = nextLastEntryAt
+      } finally {
+        refreshInFlightRef.current = false
+      }
+    }
+
+    void runRefresh()
+  }, [statusData, fetchAdminData, fetchLeaderboard])
 
   const raffleEntries = useMemo(
     () =>

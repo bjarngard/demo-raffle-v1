@@ -7,6 +7,7 @@ import TwitchLogin from './components/TwitchLogin'
 import WeightInfoModal from './components/WeightInfoModal'
 import { formatNumber } from '@/lib/format-number'
 import { withJitter } from '@/lib/polling'
+import useStatus from './hooks/useStatus'
 
 interface Winner {
   id: number
@@ -44,9 +45,11 @@ function RaffleForm() {
   const [sessionOverride, setSessionOverride] = useState<boolean | null>(null)
   const [submissionsOverride, setSubmissionsOverride] = useState<boolean | null>(null)
   const [weightInfoOpen, setWeightInfoOpen] = useState(false)
-  const sessionActive = leaderboard?.sessionId ? true : false
-  const submissionsOpen = leaderboard?.submissionsOpen === true
-  const effectiveSessionActive = sessionOverride ?? sessionActive
+  const { data: statusData, loading: statusLoading, refetch: refetchStatus } = useStatus()
+  const activeSessionId = statusData?.sessionId ?? leaderboard?.sessionId ?? null
+  const hasActiveSession = statusData?.hasActiveSession ?? Boolean(activeSessionId)
+  const submissionsOpen = statusData?.submissionsOpen ?? leaderboard?.submissionsOpen ?? false
+  const effectiveSessionActive = sessionOverride ?? hasActiveSession
   const effectiveSubmissionsOpen = submissionsOverride ?? submissionsOpen
   const submissionsClosed = !effectiveSubmissionsOpen
 
@@ -138,11 +141,11 @@ function RaffleForm() {
     setSessionOverride(null)
     setSubmitted(false)
     setError('')
-  }, [leaderboard?.sessionId])
+  }, [activeSessionId])
 
   useEffect(() => {
     setSubmissionsOverride(null)
-  }, [leaderboard?.submissionsOpen])
+  }, [submissionsOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -227,6 +230,8 @@ function RaffleForm() {
         setName('')
         setDemoLink('')
         setNotes('')
+        await refetchStatus()
+        await fetchLeaderboard()
       } else {
         setError(data.error || 'An error occurred')
       }
@@ -239,7 +244,7 @@ function RaffleForm() {
   }
 
   // Loading state
-  if (loadingWinner || status === 'loading') {
+  if (loadingWinner || statusLoading || status === 'loading') {
     return (
       <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
         <main className="w-full max-w-2xl px-6 py-12">
@@ -310,24 +315,24 @@ function RaffleForm() {
     <AmbientBackground contentClassName="min-h-screen py-6 px-4">
       <main className="max-w-6xl mx-auto">
         {/* Status Banner */}
-        {leaderboard && sessionActive && (
+        {leaderboard && hasActiveSession && (
           <div
             className={`mb-6 rounded-lg shadow-lg p-4 ${
-              leaderboard.submissionsOpen ? 'bg-[#00c950] text-white' : 'bg-orange-500 text-white'
+              submissionsOpen ? 'bg-[#00c950] text-white' : 'bg-orange-500 text-white'
             }`}
           >
             <div className="flex items-center justify-center gap-3">
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-[#3be178]' : 'bg-orange-300'
+                  submissionsOpen ? 'bg-[#3be178]' : 'bg-orange-300'
                 } animate-pulse`}
               ></div>
               <h2 className="text-3xl font-bold">
-                {leaderboard.submissionsOpen ? 'Submissions open' : 'Submissions paused'}
+                {submissionsOpen ? 'Submissions open' : 'Submissions paused'}
               </h2>
               <div
                 className={`w-4 h-4 rounded-full ${
-                  leaderboard.submissionsOpen ? 'bg-[#3be178]' : 'bg-orange-300'
+                  submissionsOpen ? 'bg-[#3be178]' : 'bg-orange-300'
                 } animate-pulse`}
               ></div>
             </div>
@@ -337,13 +342,13 @@ function RaffleForm() {
           </div>
         )}
 
-        {leaderboard && !leaderboard.sessionId && (
+        {(statusData || leaderboard) && !hasActiveSession && (
           <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow p-4 text-gray-900">
             The raffle is not currently running. Please check back later.
           </div>
         )}
 
-        {leaderboard && leaderboard.sessionId && !leaderboard.submissionsOpen && (
+        {hasActiveSession && !submissionsOpen && (
           <div className="mb-6 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow p-4 text-gray-800 dark:text-gray-100">
             {winner ? (
               <p>
@@ -535,9 +540,9 @@ function RaffleForm() {
           {/* Right Column: Top 20 Leaderboard */}
           <div className="bf-glass-card rounded-lg border border-[var(--bf-lime)] p-[clamp(16px,2vw,24px)]">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 text-center">
-              {sessionActive ? 'Leaderboard' : 'Last session results'}
+              {hasActiveSession ? 'Leaderboard' : 'Last session results'}
             </h2>
-            {!sessionActive && (
+            {!hasActiveSession && (
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 text-center">
                 Showing the most recent completed session
               </p>

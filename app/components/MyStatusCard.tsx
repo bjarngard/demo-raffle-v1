@@ -3,14 +3,15 @@
 import { useSession } from 'next-auth/react'
 import { useWeightData } from '@/app/hooks/useWeightData'
 import { formatNumber } from '@/lib/format-number'
+import { getUserDisplayName } from '@/lib/user-display-name'
 
 export default function MyStatusCard() {
   const { data: session } = useSession()
   const userId = session?.user?.id
   const isSignedIn = Boolean(userId)
-  const { data, status, error, lastUpdated } = useWeightData({
+  const { data, status, error, lastUpdated, refetch } = useWeightData({
     enabled: isSignedIn,
-    pollIntervalMs: 30_000,
+    pollIntervalMs: 20_000,
   })
   const weightInfo = userId && data?.user.id === userId ? data : null
   const formattedLastUpdated = formatLastUpdated(lastUpdated ?? null)
@@ -53,11 +54,11 @@ export default function MyStatusCard() {
   const loyaltyBonus = breakdown.loyalty.cappedTotal
   const supportBonus = breakdown.support.cappedTotal
   const sessionName = typeof session?.user?.name === 'string' ? session.user.name : ''
-  const viewerName =
-    user.displayName?.trim() ||
-    user.username?.trim() ||
-    sessionName.trim() ||
-    'Twitch user'
+  const viewerName = getUserDisplayName({
+    ...user,
+    displayName: user.displayName ?? sessionName ?? null,
+    username: user.username ?? sessionName ?? null,
+  })
 
   return (
     <div className="bg-gradient-to-br from-[#EB2E70] to-[#A6178E] rounded-lg border border-[var(--bf-lime)] shadow-lg p-6 text-white">
@@ -157,7 +158,14 @@ export default function MyStatusCard() {
       </div>
       {formattedLastUpdated && (
         <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-          Last updated: {formattedLastUpdated}
+          Last updated: {formattedLastUpdated}{' '}
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="underline text-[var(--bf-lime)] hover:text-bf-primary transition-colors"
+          >
+            Refresh now
+          </button>
         </p>
       )}
 

@@ -5,6 +5,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { useWeightData } from '@/app/hooks/useWeightData'
 import { formatNumber } from '@/lib/format-number'
+import { getUserDisplayName } from '@/lib/user-display-name'
 
 export default function TwitchLogin() {
   const { data: session, status } = useSession()
@@ -16,6 +17,13 @@ export default function TwitchLogin() {
     pollIntervalMs: 2 * 60 * 1000,
   })
   const userWeight = userId && data?.user.id === userId ? data.user : null
+  const viewerName = userWeight
+    ? getUserDisplayName(userWeight)
+    : getUserDisplayName({
+        displayName: session?.user?.name ?? null,
+        username: session?.user?.name ?? null,
+        id: session?.user?.id ?? null,
+      })
 
   const handleSignIn = async () => {
     setLoading(true)
@@ -55,7 +63,7 @@ export default function TwitchLogin() {
             {session.user.image && (
               <Image
                 src={session.user.image}
-                alt={session.user.name || 'User'}
+                alt={viewerName}
                 width={48}
                 height={48}
                 className="w-12 h-12 rounded-full border-2 border-white object-cover"
@@ -63,7 +71,7 @@ export default function TwitchLogin() {
             )}
             <div>
               <h3 className="font-semibold text-lg">
-                {session.user.name || 'Twitch User'}
+                {viewerName}
               </h3>
               <p className="text-gray-100 text-sm">
                 Logged in via Twitch
