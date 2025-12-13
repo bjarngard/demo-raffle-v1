@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/admin-auth'
-import { getAdminEntries } from '@/lib/admin-data'
+import { getAdminEntries, getCarryOverUsers } from '@/lib/admin-data'
 import { getWeightSettings } from '@/lib/weight-settings'
 import { getSubmissionsOpen } from '@/lib/submissions-state'
 import { getCurrentSession, getLatestEndedSession } from '@/lib/session'
@@ -28,13 +28,14 @@ export async function GET() {
     ])
     console.log('[admin/dashboard] step=meta', `${Date.now() - started}ms`)
 
-    const [entries, lastEndedSession] = await Promise.all([
+    const [entries, lastEndedSession, carryOverUsers] = await Promise.all([
       currentSession
         ? getAdminEntries({
             sessionId: currentSession.id,
           })
         : Promise.resolve<Awaited<ReturnType<typeof getAdminEntries>>>([]),
       getLatestEndedSession(),
+      currentSession ? Promise.resolve<Awaited<ReturnType<typeof getCarryOverUsers>>>([]) : getCarryOverUsers(),
     ])
     console.log('[admin/dashboard] step=data', `${Date.now() - started}ms`)
 
@@ -47,6 +48,7 @@ export async function GET() {
       submissionsOpen,
       currentSession,
       lastEndedSession,
+      carryOverUsers,
     })
   } catch (error) {
     console.error('Error fetching admin dashboard data:', error)

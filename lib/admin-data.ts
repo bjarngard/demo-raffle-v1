@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import type { AdminEntry } from '@/types/admin'
+import type { CarryOverUser } from '@/types/admin'
 import { entryStateExclusion } from './submissions-state'
 import { describeWeightBreakdown } from './weight-settings'
 import { getCurrentSession, getLatestEndedSession } from './session'
@@ -154,6 +155,42 @@ export async function getAdminEntries({
   }
 
   return formattedEntries
+}
+
+/**
+ * Users with non-zero carry-over weight that will apply to the next session when it is started.
+ */
+export async function getCarryOverUsers(limit = 200): Promise<CarryOverUser[]> {
+  const users = await prisma.user.findMany({
+    where: {
+      carryOverWeight: {
+        gt: 0,
+      },
+    },
+    select: {
+      id: true,
+      displayName: true,
+      username: true,
+      carryOverWeight: true,
+      totalWeight: true,
+      lastActive: true,
+    },
+    orderBy: [
+      { carryOverWeight: 'desc' },
+      { totalWeight: 'desc' },
+      { lastActive: 'desc' },
+    ],
+    take: limit,
+  })
+
+  return users.map((user) => ({
+    id: user.id,
+    displayName: getUserDisplayName(user),
+    username: user.username ?? '',
+    carryOverWeight: user.carryOverWeight,
+    totalWeight: user.totalWeight,
+    lastActive: user.lastActive?.toISOString() ?? null,
+  }))
 }
 
 async function resolveAdminSessionId(explicitSessionId?: string | null) {

@@ -29,3 +29,12 @@ export type AdminEntry = {
   userId: string | null
 }
 
+export type CarryOverUser = {
+  id: string
+  displayName: string
+  username: string
+  carryOverWeight: number
+  totalWeight: number
+  lastActive: string | null
+}
+

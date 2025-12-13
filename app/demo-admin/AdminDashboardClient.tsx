@@ -6,7 +6,7 @@ import AdminUserTable from '@/app/components/AdminUserTable'
 import AdminWeightsForm from '@/app/components/AdminWeightsForm'
 import RaffleWheel, { type RaffleWinner } from '@/app/components/RaffleWheel'
 import TopList from '@/app/components/TopList'
-import type { AdminEntry } from '@/types/admin'
+import type { AdminEntry, CarryOverUser } from '@/types/admin'
 import type { WeightSettings } from '@/lib/weight-settings'
 import useStatus from '../hooks/useStatus'
 import { formatNumber } from '@/lib/format-number'
@@ -55,6 +55,7 @@ export default function AdminDashboardClient({
   const [previousSession, setPreviousSession] = useState<DashboardSession | null>(lastEndedSession)
   const [sessionActionLoading, setSessionActionLoading] = useState(false)
   const [sessionActionMessage, setSessionActionMessage] = useState<string | null>(null)
+  const [carryOverUsers, setCarryOverUsers] = useState<CarryOverUser[]>([])
   const { data: statusData } = useStatus()
   const lastEntryAtRef = useRef<string | null>(null)
   const refreshInFlightRef = useRef(false)
@@ -79,6 +80,9 @@ export default function AdminDashboardClient({
         }
         if ('lastEndedSession' in data) {
           setPreviousSession(data.lastEndedSession ?? null)
+        }
+        if ('carryOverUsers' in data) {
+          setCarryOverUsers(data.carryOverUsers ?? [])
         }
       }
     } catch (error) {
@@ -308,10 +312,17 @@ export default function AdminDashboardClient({
               </div>
 
               {activeTab === 'users' && (
-                <AdminUserTable
-                  entries={entries}
-                  onRefresh={fetchAdminData}
-                />
+                sessionInfo ? (
+                  <AdminUserTable
+                    entries={entries}
+                    onRefresh={fetchAdminData}
+                  />
+                ) : (
+                  <CarryOverTable
+                    users={carryOverUsers}
+                    onRefresh={fetchAdminData}
+                  />
+                )
               )}
 
               {activeTab === 'weights' && (
@@ -510,6 +521,71 @@ function formatDemoLinkLabel(raw: string): string {
   const trimmed = raw.trim()
   if (trimmed.length <= 80) return trimmed
   return `${trimmed.slice(0, 77)}…`
+}
+
+// Rendered only when there is NO active session; shows who will enter the next session with carry-over weight.
+function CarryOverTable({
+  users,
+  onRefresh,
+}: {
+  users: CarryOverUser[]
+  onRefresh: () => Promise<void>
+}) {
+  return (
+    <div className="bf-glass-card rounded-lg p-5">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Carry-over for next session
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            These users currently have carry-over weight and will start the next session with a buff.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void onRefresh()}
+          className="inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium transition border-gray-500 text-gray-200 hover:border-[var(--bf-lime)] hover:text-[var(--bf-lime)] hover:bg-[#0f1d28]"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {users.length === 0 ? (
+        <p className="text-sm text-gray-600 dark:text-gray-400">No users currently have carry-over weight.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-left text-gray-900 dark:text-gray-100">
+            <thead className="text-xs uppercase text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+              <tr>
+                <th className="py-2 pr-4">User</th>
+                <th className="py-2 pr-4 text-right">Total weight</th>
+                <th className="py-2 pr-4 text-right">Carry-over</th>
+                <th className="py-2 pr-4 text-right">Last active</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id} className="border-b border-gray-100 dark:border-gray-800">
+                  <td className="py-2 pr-4">
+                    <div className="font-semibold">{user.displayName}</div>
+                    {user.username && user.username !== user.displayName && (
+                      <div className="text-xs text-gray-600 dark:text-gray-400">{user.username}</div>
+                    )}
+                  </td>
+                  <td className="py-2 pr-4 text-right">{formatNumber(user.totalWeight)}x</td>
+                  <td className="py-2 pr-4 text-right">+{formatNumber(user.carryOverWeight)}x</td>
+                  <td className="py-2 pr-4 text-right">
+                    {user.lastActive ? new Date(user.lastActive).toLocaleString() : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
 }
 
 type AdminToggleProps = {
