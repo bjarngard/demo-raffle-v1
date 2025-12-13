@@ -17,6 +17,7 @@ export default function TwitchLogin() {
     pollIntervalMs: 2 * 60 * 1000,
   })
   const userWeight = userId && data?.user.id === userId ? data.user : null
+  const chancePercent = data?.chancePercent ?? null
   const viewerName = userWeight
     ? getUserDisplayName(userWeight)
     : getUserDisplayName({
@@ -57,7 +58,7 @@ export default function TwitchLogin() {
 
   if (session?.user) {
     return (
-      <div className="bg-gradient-to-r from-[#EB2E70] to-[#A6178E] rounded-lg p-6 mb-6 text-white">
+      <div className="bg-gradient-to-r from-[#EB2E70] to-[#A6178E] rounded-lg p-6 mb-6 text-white border border-white/15 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             {session.user.image && (
@@ -107,6 +108,12 @@ export default function TwitchLogin() {
                 <p className="text-gray-100">Carry-Over Weight</p>
                 <p className="text-xl font-semibold">{formatNumber(userWeight.carryOverWeight)}x</p>
               </div>
+              {chancePercent !== null && !Number.isNaN(chancePercent) && (
+                <div className="col-span-2 flex items-center justify-between text-sm">
+                  <p className="text-gray-100">Current chance</p>
+                  <p className="text-lg font-semibold">{chancePercent.toFixed(2)}%</p>
+                </div>
+              )}
               <div>
                 <p className="text-gray-100">Subscriber</p>
                 <p className="text-lg font-semibold">

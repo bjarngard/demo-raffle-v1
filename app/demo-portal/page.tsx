@@ -8,6 +8,7 @@ import DemoSubmissionForm from '@/app/components/DemoSubmissionForm'
 import MyStatusCard from '@/app/components/MyStatusCard'
 import TopList from '@/app/components/TopList'
 import WeightTable from '@/app/components/WeightTable'
+import LegalFooter from '@/app/components/LegalFooter'
 
 interface LeaderboardEntry {
   id: number
@@ -226,6 +227,7 @@ export default function DemoPortal() {
   return (
     <SessionProvider>
       <DemoPortalContent />
+      <LegalFooter />
     </SessionProvider>
   )
 }

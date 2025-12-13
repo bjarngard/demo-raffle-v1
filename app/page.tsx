@@ -8,6 +8,7 @@ import WeightInfoModal from './components/WeightInfoModal'
 import { formatNumber } from '@/lib/format-number'
 import { withJitter } from '@/lib/polling'
 import useStatus from './hooks/useStatus'
+import LegalFooter from './components/LegalFooter'
 
 interface Winner {
   id: number
@@ -599,10 +600,21 @@ function RaffleForm() {
   )
 }
 
-export default function Home() {
+function Home() {
   return (
     <SessionProvider>
       <RaffleForm />
     </SessionProvider>
   )
 }
+
+function PageWithFooter() {
+  return (
+    <>
+      <Home />
+      <LegalFooter />
+    </>
+  )
+}
+
+export { PageWithFooter as default }
