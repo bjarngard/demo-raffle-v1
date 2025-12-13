@@ -45,7 +45,7 @@
 | `/api/winner` | GET | Public | Returns latest winner for the active session; falls back to the most recent ended session. |
 | `/api/user/submission` | GET | Viewer session | Returns `{ hasSubmission, submission }` prioritizing the current session, then any pending entry. |
 | `/api/pick-winner` | POST | `requireAdminSession` | Picks a weighted winner among non-winning entries in the active session, marks them as winner, recalculates weight, and returns raffle wheel metadata. Never toggles submissions. |
-| `/api/admin/dashboard` | GET | `requireAdminSession` | Hydrates admin UI with entries (active session only) via `lib/admin-data.ts` (which calls `describeWeightBreakdown`), plus weight settings, submissions flag, and current/last sessions. |
+| `/api/admin/dashboard` | GET | `requireAdminSession` | Hydrates admin UI with entries (active session only) via `lib/admin-data.ts` (which calls `describeWeightBreakdown`), plus weight settings, submissions flag, and current/last sessions. When no active session exists, it also returns `carryOverUsers` scoped to the latest ended session (users with `carryOverWeight > 0` from that session). |
 | `/api/admin/entries` | GET | `requireAdminSession` | Search/sort listing of entries for the active session. |
 | `/api/admin/entries/[id]` | DELETE | `requireAdminSession` | Removes a specific entry (used for moderation). |
 | `/api/admin/submissions` | GET/POST | `requireAdminSession` | Reads or toggles the global submissions-open sentinel entry. This is the only place that calls `setSubmissionsOpen()`. |
@@ -53,7 +53,7 @@
 | `/api/admin/session/end` | POST | `requireAdminSession` | Ends the current session, applies carry-over via `applyCarryOverForSession`, and returns `{ session, carryOver }`. Accepts optional `{ resetWeights?: boolean }`. |
 | `/api/admin/weight-settings` | GET/PUT | `requireAdminSession` | Fetches or updates the single-row `WeightSettings` table. |
 | `/api/admin/auth` | GET | `requireAdminSession` | Lightweight heartbeat for the admin shell. |
-| `/api/weight/me` | GET | Viewer session | Returns the viewer’s canonical weight breakdown. Reads from DB, and lazily triggers `syncUserFromTwitch` when `needsResync` is true or cached data is older than the stale window. |
+| `/api/weight/me` | GET | Viewer session | Returns the viewer’s canonical weight breakdown (`user`, `breakdown`, `settings`, `chancePercent`). Reads from DB, and lazily triggers `syncUserFromTwitch` when `needsResync` is true or cached data is older than the stale window. `chancePercent` is computed only when the user has an entry in the active session: sum all participants’ `totalWeight` (excluding sentinel) and the user’s `totalWeight`, then `(mySum / totalSum) * 100`; otherwise `null`. Aggregates are skipped when the user has no active-session entry. |
 | `/api/twitch/sync` | POST | Viewer session (manual) | Explicit sync trigger (admin/support fallback). Uses the same helper as `/api/weight/me` but should not be called by UI flows. |
 | `/api/twitch/carry-over` | POST | `requireAdminSession` | Applies carry-over using the shared helper. Accepts `{ sessionId?, resetWeights? }`, otherwise defaults to the current session. Returns errorCode `NO_ACTIVE_SESSION` if neither is provided. |
 | `/api/twitch/update-weights` | POST | `requireAdminSession` | Recalculates user weights in bulk (implementation unchanged by session work). |
@@ -212,6 +212,8 @@ All models live in `prisma/schema.prisma`. Key tables:
   - Entry fields: optional display name override; **required demoLink** (trimmed; missing link → `DEMO_LINK_REQUIRED`); optional `notes` textarea (trimmed, HTML-stripped, normalized newlines, max 500 chars; `NOTES_TOO_LONG` / `NOTES_INVALID` handled client-side).
   - The “Link to your demo” input is required: the client guards empty submissions, and `/api/enter` returns `DEMO_LINK_REQUIRED` with “You must add a link to participate.” if a link is missing or only whitespace.
   - Includes a CTA opening `WeightInfoModal`, which uses `useWeightData` to read live `WeightSettings` values and presents a neutral rules table (base weight, subscriber loyalty caps, bits/gifts boosts, carry-over limits, participation requirements). It no longer embeds the viewer’s personal status card.
+- The `TwitchLogin` “Your Raffle Stats” card uses `useWeightData` and shows `chancePercent` when available, alongside weight fields; styling updated with subtle border/shadow.
+- Viewer footer present (not on admin) with operator/contact text and links to Privacy Policy and Raffle Rules opening client-side legal modals.
 - Error handling from `/api/enter`:
   - `SUBMISSIONS_CLOSED` → “Submissions are currently closed.”
   - `NO_ACTIVE_SESSION` → “The raffle is not currently running.”
@@ -228,7 +230,8 @@ All models live in `prisma/schema.prisma`. Key tables:
   - Submissions closed + winner → “Submissions are currently closed. Latest winner: <name>.”
   - Submissions closed + no winner → “Submissions are currently closed.”
 - `DemoSubmissionForm` receives `submissionsOpen` + `sessionActive` flags, disables itself when either is false, and surfaces all error codes described above.
-- Additional components: `MyStatusCard` (viewer’s submission + sync data, follower/subscriber `StatusBadge`s, loyalty/support/carry-over breakdown sourced from `/api/weight/me` via the shared `useWeightData` hook), `TopList` (leaderboard), `WeightTable`.
+- Additional components: `MyStatusCard` (viewer’s submission + sync data, follower/subscriber `StatusBadge`s, loyalty/support/carry-over breakdown sourced from `/api/weight/me` via the shared `useWeightData` hook, and `chancePercent` when available), `TopList` (leaderboard), `WeightTable`.
+- Viewer footer present (not on admin) with operator/contact text and links to Privacy Policy and Raffle Rules opening client-side legal modals.
 
 ### `/demo-admin`
 - Server component ensures broadcaster session; otherwise shows “Admin Access Required” card.
@@ -247,8 +250,8 @@ All models live in `prisma/schema.prisma`. Key tables:
 - Location: `app/hooks/useWeightData.ts`. Client-only hook that is the **only approved interface** for fetching `/api/weight/me`.
 - API contract:
   - `useWeightData(options?: { enabled?: boolean; pollIntervalMs?: number })` → `{ data, status, error, lastUpdated, refetch }`.
-  - `data` mirrors the API response (`user`, `breakdown`, `settings`), `status` is `'idle' | 'loading' | 'success' | 'error'`, and `lastUpdated` is a millisecond timestamp of the last successful fetch.
-  - `enabled` defaults to `true`; `pollIntervalMs` defaults to `30_000` (viewer baseline) but components may pass higher values (e.g., TwitchLogin uses `120_000ms`). Intervals must never be shorter than historical values without a product decision.
+  - `data` mirrors the API response (`user`, `breakdown`, `settings`, `chancePercent`), `status` is `'idle' | 'loading' | 'success' | 'error'`, and `lastUpdated` is a millisecond timestamp of the last successful fetch.
+  - `enabled` defaults to `true`; `pollIntervalMs` defaults to `20_000` (viewer baseline) but components may pass higher values (e.g., TwitchLogin uses `120_000ms`). Intervals must never be shorter than historical values without a product decision.
 - Behavior:
   - Maintains a **single polling timer per browser tab**. When multiple subscribers are enabled, the hook uses the smallest requested interval. When no subscribers are enabled, the timer is cleared and cached data is wiped.
   - Fetches use `cache: 'no-store'`, with a `fetchPromise` guard so overlapping calls coalesce.
