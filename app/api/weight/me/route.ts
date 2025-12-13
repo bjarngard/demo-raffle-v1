@@ -6,6 +6,8 @@ import { describeWeightBreakdown, getWeightSettings } from '@/lib/weight-setting
 import { ensureUser } from '@/lib/user'
 import { getTwitchSyncTrigger, shouldSyncTwitch, syncUserFromTwitch } from '@/lib/twitch-sync'
 import { getUserDisplayName } from '@/lib/user-display-name'
+import { getCurrentSession } from '@/lib/session'
+import { entryStateExclusion } from '@/lib/submissions-state'
 
 /**
  * Surface the viewer's canonical raffle weight. EventSub flags users via
@@ -67,6 +69,44 @@ export async function GET() {
   const settings = await getWeightSettings()
   console.log('[weight/me] step=settings', `${Date.now() - started}ms`)
 
+  let chancePercent: number | null = null
+  const currentSession = await getCurrentSession()
+  if (currentSession) {
+    const entryUsers = await prisma.entry.findMany({
+      where: {
+        sessionId: currentSession.id,
+        ...entryStateExclusion,
+        userId: { not: null },
+      },
+      select: { userId: true },
+    })
+
+    const userIds = Array.from(
+      new Set(entryUsers.map((row) => row.userId).filter((id): id is string => Boolean(id)))
+    )
+
+    if (userIds.length > 0 && userIds.includes(resolvedUser.id)) {
+      const [totalAggregate, myAggregate] = await Promise.all([
+        prisma.user.aggregate({
+          where: { id: { in: userIds } },
+          _sum: { totalWeight: true },
+        }),
+        prisma.user.aggregate({
+          where: { id: resolvedUser.id },
+          _sum: { totalWeight: true },
+        }),
+      ])
+
+      const totalSum = totalAggregate._sum.totalWeight ?? 0
+      const mySum = myAggregate._sum.totalWeight ?? 0
+
+      if (totalSum > 0 && mySum > 0) {
+        chancePercent = (mySum / totalSum) * 100
+      }
+    }
+  }
+  console.log('[weight/me] step=chance', `${Date.now() - started}ms`)
+
   const effectiveDisplayName = getUserDisplayName(resolvedUser)
   const effectiveUsername =
     (resolvedUser.username ?? '').trim() ||
@@ -93,6 +133,7 @@ export async function GET() {
     },
     breakdown,
     settings,
+    chancePercent,
   })
 }
 

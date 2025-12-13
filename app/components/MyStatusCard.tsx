@@ -15,6 +15,7 @@ export default function MyStatusCard() {
   })
   const weightInfo = userId && data?.user.id === userId ? data : null
   const formattedLastUpdated = formatLastUpdated(lastUpdated ?? null)
+  const chancePercent = data?.chancePercent ?? null
 
   if (!session?.user) {
     return (
@@ -61,7 +62,7 @@ export default function MyStatusCard() {
   })
 
   return (
-    <div className="bg-gradient-to-br from-[#EB2E70] to-[#A6178E] rounded-lg border border-[var(--bf-lime)] shadow-lg p-6 text-white">
+    <div className="bg-gradient-to-br from-[#EB2E70] to-[#A6178E] rounded-lg border border-white/15 shadow-lg p-6 text-white">
       <h3 className="text-2xl font-bold mb-1">My Status</h3>
       <p className="text-sm text-white/80 mb-4">Signed in as {viewerName}</p>
 
@@ -93,6 +94,12 @@ export default function MyStatusCard() {
           <span className="text-gray-100">Total Weight</span>
           <span className="text-3xl font-bold">{formatNumber(breakdown.totalWeight)}x</span>
         </div>
+        {chancePercent !== null && !Number.isNaN(chancePercent) && (
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-gray-100">Current chance</span>
+            <span className="text-lg font-semibold">{chancePercent.toFixed(2)}%</span>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2 text-sm">

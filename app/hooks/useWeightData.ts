@@ -22,6 +22,7 @@ export type WeightResponse = {
   }
   breakdown: WeightBreakdown
   settings: WeightSettings
+  chancePercent: number | null
 }
 
 export type UseWeightDataOptions = {

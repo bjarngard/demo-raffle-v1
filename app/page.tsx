@@ -529,7 +529,7 @@ function RaffleForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="heading-text w-full bg-[var(--bf-pink)] text-white py-3 px-6 rounded-lg font-medium shadow-md shadow-black/25 hover:bg-bf-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                className="heading-text w-full bg-[var(--bf-pink)] text-white py-3 px-6 rounded-lg font-medium shadow-md shadow-black/25 border border-white/20 hover:bg-bf-primary-dark disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Entering...' : 'Enter Raffle'}
               </button>
