@@ -158,14 +158,36 @@ export async function getAdminEntries({
 }
 
 /**
- * Users with non-zero carry-over weight that will apply to the next session when it is started.
+ * Users with non-zero carry-over weight from the specified ended session
+ * that will apply to the next session when it is started.
  */
-export async function getCarryOverUsers(limit = 200): Promise<CarryOverUser[]> {
+export async function getCarryOverUsersForSession(
+  sessionId: string,
+  limit = 200
+): Promise<CarryOverUser[]> {
+  const distinctUserIds = await prisma.entry.findMany({
+    where: {
+      sessionId,
+      ...entryStateExclusion,
+      userId: { not: null },
+    },
+    select: { userId: true },
+    distinct: ['userId'],
+    take: limit, // early guard on distinct set
+  })
+
+  const ids = distinctUserIds
+    .map((row) => row.userId)
+    .filter((id): id is string => Boolean(id))
+
+  if (ids.length === 0) {
+    return []
+  }
+
   const users = await prisma.user.findMany({
     where: {
-      carryOverWeight: {
-        gt: 0,
-      },
+      id: { in: ids },
+      carryOverWeight: { gt: 0 },
     },
     select: {
       id: true,

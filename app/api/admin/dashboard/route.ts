@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAdminSession } from '@/lib/admin-auth'
-import { getAdminEntries, getCarryOverUsers } from '@/lib/admin-data'
+import { getAdminEntries, getCarryOverUsersForSession } from '@/lib/admin-data'
 import { getWeightSettings } from '@/lib/weight-settings'
 import { getSubmissionsOpen } from '@/lib/submissions-state'
 import { getCurrentSession, getLatestEndedSession } from '@/lib/session'
@@ -28,16 +28,20 @@ export async function GET() {
     ])
     console.log('[admin/dashboard] step=meta', `${Date.now() - started}ms`)
 
-    const [entries, lastEndedSession, carryOverUsers] = await Promise.all([
+    const [entries, lastEndedSession] = await Promise.all([
       currentSession
         ? getAdminEntries({
             sessionId: currentSession.id,
           })
         : Promise.resolve<Awaited<ReturnType<typeof getAdminEntries>>>([]),
       getLatestEndedSession(),
-      currentSession ? Promise.resolve<Awaited<ReturnType<typeof getCarryOverUsers>>>([]) : getCarryOverUsers(),
     ])
     console.log('[admin/dashboard] step=data', `${Date.now() - started}ms`)
+
+    const carryOverUsers =
+      currentSession || !lastEndedSession
+        ? []
+        : await getCarryOverUsersForSession(lastEndedSession.id, 200)
 
     console.log('[admin/dashboard] done', `${Date.now() - started}ms`)
 

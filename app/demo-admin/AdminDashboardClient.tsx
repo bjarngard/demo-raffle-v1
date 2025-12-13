@@ -320,7 +320,6 @@ export default function AdminDashboardClient({
                 ) : (
                   <CarryOverTable
                     users={carryOverUsers}
-                    onRefresh={fetchAdminData}
                   />
                 )
               )}
@@ -526,10 +525,8 @@ function formatDemoLinkLabel(raw: string): string {
 // Rendered only when there is NO active session; shows who will enter the next session with carry-over weight.
 function CarryOverTable({
   users,
-  onRefresh,
 }: {
   users: CarryOverUser[]
-  onRefresh: () => Promise<void>
 }) {
   return (
     <div className="bf-glass-card rounded-lg p-5">
@@ -542,13 +539,6 @@ function CarryOverTable({
             These users currently have carry-over weight and will start the next session with a buff.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void onRefresh()}
-          className="inline-flex items-center px-3 py-1.5 rounded-md border text-xs font-medium transition border-gray-500 text-gray-200 hover:border-[var(--bf-lime)] hover:text-[var(--bf-lime)] hover:bg-[#0f1d28]"
-        >
-          Refresh
-        </button>
       </div>
 
       {users.length === 0 ? (
