@@ -176,7 +176,7 @@ export default function LegalFooter() {
   const [showRules, setShowRules] = useState(false)
 
   return (
-    <footer className="mt-12 mb-6 pb-6 pt-4 text-center text-xs text-gray-500 dark:text-gray-400 px-4 bg-transparent">
+    <footer className="mt-16 mb-10 pb-10 pt-4 text-center text-xs text-gray-500 dark:text-gray-400 px-4 bg-transparent">
       <p className="space-x-2">
         <span>Bossfight Demo Raffle</span>
         <span>·</span>

@@ -44,19 +44,21 @@ export default function AmbientBackground({ children, contentClassName }: Props)
   }, [])
 
   const contentClass = contentClassName
-    ? `bf-ambient-content ${contentClassName}`
-    : 'bf-ambient-content'
+    ? `bf-ambient-content relative z-10 ${contentClassName}`
+    : 'bf-ambient-content relative z-10'
 
   return (
-    <div className="bf-ambient-bg">
-      <div className="bf-orb bf-orb-1" aria-hidden />
-      <div className="bf-orb bf-orb-2" aria-hidden />
-      <div className="bf-orb bf-orb-3" aria-hidden />
-      <div className="bf-noise" aria-hidden />
-      <div className="bf-particles" aria-hidden>
-        {particles.map((particle) => (
-          <span key={particle.id} className="bf-particle" style={particle.style} />
-        ))}
+    <div className="relative min-h-screen overflow-hidden">
+      <div className="pointer-events-none fixed inset-0 -z-10 bf-ambient-bg" aria-hidden>
+        <div className="bf-orb bf-orb-1" />
+        <div className="bf-orb bf-orb-2" />
+        <div className="bf-orb bf-orb-3" />
+        <div className="bf-noise" />
+        <div className="bf-particles">
+          {particles.map((particle) => (
+            <span key={particle.id} className="bf-particle" style={particle.style} />
+          ))}
+        </div>
       </div>
       <div className={contentClass}>{children}</div>
     </div>
