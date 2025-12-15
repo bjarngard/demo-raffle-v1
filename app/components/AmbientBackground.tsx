@@ -48,7 +48,7 @@ export default function AmbientBackground({ children, contentClassName }: Props)
     : 'bf-ambient-content'
 
   return (
-    <div className="bf-ambient-bg">
+    <div className="bf-ambient-bg min-h-screen">
       <div className="bf-orb bf-orb-1" aria-hidden />
       <div className="bf-orb bf-orb-2" aria-hidden />
       <div className="bf-orb bf-orb-3" aria-hidden />

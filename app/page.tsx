@@ -247,12 +247,13 @@ function RaffleForm() {
   // Loading state
   if (loadingWinner || statusLoading || status === 'loading') {
     return (
-      <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
-        <main className="w-full max-w-2xl px-6 py-12">
+      <AmbientBackground contentClassName="min-h-screen flex flex-col items-center">
+        <main className="w-full max-w-2xl px-6 py-12 flex-1 flex items-center justify-center">
           <div className="bf-glass-card rounded-lg p-8 md:p-12 text-center">
             <p className="text-gray-600 dark:text-gray-400">Loading...</p>
           </div>
         </main>
+        <LegalFooter />
       </AmbientBackground>
     )
   }
@@ -260,8 +261,8 @@ function RaffleForm() {
   // REQUIRE login - show login prompt if not logged in
   if (!session?.user) {
     return (
-      <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
-        <main className="w-full max-w-2xl px-6 py-12">
+      <AmbientBackground contentClassName="min-h-screen flex flex-col items-center">
+        <main className="w-full max-w-2xl px-6 py-12 flex-1 flex items-center justify-center">
           <div className="bf-glass-card rounded-lg p-8 md:p-12 space-y-6">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white text-center">
               Sign in to enter the demo raffle!
@@ -278,6 +279,7 @@ function RaffleForm() {
             </div>
           </div>
         </main>
+        <LegalFooter />
       </AmbientBackground>
     )
   }
@@ -285,8 +287,8 @@ function RaffleForm() {
   // Gatekeeping (A): only block when Twitch explicitly reports not_following; unknown just warns.
   if (followStatus === 'not_following') {
     return (
-      <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
-        <main className="w-full max-w-2xl px-6 py-12">
+      <AmbientBackground contentClassName="min-h-screen flex flex-col items-center">
+        <main className="w-full max-w-2xl px-6 py-12 flex-1 flex items-center justify-center">
           <div className="bf-glass-card rounded-lg p-8 md:p-12">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 text-center">
               Follow Required ❤️
@@ -307,14 +309,15 @@ function RaffleForm() {
             </div>
           </div>
         </main>
+        <LegalFooter />
       </AmbientBackground>
     )
   }
 
   // User is logged in and follows - show entry form
   return (
-    <AmbientBackground contentClassName="min-h-screen py-6 px-4">
-      <main className="max-w-6xl mx-auto">
+    <AmbientBackground contentClassName="min-h-screen flex flex-col py-6 px-4">
+      <main className="max-w-6xl mx-auto w-full flex-1">
         {/* Status Banner */}
         {leaderboard && hasActiveSession && (
           <div
@@ -596,11 +599,12 @@ function RaffleForm() {
         </div>
         <WeightInfoModal open={weightInfoOpen} onClose={() => setWeightInfoOpen(false)} />
       </main>
+      <LegalFooter />
     </AmbientBackground>
   )
 }
 
-function Home() {
+function DemoPortal() {
   return (
     <SessionProvider>
       <RaffleForm />
@@ -608,13 +612,4 @@ function Home() {
   )
 }
 
-function PageWithFooter() {
-  return (
-    <>
-      <Home />
-      <LegalFooter />
-    </>
-  )
-}
-
-export { PageWithFooter as default }
+export { DemoPortal as default }
