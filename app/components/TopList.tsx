@@ -73,42 +73,38 @@ export default function TopList({ entries, loading, maxHeightClass, hideRefreshi
       </div>
       <div className={`${maxHeightClass ?? 'max-h-[600px]'} overflow-y-auto`}>
         <div className="grid grid-cols-2 gap-2">
-          {entries.map((entry, index) => (
-            <div
-              key={entry.id}
-              className="flex items-center justify-between p-3 rounded-lg transition-colors"
-              style={{ backgroundColor: getBgForIndex(index, entries.length) }}
-            >
-              {(() => {
-                const bg = getBgForIndex(index, entries.length)
-                const text = getTextClasses(bg)
-                return (
-                  <>
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="flex-shrink-0 w-8 text-center">
+          {entries.map((entry, index) => {
+            const bg = getBgForIndex(index, entries.length)
+            const text = getTextClasses(bg)
+            return (
+              <div
+                key={entry.id}
+                className="flex items-center justify-between p-3 rounded-lg transition-colors"
+                style={{ backgroundColor: bg }}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex-shrink-0 w-8 text-center">
                     <span className={`font-bold text-lg ${text.rank}`}>
-                    #{index + 1}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
+                      #{index + 1}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
                     <p className={`font-semibold truncate ${text.primary}`}>
-                    {entry.name}
-                  </p>
+                      {entry.name}
+                    </p>
                     <p className={`text-xs ${text.muted}`}>
-                    Weight: {formatNumber(entry.weight)}x
+                      Weight: {formatNumber(entry.weight)}x
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-shrink-0 ml-4">
+                  <p className={`text-xl font-bold ${text.primary}`}>
+                    {formatNumber(entry.probability)}%
                   </p>
                 </div>
               </div>
-              <div className="flex-shrink-0 ml-4">
-                <p className="text-xl font-bold text-bf-primary">
-                  {formatNumber(entry.probability)}%
-                </p>
-              </div>
-                  </>
-                )
-              })()}
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>
