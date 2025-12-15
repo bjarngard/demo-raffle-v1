@@ -49,9 +49,7 @@ export default function MyStatusCard() {
   }
 
   const { user, breakdown } = weightInfo
-  const donationsDollars = user.totalDonations / 100
   const cheerCount = user.totalCheerBits.toString()
-  const donationCount = formatNumber(donationsDollars)
   const giftedSubsCount = user.totalGiftedSubs.toString()
   const loyaltyBonus = breakdown.loyalty.cappedTotal
   const supportBonus = breakdown.support.cappedTotal
@@ -127,17 +125,6 @@ export default function MyStatusCard() {
           <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
             <span className="text-gray-100">Cheer Bits ({cheerCount})</span>
             <span className="font-semibold">+{formatNumber(breakdown.support.cheerWeight)}x</span>
-          </div>
-        )}
-        
-        {user.totalDonations > 0 && (
-          <div className="flex justify-between items-center bg-white/10 rounded px-3 py-2">
-            <span className="text-gray-100">
-              Donations (${donationCount})
-            </span>
-            <span className="font-semibold">
-              +{formatNumber(breakdown.support.donationsWeight)}x
-            </span>
           </div>
         )}
         

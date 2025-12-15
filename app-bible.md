@@ -10,7 +10,7 @@ _Purpose: single-source map of how the app is built, how data flows, and where l
 - **Auth:** NextAuth with Twitch provider (`app/api/auth/[...nextauth]/route.ts`, `lib/auth.ts`, `types/next-auth.d.ts`). Sessions persisted in DB `Session` model.
 - **Runtime:** Node (serverless-friendly). No websockets/SSE; relies on polling + jitter.
 - **Key surfaces:**
-  - Viewer root `/` (app/page.tsx) — primary viewer portal with entry form, status banners, leaderboard (no MyStatusCard/WeightTable here).
+  - Viewer root `/` (app/page.tsx) — primary viewer portal with entry form, status banners, leaderboard; TwitchLogin pulls personal weight/odds via `/api/weight/me` (but no MyStatusCard/WeightTable UI).
   - Viewer `/demo-portal` — alternate/secondary viewer page with MyStatusCard, WeightTable, TopList, DemoSubmissionForm (still routed but not primary).
   - Admin dashboard `/demo-admin` — management UI (entries, weight settings, sessions, carry-over).
   - API routes under `/api/**` for auth, status, leaderboard, weights, admin CRUD, twitch sync, etc.
@@ -61,15 +61,15 @@ _All are Next.js route handlers (App Router). Only highlights the intent & data 
   - **/api/weight/me**: Viewer’s personal weight and chance (`chancePercent`), plus breakdown/status.
   - **/api/user/submission**: Current user submission state/details.
   - **/api/enter**: Submit entry (uses `resolveRaffleSubmissionState`, validates, writes Entry).
-  - **/api/demo-played**: Mark demo played? (utility endpoint).
+  - **/api/demo-played**: Marks a demo as played (admin utility); resets certain support counters (e.g., cheer bits, gifted subs) and recomputes weight.
 - **Admin**
   - **/api/admin/dashboard**: Aggregated admin data (entries, weights, leaderboard, sessions, carry-over when no active session).
   - **/api/admin/entries[/[id]]**: Manage entries (list/update/delete or get by id).
   - **/api/admin/submissions**: Toggle submissions open/closed.
   - **/api/admin/session/start | end**: Start/end raffle sessions.
-  - **/api/admin/weight-settings**: Read/update WeightSettings.
+  - **/api/admin/weight-settings**: Read/update WeightSettings (requires admin session; `WeightTable` reads from here).
   - **/api/admin/auth**: Admin auth guard endpoint.
-  - **/api/admin** root page (app/admin/page.tsx) renders admin shell → delegates to client component.
+  - **UI route:** `/demo-admin` (`app/demo-admin/page.tsx`) renders admin shell → delegates to client component. **API namespace:** `/api/admin/*` contains admin endpoints. Admin actions also use top-level `/api/pick-winner`.
   - **/api/pick-winner**: Weighted random draw; marks winner.
   - **/api/twitch/carry-over**: Carry-over operations for Twitch sync/weights.
   - **/api/twitch/check-follow**: Verifies follow status for logged-in user.
@@ -92,8 +92,8 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 - **AmbientBackground**: Client component wrapping content; renders orbs/noise/particles; root `min-h-screen` to avoid background cutoff.
 
 ### Viewer primary `/` (app/page.tsx)
-- Main viewer portal with TwitchLogin + entry form + TopList (leaderboard) + WeightInfoModal, wrapped in `SessionProvider`. Does **not** show MyStatusCard/WeightTable.
-- Data sources: `/api/status` (useStatus), `/api/leaderboard`, `/api/winner`, `/api/enter`, `/api/twitch/check-follow`. (No `/api/weight/me` here.)
+- Main viewer portal with TwitchLogin + entry form + TopList (leaderboard) + WeightInfoModal, wrapped in `SessionProvider`. Does **not** show MyStatusCard/WeightTable, but TwitchLogin uses `useWeightData` → `/api/weight/me` to show personal odds/stats when signed in.
+- Data sources: `/api/status` (useStatus), `/api/leaderboard`, `/api/winner`, `/api/enter`, `/api/twitch/check-follow`, `/api/weight/me` (via TwitchLogin/useWeightData).
 - Behaviors: jittered polling for leaderboard; gating by session/submissions/follow; submit posts `/api/enter` then refetches status/leaderboard.
 - Layout: AmbientBackground (`min-h-screen`, flex col) with `LegalFooter` inside the same wrapper.
 
@@ -144,7 +144,7 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
   - Support: cheerWeight = bits/divisor (capped), donationsWeight = donations/divisor (capped), giftedSubsWeight = giftedSubs * multiplier (capped), total support capped.
   - Carry-over: carryOverWeight (capped via settings).
   - Totals: `carryOver + base + loyalty.total + support.total`, then `totalWeight` stored on user and used for draws/leaderboard.
-- **Known gotchas:** resub component is effectively 0 right now (no extra weight despite settings); donations unit (cents/öre vs kronor) must match formula to avoid 100× scaling errors.
+- **Known gotchas:** resub component is hardcoded to 0 in `computeWeightComponents` (in `lib/weight-settings.ts`, no extra weight despite settings); donations assume `totalDonations` is in cents/öre and divide by 100 to get SEK before `donationsDivisor`—wrong units would 100× skew weights.
 - **Entry submission:** `/api/enter` checks `resolveRaffleSubmissionState` (active session? existing entry?) and follow/sub constraints; writes `Entry` (unique per session/user), may sync names/demo/notes, then status/leaderboard refetch on client.
 - **Pick winner:** `/api/pick-winner` fetches active session entries (excluding winners/sentinels), uses weighted random (weights from users’ `totalWeight`), marks winner, can update carry-over/flags. Viewer/admin see via `/api/winner` and refresh loops.
 - **Carry-over lifecycle:** When a session ends, carryOverWeight can be applied to users for next session (admin sees via `carryOverUsers` when no active session).
@@ -169,10 +169,10 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 5. Server validates (active session, no existing entry, follow status if required) and writes `Entry`.
 6. Client refetches status + leaderboard; UI shows banners accordingly.
 
-### Viewer personal odds (MyStatusCard)
+### Viewer personal odds (TwitchLogin / MyStatusCard)
 1. `useWeightData` polls `/api/weight/me` every 20s or manual `refetch`.
 2. API computes current `totalWeight` and `chancePercent` vs sum of active session participants (only if user has an entry).
-3. UI shows weight, carry-over, subscriber/follower flags, chance %, last update timestamp.
+3. UI shows a compact chance/weight summary in TwitchLogin on `/`; full breakdown (weight components, carry-over, subscriber/follower flags, chance %, last update) lives in MyStatusCard on `/demo-portal`.
 
 ### Admin auto-refresh on new entries
 1. Admin dashboard uses `useStatus` (4s jittered) to get `lastEntryAt`.
@@ -198,7 +198,7 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 ---
 
 ## 11) Testing & operational notes
-- **Polling is jittered** to avoid thundering herd on serverless.
+- **Status polling is jittered** (useStatus) to avoid thundering herd; **weight polling is fixed** 20s interval (useWeightData).
 - **Status endpoint is lightweight** and should be cheap for frequent polling.
 - **Auth-required routes** rely on NextAuth session and admin guard (`lib/admin-auth.ts`); ensure cookies/session tokens valid.
 - **EventSub dedupe** via `ProcessedWebhookEvent` to prevent double-processing Twitch events.
@@ -207,8 +207,8 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 ---
 
 ## 12) Quick file map (by concern)
-- **Viewer root (primary):** `app/page.tsx`, `app/components/{TwitchLogin,MyStatusCard,TopList,WeightInfoModal,WeightTable,DemoSubmissionForm,LegalFooter,AmbientBackground}`
-- **Viewer portal (legacy/alt):** `app/demo-portal/page.tsx` (similar components)
+- **Viewer root (primary):** `app/page.tsx`; components used there include `TwitchLogin`, `TopList`, `WeightInfoModal`, `LegalFooter`, `AmbientBackground`, plus the inline `RaffleForm`. (No MyStatusCard/WeightTable on `/`.)
+- **Viewer portal (legacy/alt):** `app/demo-portal/page.tsx` (uses `MyStatusCard`, `WeightTable`, `TopList`, `DemoSubmissionForm`, etc.)
 - **Admin:** `app/demo-admin/AdminDashboardClient.tsx`, `app/demo-admin/page.tsx`, `app/components/Admin*`
 - **Status/weight hooks:** `app/hooks/useStatus.ts`, `app/hooks/useWeightData.ts`
 - **API:** `app/api/**` (status, leaderboard, weight/me, winner, enter, admin/*, twitch/*)
@@ -226,7 +226,7 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 - **GET /api/admin/dashboard** → If active session: entries, weightSettings, session info, leaderboard, counts. If no active session: `carryOverUsers` from last ended session, plus weightSettings/session metadata.
 - **POST /api/enter** → body `{ displayName?, demoLink, notes? }`; errors include codes like `NO_ACTIVE_SESSION`, `SUBMISSIONS_CLOSED`, `ALREADY_SUBMITTED`, `NOT_FOLLOWING`, etc.
 - **POST /api/pick-winner** → draws weighted winner for active session; returns winner payload.
-- _Indicative shapes; for exact types see `WeightResponse`, `StatusResponse`, etc._
+- _Indicative shapes; for exact types see the TypeScript definitions (e.g., `StatusResponse`, `WeightResponse`). This section is overview, not a strict contract._
 
 ## 14) Auth/session flow (textual)
 - User clicks Twitch login (NextAuth provider). After OAuth, NextAuth stores a session (DB `Session` + cookie). `useSession()` supplies client state. Admin routes additionally check `lib/admin-auth.ts` (role/allow-list via env or DB as configured). Viewer pages gate on `session?.user` and sometimes follow/sub status (`/api/twitch/check-follow`).
@@ -279,4 +279,14 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 - Keep `/api/status` minimal to stay cheap for polling; heavier aggregates belong in dashboard/leaderboard routes.
 - For UI changes, ensure `AmbientBackground` wraps content so the background remains continuous.
 
+---
 
+## 21) Viewer & admin truth table (current repo)
+
+| Route          | Purpose                               | Hooks used                                     | API endpoints (direct or via children)                                                                                         | Main components rendered                                                                                                                                           |
+|----------------|---------------------------------------|------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/`            | Primary viewer (enter + view odds/leaderboard) | `useStatus` (page), `useWeightData` (via `TwitchLogin`) | `/api/status`, `/api/leaderboard`, `/api/winner`, `/api/enter`, `/api/twitch/check-follow`, `/api/weight/me`                   | `AmbientBackground`, `TwitchLogin` (compact odds summary via weight/me), inline `RaffleForm` (entry form), `TopList`, `WeightInfoModal`, `LegalFooter`            |
+| `/demo-portal` | Secondary/alt viewer (owner/internal; exposes WeightTable via admin-guarded settings) | `useSession` (page), `useWeightData` (via `MyStatusCard`) | `/api/leaderboard` (5s poll), `/api/winner`, `/api/admin/weight-settings` (requires admin session; used for read in WeightTable), `/api/enter` (via `DemoSubmissionForm`), `/api/weight/me` (via `MyStatusCard`) | `AmbientBackground`, `TwitchLogin`, `DemoSubmissionForm`, `MyStatusCard`, `WeightTable`, `TopList`, `LegalFooter`                                                 |
+| `/demo-admin`  | Admin dashboard                         | `useStatus` (admin client)                     | `/api/admin/dashboard`, `/api/leaderboard`, `/api/status` (auto-refresh), plus actions like `/api/pick-winner`, `/api/admin/submissions`, `/api/admin/session/start|end`, `/api/admin/weight-settings` | `AmbientBackground` (no footer), `AdminDashboardClient` (entries/users/carry-over tables, weight settings form, winner controls, submissions/session toggles, leaderboard) |
+
+Note: `/demo-portal` is mainly useful for admin/owner since `WeightTable` depends on admin-guarded `/api/admin/weight-settings`; regular viewers won’t see weight settings there.

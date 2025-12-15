@@ -127,11 +127,6 @@ async function ensureSubscriptions(token, callbackUrl) {
       condition: { broadcaster_user_id: TWITCH_BROADCASTER_ID },
     },
     {
-      type: 'channel.subscription.message',
-      version: '1',
-      condition: { broadcaster_user_id: TWITCH_BROADCASTER_ID },
-    },
-    {
       type: 'channel.subscription.gift',
       version: '1',
       condition: { broadcaster_user_id: TWITCH_BROADCASTER_ID },

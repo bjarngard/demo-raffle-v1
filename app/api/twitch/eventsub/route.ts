@@ -18,13 +18,7 @@ const MESSAGE_TYPE_REVOCATION = 'revocation'
 
 const HMAC_PREFIX = 'sha256='
 const MAX_EVENT_AGE_MS = 10 * 60 * 1000
-const ALLOWED_EVENT_TYPES = new Set([
-  'channel.follow',
-  'channel.subscribe',
-  'channel.subscription.message',
-  'channel.subscription.gift',
-  'channel.cheer',
-])
+const ALLOWED_EVENT_TYPES = new Set(['channel.follow', 'channel.subscribe', 'channel.subscription.gift', 'channel.cheer'])
 
 type EventSubPayload = {
   challenge?: string

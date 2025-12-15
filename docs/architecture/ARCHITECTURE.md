@@ -124,7 +124,6 @@ Ett webbaserat raffle-system för Twitch streamers som låter tittare anmäla si
 ### Webhooks
 - `POST /api/twitch/webhook` - Twitch EventSub webhook handler
   - `channel.subscribe` - Ny prenumeration
-  - `channel.subscription.message` - Resub med cumulative months
   - `channel.subscription.gift` - Donerade subs
   - `channel.cheer` - Bits cheered
   - `channel.follow` - Ny följare

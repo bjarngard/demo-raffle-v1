@@ -83,7 +83,6 @@ The webhook handler is fully compliant with [Twitch's EventSub documentation](ht
 1. Go to https://dev.twitch.tv/console/webhooks
 2. Subscribe to events (with required scopes):
    - `channel.subscribe` (scope: `channel:read:subscriptions`) - New subscriptions
-   - `channel.subscription.message` (scope: `channel:read:subscriptions`) - Resubs with cumulative months
    - `channel.subscription.gift` (scope: `channel:read:subscriptions`) - Gifted subscriptions
    - `channel.cheer` (scope: `bits:read`) - Bits cheered
    - `channel.follow` (requires broadcaster + moderator condition) - New followers
@@ -144,7 +143,6 @@ totalWeight = baseWeight + subWeight + resubWeight + cheerWeight + donationWeigh
 
 **EventSub (Real-time):**
 - `channel.subscribe` - New subscription (first month)
-- `channel.subscription.message` - Resub with cumulative months
 - `channel.subscription.gift` - Gift subscriptions
 - `channel.cheer` - Bits cheered
 - `channel.follow` - New follower

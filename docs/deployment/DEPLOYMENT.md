@@ -207,7 +207,6 @@ twitch api post eventsub/subscriptions -b '{
 
 **EventSub Types du behöver:**
 - `channel.subscribe` (subscriptions)
-- `channel.subscription.message` (resubs)
 - `channel.cheer` (bits)
 - `channel.subscription.gift` (gifted subs)
 
@@ -369,7 +368,6 @@ curl -X POST 'https://api.twitch.tv/helix/eventsub/subscriptions' \
 
 **Repeat för alla event types:**
 - `channel.subscribe`
-- `channel.subscription.message`
 - `channel.cheer`
 - `channel.subscription.gift`
 

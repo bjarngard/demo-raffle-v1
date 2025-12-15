@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { withJitter } from '@/lib/polling'
 import type { WeightBreakdown, WeightSettings } from '@/lib/weight-settings'
 
 export type WeightStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -59,7 +60,7 @@ const INITIAL_STORE: WeightStoreState = {
 
 let store: WeightStoreState = { ...INITIAL_STORE }
 
-let pollTimer: ReturnType<typeof setInterval> | null = null
+let pollTimer: ReturnType<typeof setTimeout> | null = null
 let activeIntervalMs = DEFAULT_POLL_INTERVAL
 let fetchPromise: Promise<void> | null = null
 
@@ -79,7 +80,7 @@ function updateStore(partial: Partial<WeightStoreState>) {
 
 function stopPolling() {
   if (pollTimer) {
-    clearInterval(pollTimer)
+    clearTimeout(pollTimer)
     pollTimer = null
   }
 }
@@ -87,6 +88,29 @@ function stopPolling() {
 function resetStore() {
   store = { ...INITIAL_STORE }
   notifySubscribers()
+}
+
+function hasEnabledSubscribers() {
+  for (const opts of subscriberOptions.values()) {
+    if (opts.enabled) return true
+  }
+  return false
+}
+
+function schedulePoll() {
+  stopPolling()
+  const delay = withJitter(activeIntervalMs)
+  pollTimer = setTimeout(async () => {
+    pollTimer = null
+    if (!hasEnabledSubscribers()) {
+      stopPolling()
+      return
+    }
+    await fetchWeightData()
+    if (hasEnabledSubscribers()) {
+      schedulePoll()
+    }
+  }, delay)
 }
 
 function recomputePolling() {
@@ -114,15 +138,14 @@ function recomputePolling() {
   }
 
   const desiredInterval = nextInterval ?? DEFAULT_POLL_INTERVAL
-  if (pollTimer && desiredInterval === activeIntervalMs) {
-    return true
-  }
-
-  stopPolling()
   activeIntervalMs = desiredInterval
-  pollTimer = setInterval(() => {
-    void fetchWeightData()
-  }, activeIntervalMs)
+  if (!pollTimer) {
+    schedulePoll()
+  } else {
+    // Interval changed; reschedule with new jittered interval
+    stopPolling()
+    schedulePoll()
+  }
   return true
 }
 

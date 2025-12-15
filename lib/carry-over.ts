@@ -58,6 +58,8 @@ export async function applyCarryOverForSession(
     entries.find((entry) => entry.isWinner && entry.userId)?.userId ?? null
 
   const settings = await getWeightSettings()
+  // Current behavior: apply carry-over only to non-winners using carryOverMultiplier and cap.
+  // carryOverWeight is stored and later used directly in weight calculations; no extra multiplier there.
 
   const users = await prisma.user.findMany({
     where: { id: { in: participantIds } },

@@ -156,7 +156,7 @@ All models live in `prisma/schema.prisma`. Key tables:
   - Validates HMAC signature + timestamp drift using `TWITCH_WEBHOOK_SECRET`.
   - Deduplicates via `ProcessedWebhookEvent` (unique on `messageId + eventType + twitchUserId`) before mutating anything.
   - `ALLOWED_EVENT_TYPES` list keeps execution conservative when Twitch introduces new payloads; unknown types are ignored until explicitly handled.
-  - Handles `channel.follow`, `channel.subscribe`, `channel.subscription.message`, `channel.subscription.gift`, `channel.cheer`.
+- Handles `channel.follow`, `channel.subscribe`, `channel.subscription.gift`, `channel.cheer`.
   - Aggregates `totalCheerBits` and `totalGiftedSubs` for non-anonymous viewers and logs structured metadata for observability.
   - Extracts the Twitch user id and marks `User.needsResync = true` (ignoring broadcaster/self events).
   - Does **not** run weight math; it simply records the hint/aggregation and returns 2xx immediately.

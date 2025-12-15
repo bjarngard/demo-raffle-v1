@@ -226,6 +226,8 @@ function computeWeightComponents(
       )
     : 0
 
+  // NOTE: Resub months are intentionally ignored in weight calculations.
+  // Only “subscribed or not” matters right now.
   const resubComponent = 0
 
   const loyaltyWeightRaw = monthsComponent
@@ -236,11 +238,9 @@ function computeWeightComponents(
     settings.cheerBitsCap
   )
 
-  const donationsInUnits = user.totalDonations / 100
-  const donationsWeight = Math.min(
-    donationsInUnits / settings.donationsDivisor,
-    settings.donationsCap
-  )
+  // NOTE: Generic cash donations are currently not used for weight.
+  // Only bits and gifted subs contribute to support weight.
+  const donationsWeight = 0
 
   const giftedSubsWeight = Math.min(
     user.totalGiftedSubs * settings.giftedSubsMultiplier,
