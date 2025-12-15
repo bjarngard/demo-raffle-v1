@@ -20,6 +20,33 @@ export default function TopList({ entries, loading, maxHeightClass, hideRefreshi
   const isInitialLoading = !!loading && entries.length === 0
   const isRefreshing = !!loading && entries.length > 0
 
+  const palette = ['#e2e8f0', '#cbd5e1', '#b8c4d6', '#94a3b8', '#7c8ba8', '#65748f', '#4a5565', '#334155']
+  const getBgForIndex = (index: number, total: number) => {
+    if (total <= 1) return palette[palette.length - 3]
+    const t = index / Math.max(total - 1, 1)
+    const idx = Math.round(t * (palette.length - 1))
+    return palette[Math.min(Math.max(idx, 0), palette.length - 1)]
+  }
+
+  const getLuminance = (hex: string) => {
+    const parsed = hex.replace('#', '')
+    const r = parseInt(parsed.substring(0, 2), 16) / 255
+    const g = parseInt(parsed.substring(2, 4), 16) / 255
+    const b = parseInt(parsed.substring(4, 6), 16) / 255
+    const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))
+    const [rl, gl, bl] = [toLinear(r), toLinear(g), toLinear(b)]
+    return 0.2126 * rl + 0.7152 * gl + 0.0722 * bl
+  }
+
+  const getTextClasses = (bg: string) => {
+    const isLight = getLuminance(bg) > 0.6
+    return {
+      primary: isLight ? 'text-gray-900' : 'text-white',
+      muted: isLight ? 'text-gray-700' : 'text-gray-200',
+      rank: isLight ? 'text-gray-800' : 'text-gray-200',
+    }
+  }
+
   if (isInitialLoading) {
     return (
       <div className="bf-glass-card rounded-lg p-6">
@@ -49,19 +76,25 @@ export default function TopList({ entries, loading, maxHeightClass, hideRefreshi
           {entries.map((entry, index) => (
             <div
               key={entry.id}
-              className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              className="flex items-center justify-between p-3 rounded-lg transition-colors"
+              style={{ backgroundColor: getBgForIndex(index, entries.length) }}
             >
+              {(() => {
+                const bg = getBgForIndex(index, entries.length)
+                const text = getTextClasses(bg)
+                return (
+                  <>
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="flex-shrink-0 w-8 text-center">
-                  <span className="font-bold text-lg text-gray-700 dark:text-gray-300">
+                    <span className={`font-bold text-lg ${text.rank}`}>
                     #{index + 1}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 dark:text-white truncate">
+                    <p className={`font-semibold truncate ${text.primary}`}>
                     {entry.name}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className={`text-xs ${text.muted}`}>
                     Weight: {formatNumber(entry.weight)}x
                   </p>
                 </div>
@@ -71,6 +104,9 @@ export default function TopList({ entries, loading, maxHeightClass, hideRefreshi
                   {formatNumber(entry.probability)}%
                 </p>
               </div>
+                  </>
+                )
+              })()}
             </div>
           ))}
         </div>
