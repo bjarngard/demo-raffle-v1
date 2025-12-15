@@ -97,7 +97,7 @@ export default function TopList({
             return (
               <div
                 key={entry.id}
-                className="flex items-center justify-between p-3 rounded-lg transition-colors transition-transform duration-150 hover:-translate-y-0.5 hover:brightness-105"
+                className="flex items-center justify-between p-3 rounded-lg transition-colors transition-transform duration-150 shadow-sm shadow-black/10 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-md hover:shadow-black/15"
                 style={{ backgroundColor: bg }}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
