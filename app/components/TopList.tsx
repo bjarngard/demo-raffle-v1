@@ -89,7 +89,7 @@ export default function TopList({
           {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>}
         </div>
       )}
-      <div className={`${maxHeightClass ?? 'max-h-[600px]'} overflow-y-auto`}>
+      <div className={`${maxHeightClass ?? 'max-h-[600px]'} overflow-y-auto py-1`}>
         <div className="grid grid-cols-2 gap-2">
           {entries.map((entry, index) => {
             const bg = getBgForIndex(index, entries.length)
@@ -97,7 +97,7 @@ export default function TopList({
             return (
               <div
                 key={entry.id}
-                className="flex items-center justify-between p-3 rounded-lg transition-colors transition-transform duration-150 shadow-sm shadow-black/10 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-md hover:shadow-black/15"
+                className="flex items-center justify-between p-3 rounded-lg transition-colors transition-transform duration-150 shadow-md shadow-black/15 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-lg hover:shadow-black/20"
                 style={{ backgroundColor: bg }}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
