@@ -123,13 +123,13 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 
 ## 6) Hooks & polling
 - **useStatus** (`app/hooks/useStatus.ts`): Polls `/api/status` with jitter (`BASE_POLL_MS = 4000`, setTimeout loop); returns `{data, loading, error, refetch}`. Data includes submissionsOpen, hasActiveSession, sessionId, lastEntryAt, updatedAt.
-- **useWeightData** (`app/hooks/useWeightData.ts`): Polls `/api/weight/me` every 20s (setInterval, no jitter), returns personal weight/chance data, `refetch`. Type includes `chancePercent`.
-- **withJitter** (`lib/polling.ts`): Adds randomized delay around base interval. Consider jittering weight polling if scaling viewer load.
+- **useWeightData** (`app/hooks/useWeightData.ts`): Polls `/api/weight/me` on a jittered setTimeout loop (base 20s) using `withJitter`; returns personal weight/chance data and `refetch`. Same enable conditions as before (only when signed in + enabled).
+- **withJitter** (`lib/polling.ts`): Adds randomized delay around base interval; used by both status and weight polling to avoid herd spikes.
 
 ---
 
 ## 7) Business logic highlights
-- **Weight computation:** Based on `WeightSettings` caps/multipliers; breakdown covers base, loyalty (sub months/resubs), support (cheers/donations/gifted), carry-over. `describeWeightBreakdown` enforces caps.
+- **Weight computation:** Based on `WeightSettings` caps/multipliers; breakdown covers base, loyalty, support, carry-over. `describeWeightBreakdown` enforces caps. Resub and generic donations are currently neutralized (resub component = 0; donationsWeight = 0) while bits and gifted subs remain active.
 - **Chance % (viewer):** `/api/weight/me` computes `chancePercent` as user’s `totalWeight` / sum of participants’ `totalWeight` in active session (only when the user has an entry). Exposed to MyStatusCard/TwitchLogin.
 - **Submission gating:** `resolveRaffleSubmissionState` prevents multiple entries per active session and blocks when no active session. API errors include codes (e.g., NO_ACTIVE_SESSION, SUBMISSIONS_CLOSED, NOT_FOLLOWING).
 - **Carry-over:** Tracked per user; `getCarryOverUsersForSession` exposes users with carry-over from last ended session (admin view when no active session).
@@ -140,11 +140,11 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 ### Business logic (deeper)
 - **Weight calculation path:** `lib/weight-settings.describeWeightBreakdown` reads current `WeightSettings`, computes:
   - Base weight (default 1.0).
-  - Loyalty: months multiplier (capped) + resub multiplier (capped).
-  - Support: cheerWeight = bits/divisor (capped), donationsWeight = donations/divisor (capped), giftedSubsWeight = giftedSubs * multiplier (capped), total support capped.
+  - Loyalty: months multiplier (capped); resub component is hardcoded to 0 (intentionally ignored).
+  - Support: cheerWeight = bits/divisor (capped); donationsWeight is hardcoded to 0 (generic donations ignored); giftedSubsWeight = giftedSubs * multiplier (capped); total support capped.
   - Carry-over: carryOverWeight (capped via settings).
   - Totals: `carryOver + base + loyalty.total + support.total`, then `totalWeight` stored on user and used for draws/leaderboard.
-- **Known gotchas:** resub component is hardcoded to 0 in `computeWeightComponents` (in `lib/weight-settings.ts`, no extra weight despite settings); donations assume `totalDonations` is in cents/öre and divide by 100 to get SEK before `donationsDivisor`—wrong units would 100× skew weights.
+- **Known gotchas:** resub component is hardcoded to 0 (no extra weight). Donations are currently neutralized (weight 0); if re-enabled, ensure units for `totalDonations` (cents/öre) are correct or you risk 100× skew.
 - **Entry submission:** `/api/enter` checks `resolveRaffleSubmissionState` (active session? existing entry?) and follow/sub constraints; writes `Entry` (unique per session/user), may sync names/demo/notes, then status/leaderboard refetch on client.
 - **Pick winner:** `/api/pick-winner` fetches active session entries (excluding winners/sentinels), uses weighted random (weights from users’ `totalWeight`), marks winner, can update carry-over/flags. Viewer/admin see via `/api/winner` and refresh loops.
 - **Carry-over lifecycle:** When a session ends, carryOverWeight can be applied to users for next session (admin sees via `carryOverUsers` when no active session).
@@ -170,7 +170,7 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 6. Client refetches status + leaderboard; UI shows banners accordingly.
 
 ### Viewer personal odds (TwitchLogin / MyStatusCard)
-1. `useWeightData` polls `/api/weight/me` every 20s or manual `refetch`.
+1. `useWeightData` polls `/api/weight/me` on a ~20s jittered loop or manual `refetch`.
 2. API computes current `totalWeight` and `chancePercent` vs sum of active session participants (only if user has an entry).
 3. UI shows a compact chance/weight summary in TwitchLogin on `/`; full breakdown (weight components, carry-over, subscriber/follower flags, chance %, last update) lives in MyStatusCard on `/demo-portal`.
 
@@ -198,7 +198,7 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 ---
 
 ## 11) Testing & operational notes
-- **Status polling is jittered** (useStatus) to avoid thundering herd; **weight polling is fixed** 20s interval (useWeightData).
+- **Status and weight polling are jittered** (useStatus, useWeightData) to avoid thundering herd; base intervals 4s and 20s respectively.
 - **Status endpoint is lightweight** and should be cheap for frequent polling.
 - **Auth-required routes** rely on NextAuth session and admin guard (`lib/admin-auth.ts`); ensure cookies/session tokens valid.
 - **EventSub dedupe** via `ProcessedWebhookEvent` to prevent double-processing Twitch events.
@@ -250,7 +250,7 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 ## 17) Twitch interaction (how it works)
 - **Auth via Twitch/NextAuth:** User clicks Twitch login → NextAuth OAuth → tokens stored in `Account`; `User` linked by `twitchId`; session cookie set. `useSession()` exposes user on client.
 - **Follow check:** `/api/twitch/check-follow` calls Twitch API (see `lib/twitch-api.ts` / `follow-status.ts`) to ensure `isFollower`; informs gating in `/api/enter`.
-- **Sub/engagement data:** EventSub webhook (`/api/twitch/eventsub`) receives events (subs, gifts, cheers, etc.), deduped by `ProcessedWebhookEvent`; data merged into `User` stats (subs, gifted, bits, donations, resubs). On-demand sync via `/api/twitch/sync` or `/api/twitch/update-weights`.
+- **Sub/engagement data:** EventSub webhook (`/api/twitch/eventsub`) receives events (subs, gifts, cheers, etc.), deduped by `ProcessedWebhookEvent`; data merged into `User` stats (subs, gifted, bits; resub events are currently ignored). On-demand sync via `/api/twitch/sync` or `/api/twitch/update-weights`.
 - **Needs resync flag:** `needsResync` on User can be set when data may be stale; sync endpoints clear/update it.
 - **OAuth refresh:** Tokens stored in `Account` (access/refresh/expires); Twitch API helpers use stored tokens to call Twitch; refresh flows handled in `twitch-oauth.ts`.
 
@@ -265,7 +265,7 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 - **Event dedupe:** `ProcessedWebhookEvent` unique on (messageId, eventType, twitchUserId) to skip double handling.
 
 ## 19) Known UX/runtime behaviors
-- No realtime sockets; perceived realtime via frequent, jittered polling.
+- No realtime sockets; perceived realtime via frequent, jittered polling (status + weight).
 - Background is always full-viewport; footer stays inside ambient wrapper on viewer pages.
 - Admin auto-refreshes on `lastEntryAt`; viewer manually/automatically refreshes weight/leaderboard.
 - Carry-over only shown to admin when no active session; hidden otherwise.
