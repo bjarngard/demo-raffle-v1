@@ -5,7 +5,7 @@ import { SessionProvider, useSession } from 'next-auth/react'
 import AmbientBackground from './components/AmbientBackground'
 import TwitchLogin from './components/TwitchLogin'
 import WeightInfoModal from './components/WeightInfoModal'
-import { formatNumber } from '@/lib/format-number'
+import TopList from '@/app/components/TopList'
 import { withJitter } from '@/lib/polling'
 import useStatus from './hooks/useStatus'
 import LegalFooter from './components/LegalFooter'
@@ -542,60 +542,15 @@ function RaffleForm() {
           </div>
 
           {/* Right Column: Top 20 Leaderboard */}
-          <div className="bf-glass-card rounded-lg border border-[var(--bf-lime)] p-[clamp(16px,2vw,24px)]">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 text-center">
-              {hasActiveSession ? 'Leaderboard' : 'Last session results'}
-            </h2>
-            {!hasActiveSession && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 text-center">
-                Showing the most recent completed session
-              </p>
-            )}
-
-            {loadingLeaderboard ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Loading leaderboard...</p>
-              </div>
-            ) : leaderboard && leaderboard.entries.length > 0 ? (
-              <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                {leaderboard.entries.map((entry, index) => (
-                  <div
-                    key={entry.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex-shrink-0 w-8 text-center">
-                        <span className="font-bold text-lg text-gray-700 dark:text-gray-300">
-                          #{index + 1}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 dark:text-white truncate">
-                          {entry.name}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Weight: {formatNumber(entry.weight)}x
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex-shrink-0 ml-4">
-                      <div className="text-right">
-                        <p className="text-xl font-bold text-bf-primary">
-                          {formatNumber(entry.probability)}%
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500 dark:text-gray-400">
-                  No entries yet. Be the first to enter!
-                </p>
-              </div>
-            )}
-          </div>
+          <TopList
+            entries={leaderboard?.entries ?? []}
+            loading={loadingLeaderboard}
+            maxHeightClass="max-h-[600px]"
+            hideRefreshingText
+            title={hasActiveSession ? 'Leaderboard' : 'Last session results'}
+            subtitle={!hasActiveSession ? 'Showing the most recent completed session' : undefined}
+            containerClassName="bf-glass-card rounded-lg border border-[var(--bf-lime)] p-[clamp(16px,2vw,24px)]"
+          />
         </div>
         <WeightInfoModal open={weightInfoOpen} onClose={() => setWeightInfoOpen(false)} />
       </main>

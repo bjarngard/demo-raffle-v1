@@ -14,9 +14,22 @@ interface TopListProps {
   loading?: boolean
   maxHeightClass?: string
   hideRefreshingText?: boolean
+  title?: string
+  subtitle?: string
+  showHeader?: boolean
+  containerClassName?: string
 }
 
-export default function TopList({ entries, loading, maxHeightClass, hideRefreshingText }: TopListProps) {
+export default function TopList({
+  entries,
+  loading,
+  maxHeightClass,
+  hideRefreshingText,
+  title = 'Leaderboard',
+  subtitle,
+  showHeader = true,
+  containerClassName,
+}: TopListProps) {
   const isInitialLoading = !!loading && entries.length === 0
   const isRefreshing = !!loading && entries.length > 0
 
@@ -57,20 +70,25 @@ export default function TopList({ entries, loading, maxHeightClass, hideRefreshi
 
   if (!loading && entries.length === 0) {
     return (
-      <div className="bf-glass-card rounded-lg p-6">
+      <div className={containerClassName ?? 'bf-glass-card rounded-lg p-6'}>
         <p className="text-gray-500 text-center">No entries yet</p>
       </div>
     )
   }
 
   return (
-    <div className="bf-glass-card rounded-lg p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="heading-text text-xl font-bold text-gray-900 dark:text-white">Leaderboard</h3>
-        {isRefreshing && !hideRefreshingText && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">Refreshing…</span>
-        )}
-      </div>
+    <div className={containerClassName ?? 'bf-glass-card rounded-lg p-6'}>
+      {showHeader && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between">
+            <h3 className="heading-text text-xl font-bold text-gray-900 dark:text-white">{title}</h3>
+            {isRefreshing && !hideRefreshingText && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">Refreshing…</span>
+            )}
+          </div>
+          {subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>}
+        </div>
+      )}
       <div className={`${maxHeightClass ?? 'max-h-[600px]'} overflow-y-auto`}>
         <div className="grid grid-cols-2 gap-2">
           {entries.map((entry, index) => {
@@ -98,7 +116,7 @@ export default function TopList({ entries, loading, maxHeightClass, hideRefreshi
                   </div>
                 </div>
                 <div className="flex-shrink-0 ml-4">
-                  <p className={`text-xl font-bold ${text.primary}`}>
+                  <p className={`text-xl font-mono font-bold ${text.primary}`}>
                     {formatNumber(entry.probability)}%
                   </p>
                 </div>
