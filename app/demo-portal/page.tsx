@@ -111,15 +111,18 @@ function DemoPortalContent() {
 
   if (status === 'loading') {
     return (
-      <AmbientBackground contentClassName="flex min-h-screen items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+      <AmbientBackground contentClassName="min-h-screen flex flex-col items-center">
+        <main className="w-full max-w-3xl px-6 py-12 flex-1 flex items-center justify-center">
+          <p className="text-gray-500">Loading...</p>
+        </main>
+        <LegalFooter />
       </AmbientBackground>
     )
   }
 
   return (
-    <AmbientBackground contentClassName="min-h-screen py-6 px-4">
-      <main className="max-w-7xl mx-auto">
+    <AmbientBackground contentClassName="min-h-screen flex flex-col py-6 px-4">
+      <main className="max-w-7xl mx-auto w-full flex-1">
         {/* Status Banner */}
         {leaderboard && Boolean(leaderboard.sessionId) && (
           <div
@@ -219,6 +222,7 @@ function DemoPortalContent() {
           </div>
         )}
       </main>
+      <LegalFooter />
     </AmbientBackground>
   )
 }
@@ -227,7 +231,6 @@ export default function DemoPortal() {
   return (
     <SessionProvider>
       <DemoPortalContent />
-      <LegalFooter />
     </SessionProvider>
   )
 }
