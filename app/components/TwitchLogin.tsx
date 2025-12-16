@@ -1,16 +1,19 @@
 'use client'
 
 import { signIn, signOut, useSession } from 'next-auth/react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useWeightData } from '@/app/hooks/useWeightData'
 import { formatNumber } from '@/lib/format-number'
 import { getUserDisplayName } from '@/lib/user-display-name'
 import { formatChancePercent } from '@/lib/format-chance'
 
+const SIGN_IN_TTL_MS = 30_000
+
 export default function TwitchLogin() {
   const { data: session, status } = useSession()
   const [loading, setLoading] = useState(false)
+  const signInStartedRef = useRef(false)
   const userId = session?.user?.id
   const isSignedIn = Boolean(userId)
   const { data } = useWeightData({
@@ -27,13 +30,104 @@ export default function TwitchLogin() {
         id: session?.user?.id ?? null,
       })
 
+  useEffect(() => {
+    if (status === 'authenticated') {
+      try {
+        sessionStorage.removeItem('twitchSignInInFlight')
+      } catch {
+        // ignore storage failures
+      }
+      signInStartedRef.current = false
+      setLoading(false)
+    }
+  }, [status])
+
+  useEffect(() => {
+    if (status !== 'unauthenticated') return
+
+    let ageOk = false
+    try {
+      const tsStr = sessionStorage.getItem('twitchSignInInFlight')
+      if (tsStr) {
+        const age = Date.now() - Number(tsStr)
+        ageOk = !Number.isNaN(age) && age >= SIGN_IN_TTL_MS
+      }
+    } catch {
+      // ignore storage failures
+    }
+
+    // Only clear on TTL expiry; unauthenticated can be transient mid-redirect.
+    if (!ageOk) return
+
+    // Allow retry if a sign-in attempt was started but did not complete.
+    signInStartedRef.current = false
+    setLoading(false)
+    try {
+      sessionStorage.removeItem('twitchSignInInFlight')
+    } catch {
+      // ignore storage failures
+    }
+  }, [status])
+
+  useEffect(() => {
+    // If we return with ?error= from the auth redirect, clear in-flight lock so user can retry.
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.has('error') && status !== 'authenticated') {
+      signInStartedRef.current = false
+      setLoading(false)
+      try {
+        sessionStorage.removeItem('twitchSignInInFlight')
+      } catch {
+        // ignore storage failures
+      }
+      try {
+        window.history.replaceState({}, '', window.location.pathname)
+      } catch {
+        // ignore history failures
+      }
+    }
+  }, [status])
+
   const handleSignIn = async () => {
+    if (loading || signInStartedRef.current) {
+      return
+    }
+
+    try {
+      const existingTs = sessionStorage.getItem('twitchSignInInFlight')
+      if (existingTs) {
+        const delta = Date.now() - Number(existingTs)
+        if (!Number.isNaN(delta) && delta < SIGN_IN_TTL_MS) {
+          return
+        }
+      }
+    } catch {
+      // ignore storage failures
+    }
+
+    signInStartedRef.current = true
     setLoading(true)
     try {
-      await signIn('twitch')
+      sessionStorage.setItem('twitchSignInInFlight', Date.now().toString())
+    } catch {
+      // ignore storage failures
+    }
+
+    try {
+      await signIn('twitch', {
+        callbackUrl: new URL('/', window.location.href).toString(),
+      })
+      // Normal path redirects; effect will clear guards on auth.
     } catch (error) {
       console.error('Sign in error:', error)
-    } finally {
+      // Allow retry on failure
+      signInStartedRef.current = false
+      try {
+        sessionStorage.removeItem('twitchSignInInFlight')
+      } catch {
+        // ignore storage failures
+      }
       setLoading(false)
     }
   }
@@ -45,6 +139,12 @@ export default function TwitchLogin() {
     } catch (error) {
       console.error('Sign out error:', error)
     } finally {
+      try {
+        sessionStorage.removeItem('twitchSignInInFlight')
+      } catch {
+        // ignore storage failures
+      }
+      signInStartedRef.current = false
       setLoading(false)
     }
   }
@@ -147,7 +247,8 @@ export default function TwitchLogin() {
       <button
         onClick={handleSignIn}
         disabled={loading}
-        className="w-full bg-bf-primary hover:bg-bf-primary-dark text-white py-3 px-6 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        aria-disabled={loading}
+        className="w-full bg-bf-primary hover:bg-bf-primary-dark text-white py-3 px-6 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none flex items-center justify-center gap-2"
       >
         {loading ? (
           'Connecting...'

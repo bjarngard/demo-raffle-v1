@@ -32,6 +32,7 @@ export async function ensureUser(sessionUser: SessionUserLike) {
   })
 
   if (existing) {
+    // Legacy safety net: if older rows are missing displayName/username, backfill from session name.
     const updates: Record<string, string> = {}
     if (!existing.displayName && sessionUser.name) {
       updates.displayName = sessionUser.name

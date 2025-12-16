@@ -1,4 +1,5 @@
-import type { NextAuthConfig, User as NextAuthUser } from 'next-auth'
+import type { NextAuthConfig } from 'next-auth'
+import type { AdapterUser } from 'next-auth/adapters'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './prisma'
 import { env } from './env'
@@ -7,6 +8,18 @@ import { checkUserFollowsChannel, getUserSubscription, getUserInfo } from './twi
 import { getBroadcasterAccessToken, refreshTwitchAccessToken } from './twitch-oauth'
 
 const isDevelopment = process.env.NODE_ENV === 'development'
+const authDebugEnabled =
+  process.env.NODE_ENV !== 'production' && process.env.AUTH_DEBUG_TWITCH_PROFILE === '1'
+
+const maskSuffix = (value: unknown) => {
+  if (value === null || value === undefined) return 'missing'
+  const str = String(value)
+  if (str.length <= 4) return `...${str}`
+  return `...${str.slice(-4)}`
+}
+
+// Base adapter; we wrap createUser below as a final safety net to ensure twitchId/username/displayName are persisted.
+const baseAdapter = PrismaAdapter(prisma)
 
 // Update user Twitch data using official Twitch API endpoints
 async function updateUserTwitchData(
@@ -121,7 +134,50 @@ type TwitchTokenState = {
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000
 
 export const authOptions: NextAuthConfig = {
-  adapter: PrismaAdapter(prisma),
+  adapter: {
+    ...baseAdapter,
+    // Final safety net: ensure twitchId/username/displayName are always persisted, even if adapter drops custom fields.
+    async createUser(data) {
+      const twitchId = (data as { twitchId?: string; id?: string }).twitchId ?? (data as { id?: string }).id
+      if (!twitchId) {
+        throw new Error('Missing twitchId in createUser')
+      }
+
+      const username =
+        (data as { username?: string; name?: string }).username ||
+        (data as { name?: string }).name ||
+        `viewer-${twitchId}`
+      const displayName = (data as { displayName?: string; name?: string }).displayName || (data as { name?: string }).name || username
+      const email = (data as { email?: string | null }).email ?? null
+      const image = (data as { image?: string | null }).image ?? null
+      const user = await prisma.user.upsert({
+        where: { twitchId },
+        create: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...(data as any),
+          twitchId,
+          username,
+          displayName,
+          email,
+          image,
+        },
+        update: {
+          username,
+          displayName,
+          email,
+          image,
+        },
+      })
+      const adapterUser = {
+        id: user.id,
+        email: user.email ?? undefined,
+        emailVerified: null,
+        name: user.displayName ?? user.username,
+        image: user.image ?? undefined,
+      } as AdapterUser
+      return adapterUser
+    },
+  },
   secret: env.NEXTAUTH_SECRET,
   trustHost: true,
   providers: [
@@ -137,8 +193,8 @@ export const authOptions: NextAuthConfig = {
       },
       checks: ['state', 'pkce'],
     
-      // IMPORTANT: allow linking based on email
-      allowDangerousEmailAccountLinking: true,
+      // IMPORTANT: allow linking based on email (only enabled in non-prod to reduce risk surface)
+      allowDangerousEmailAccountLinking: isDevelopment,
 
   profile(profile) {
     const p = profile as Partial<{
@@ -153,13 +209,19 @@ export const authOptions: NextAuthConfig = {
       email: string
     }>
 
-    if (process.env.AUTH_DEBUG_TWITCH_PROFILE === '1') {
+    // Debug-only; gated to non-production to avoid noisy logs.
+    if (authDebugEnabled) {
       console.log('[auth][twitch][profile]', {
         keys: Object.keys(profile ?? {}),
         sub: p.sub,
         id: p.id,
+        twitchIdSource: p.sub ? 'sub' : p.id ? 'id' : 'missing',
         preferred_username: p.preferred_username,
+        login: p.login,
         name: p.name,
+        display_name: p.display_name,
+        picture: p.picture ?? p.profile_image_url,
+        email: p.email ? '[present]' : null,
       })
     }
 
@@ -178,6 +240,7 @@ export const authOptions: NextAuthConfig = {
 
     const email = (p.email ?? null) as string | null
 
+    // Return profile-shaped user with extra fields needed by our Prisma schema; adapter/DB assigns `id`.
     const baseUser = {
       name: displayName,
       email,
@@ -187,7 +250,9 @@ export const authOptions: NextAuthConfig = {
       displayName,
     }
 
-    return baseUser as unknown as NextAuthUser
+    // We return a profile-shaped object without id; adapter will assign id. Cast to any to satisfy provider typings.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return baseUser as any
   },
     }),
     
@@ -195,6 +260,15 @@ export const authOptions: NextAuthConfig = {
   callbacks: {
     async jwt({ token, account, user }) {
       const typedToken = token as typeof token & { twitch?: TwitchTokenState }
+
+      if (authDebugEnabled) {
+        console.log('[auth][debug][jwt]', {
+          ts: new Date().toISOString(),
+          provider: account?.provider ?? 'unknown',
+          providerAccountIdSuffix: maskSuffix(account?.providerAccountId),
+          userIdSuffix: maskSuffix(user?.id ?? token?.sub ?? null),
+        })
+      }
 
       if (account?.provider === 'twitch' && user) {
         const expiresAt = account.expires_at
@@ -254,6 +328,15 @@ export const authOptions: NextAuthConfig = {
       return typedToken
     },
     async signIn({ user, account }) {
+      if (authDebugEnabled) {
+        console.log('[auth][debug][signIn]', {
+          ts: new Date().toISOString(),
+          provider: account?.provider ?? 'unknown',
+          providerAccountIdSuffix: maskSuffix(account?.providerAccountId),
+          userIdSuffix: maskSuffix(user?.id ?? null),
+        })
+      }
+
       const typedUser = user as Partial<{ twitchId?: string }>
       if (account?.provider === 'twitch' && !typedUser.twitchId) {
         console.error('[auth] Missing twitchId on user during signIn', {
