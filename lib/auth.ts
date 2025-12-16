@@ -1,4 +1,4 @@
-import type { NextAuthConfig } from 'next-auth'
+import type { NextAuthConfig, User as NextAuthUser } from 'next-auth'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './prisma'
 import { env } from './env'
@@ -139,6 +139,56 @@ export const authOptions: NextAuthConfig = {
     
       // IMPORTANT: allow linking based on email
       allowDangerousEmailAccountLinking: true,
+
+  profile(profile) {
+    const p = profile as Partial<{
+      sub: string | number
+      id: string | number
+      preferred_username: string
+      login: string
+      name: string
+      display_name: string
+      picture: string
+      profile_image_url: string
+      email: string
+    }>
+
+    if (process.env.AUTH_DEBUG_TWITCH_PROFILE === '1') {
+      console.log('[auth][twitch][profile]', {
+        keys: Object.keys(profile ?? {}),
+        sub: p.sub,
+        id: p.id,
+        preferred_username: p.preferred_username,
+        name: p.name,
+      })
+    }
+
+    const twitchIdRaw = p.sub ?? p.id
+    const twitchId = twitchIdRaw ? String(twitchIdRaw) : ''
+
+    if (!twitchId) {
+      throw new Error('Missing twitchId from Twitch profile (expected sub)')
+    }
+
+    const username = (p.preferred_username ?? p.login ?? '').toString() || `viewer-${twitchId}`
+
+    const displayName = (p.name ?? p.display_name ?? '').toString() || username
+
+    const image = (p.picture ?? p.profile_image_url ?? null) as string | null
+
+    const email = (p.email ?? null) as string | null
+
+    const baseUser = {
+      name: displayName,
+      email,
+      image,
+      twitchId,
+      username,
+      displayName,
+    }
+
+    return baseUser as unknown as NextAuthUser
+  },
     }),
     
   ],
@@ -204,6 +254,14 @@ export const authOptions: NextAuthConfig = {
       return typedToken
     },
     async signIn({ user, account }) {
+      const typedUser = user as Partial<{ twitchId?: string }>
+      if (account?.provider === 'twitch' && !typedUser.twitchId) {
+        console.error('[auth] Missing twitchId on user during signIn', {
+          userId: user?.id,
+          providerAccountId: account?.providerAccountId,
+        })
+      }
+
       if (account?.provider === 'twitch' && account.access_token) {
         try {
           await updateUserTwitchData(user.id, account.access_token)

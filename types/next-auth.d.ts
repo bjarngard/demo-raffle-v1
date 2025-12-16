@@ -8,6 +8,9 @@ declare module 'next-auth' {
       email?: string | null
       image?: string | null
       isBroadcaster?: boolean
+      twitchId?: string
+      username?: string
+      displayName?: string
     }
     isFollower?: boolean
     isBroadcaster?: boolean
@@ -15,6 +18,9 @@ declare module 'next-auth' {
 
   interface User {
     id: string
+    twitchId?: string
+    username?: string
+    displayName?: string
   }
 }
 
