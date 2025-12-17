@@ -9,6 +9,16 @@ import { getUserDisplayName } from '@/lib/user-display-name'
 import { getCurrentSession } from '@/lib/session'
 import { entryStateExclusion } from '@/lib/submissions-state'
 
+// Allow enabling sync debug even in production via env flag; all logs are PII-masked.
+const weightSyncDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
+
+const maskSuffix = (value: unknown) => {
+  if (value === null || value === undefined) return 'missing'
+  const str = String(value)
+  if (str.length <= 4) return `...${str}`
+  return `...${str.slice(-4)}`
+}
+
 /**
  * Surface the viewer's canonical raffle weight. EventSub flags users via
  * needsResync; this route optionally refreshes them from Twitch before
@@ -37,14 +47,47 @@ export async function GET() {
   }
 
   // EventSub marks dirty users (needsResync); also refresh stale cache entries via gated Twitch sync.
-  const syncTrigger = getTwitchSyncTrigger(resolvedUser)
+  const canSync = Boolean(resolvedUser.twitchId)
+  if (!canSync && weightSyncDebugEnabled) {
+    console.log('[weight/me][sync]', {
+      trigger: 'missing_twitch_id',
+      userId: maskSuffix(resolvedUser.id),
+    })
+  }
 
-  if (shouldSyncTwitch(resolvedUser) && syncTrigger) {
+  const syncTrigger = canSync ? getTwitchSyncTrigger(resolvedUser) : null
+
+  if (canSync && shouldSyncTwitch(resolvedUser) && syncTrigger) {
+    const before = {
+      isSubscriber: resolvedUser.isSubscriber,
+      subMonths: resolvedUser.subMonths,
+      totalGiftedSubs: resolvedUser.totalGiftedSubs,
+      totalCheerBits: resolvedUser.totalCheerBits,
+    }
+
     try {
       const syncResult = await syncUserFromTwitch(resolvedUser.id, { trigger: syncTrigger })
       if (syncResult.updated) {
         resolvedUser = syncResult.user
       }
+
+      if (weightSyncDebugEnabled) {
+        console.log('[weight/me][sync]', {
+          trigger: syncTrigger,
+          userId: maskSuffix(resolvedUser.id),
+          twitchId: maskSuffix(resolvedUser.twitchId),
+          updated: syncResult.updated,
+          before,
+          after: {
+            isSubscriber: resolvedUser.isSubscriber,
+            subMonths: resolvedUser.subMonths,
+            totalGiftedSubs: resolvedUser.totalGiftedSubs,
+            totalCheerBits: resolvedUser.totalCheerBits,
+          },
+          reason: syncResult.reason ?? 'none',
+        })
+      }
+
       console.log('[weight/me] step=twitch-sync', `${Date.now() - started}ms`, 'trigger', syncTrigger)
     } catch (error) {
       console.error('Lazy Twitch sync failed in /api/weight/me:', {

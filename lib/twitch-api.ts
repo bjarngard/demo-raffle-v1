@@ -10,6 +10,22 @@ const BROADCASTER_ID = env.TWITCH_BROADCASTER_ID
 
 // Cache broadcaster token to avoid duplicate fetches within a single event loop
 let broadcasterTokenCache: { token: string; expiresAt: number } | null = null
+const apiDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
+const maskSuffix = (value: unknown) => {
+  if (value === null || value === undefined) return 'missing'
+  const str = String(value)
+  if (str.length <= 4) return `...${str}`
+  return `...${str.slice(-4)}`
+}
+const logThrottleMs = 60_000
+const logSeen = new Map<string, number>()
+const throttledError = (key: string, payload: Record<string, unknown>) => {
+  const now = Date.now()
+  const last = logSeen.get(key) ?? 0
+  if (now - last < logThrottleMs) return
+  logSeen.set(key, now)
+  console.error('[twitch-api]', payload)
+}
 
 type TwitchUserProfile = {
   id: string
@@ -76,9 +92,24 @@ export async function checkUserFollowsChannel(
         return { status: 'not_following' }
       }
       if (response.status === 401) {
+        throttledError('follow:401', {
+          endpoint: 'follow',
+          userId: maskSuffix(userId),
+          status: response.status,
+          reason: 'unauthorized',
+        })
         return { status: 'unknown', reason: 'unauthorized' }
       }
-      console.error('Twitch API error checking follow:', response.status, responseText)
+      if (response.status >= 500) {
+        throttledError(`follow:${response.status}`, {
+          endpoint: 'follow',
+          userId: maskSuffix(userId),
+          status: response.status,
+          reason: 'http_error',
+        })
+      } else if (apiDebugEnabled) {
+        console.error('Twitch API error checking follow:', response.status, responseText)
+      }
       return { status: 'unknown', reason: `http_${response.status}` }
     }
 
@@ -162,11 +193,13 @@ export async function getUserSubscription(userId: string | null, broadcasterToke
 
     if (!response.ok) {
       if (notSubscribedResponse) {
-        console.log('[getUserSubscription] not_subscribed', {
-          userId,
-          broadcasterId: BROADCASTER_ID,
-          status: response.status,
-        })
+        if (apiDebugEnabled) {
+          console.log('[getUserSubscription] not_subscribed', {
+            userId: maskSuffix(userId),
+            broadcasterId: maskSuffix(BROADCASTER_ID),
+            status: response.status,
+          })
+        }
         return {
           isSubscriber: false,
           subMonths: 0,
@@ -175,49 +208,56 @@ export async function getUserSubscription(userId: string | null, broadcasterToke
         }
       }
 
-      if (response.status === 401) {
-        console.error('[getUserSubscription] helix_error', {
-          userId,
-          broadcasterId: BROADCASTER_ID,
+      if (response.status === 401 || response.status === 403) {
+        throttledError(`subscription:${response.status}`, {
+          endpoint: 'subscription',
+          userId: maskSuffix(userId),
           status: response.status,
-          url: url.toString(),
-          body: responseText,
           reason: 'unauthorized',
         })
         return null
       }
 
       if (response.status === 429) {
-        console.error('[getUserSubscription] helix_error', {
-          userId,
-          broadcasterId: BROADCASTER_ID,
+        throttledError('subscription:429', {
+          endpoint: 'subscription',
+          userId: maskSuffix(userId),
           status: response.status,
-          url: url.toString(),
-          body: responseText,
           reason: 'rate_limited',
         })
         return null
       }
 
-      console.error('[getUserSubscription] helix_error', {
-        userId,
-        broadcasterId: BROADCASTER_ID,
-        status: response.status,
-        url: url.toString(),
-        body: responseText,
-        reason: 'http_error',
-      })
+      if (response.status >= 500) {
+        throttledError(`subscription:${response.status}`, {
+          endpoint: 'subscription',
+          userId: maskSuffix(userId),
+          status: response.status,
+          reason: 'http_error',
+        })
+      } else if (apiDebugEnabled) {
+        console.error('[getUserSubscription] helix_error', {
+          userId: maskSuffix(userId),
+          broadcasterId: maskSuffix(BROADCASTER_ID),
+          status: response.status,
+          url: url.toString(),
+          body: responseText,
+          reason: 'http_error',
+        })
+      }
       return null
     }
 
     if (!responseText || responseText.trim().length === 0) {
-      console.error('[getUserSubscription] helix_error', {
-        userId,
-        broadcasterId: BROADCASTER_ID,
-        status: response.status,
-        url: url.toString(),
-        reason: 'empty_body',
-      })
+      if (apiDebugEnabled) {
+        console.error('[getUserSubscription] helix_error', {
+          userId: maskSuffix(userId),
+          broadcasterId: maskSuffix(BROADCASTER_ID),
+          status: response.status,
+          url: url.toString(),
+          reason: 'empty_body',
+        })
+      }
       return null
     }
 
@@ -225,25 +265,29 @@ export async function getUserSubscription(userId: string | null, broadcasterToke
     try {
       data = JSON.parse(responseText) as HelixBroadcasterSubscriptionResponse
     } catch {
-      console.error('[getUserSubscription] helix_error', {
-        userId,
-        broadcasterId: BROADCASTER_ID,
-        status: response.status,
-        url: url.toString(),
-        reason: 'invalid_json',
-        body: responseText,
-      })
+      if (apiDebugEnabled) {
+        console.error('[getUserSubscription] helix_error', {
+          userId: maskSuffix(userId),
+          broadcasterId: maskSuffix(BROADCASTER_ID),
+          status: response.status,
+          url: url.toString(),
+          reason: 'invalid_json',
+          body: responseText,
+        })
+      }
       return null
     }
 
     const subscription = data.data && data.data.length > 0 ? data.data[0] : null
 
     if (!subscription) {
-      console.log('[getUserSubscription] not_subscribed', {
-        userId,
-        broadcasterId: BROADCASTER_ID,
-        reason: 'no_data',
-      })
+      if (apiDebugEnabled) {
+        console.log('[getUserSubscription] not_subscribed', {
+          userId: maskSuffix(userId),
+          broadcasterId: maskSuffix(BROADCASTER_ID),
+          reason: 'no_data',
+        })
+      }
       return {
         isSubscriber: false,
         subMonths: 0,
@@ -259,22 +303,26 @@ export async function getUserSubscription(userId: string | null, broadcasterToke
       isGift: Boolean(subscription.is_gift),
     }
 
-    console.log('[getUserSubscription] success', {
-      userId,
-      broadcasterId: BROADCASTER_ID,
-      tier: normalized.tier,
-      isGift: normalized.isGift,
-    })
+    if (apiDebugEnabled) {
+      console.log('[getUserSubscription] success', {
+        userId: maskSuffix(userId),
+        broadcasterId: maskSuffix(BROADCASTER_ID),
+        tier: normalized.tier,
+        isGift: normalized.isGift,
+      })
+    }
 
     return normalized
   } catch (error) {
-    console.error('[getUserSubscription] helix_error', {
-      userId,
-      broadcasterId: BROADCASTER_ID,
-      url: url.toString(),
-      reason: 'network_error',
-      error,
-    })
+    if (apiDebugEnabled) {
+      console.error('[getUserSubscription] helix_error', {
+        userId: maskSuffix(userId),
+        broadcasterId: maskSuffix(BROADCASTER_ID),
+        url: url.toString(),
+        reason: 'network_error',
+        error,
+      })
+    }
     return null
   }
 }

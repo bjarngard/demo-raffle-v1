@@ -14,6 +14,14 @@ import { calculateUserWeight } from './weight-settings'
 // Sync cadence controls
 export const USER_TWITCH_SYNC_COOLDOWN_MS = 60_000
 export const SYNC_STALE_AFTER_MS = 10 * 60 * 1000
+const syncDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
+
+const maskSuffix = (value: unknown) => {
+  if (value === null || value === undefined) return 'missing'
+  const str = String(value)
+  if (str.length <= 4) return `...${str}`
+  return `...${str.slice(-4)}`
+}
 
 export type UserTwitchSyncResult = {
   user: User
@@ -59,6 +67,9 @@ export async function syncUserFromTwitch(
   }
 
   if (!existingUser.twitchId) {
+    if (syncDebugEnabled) {
+      console.warn('[twitch-sync] missing_twitch_id', { userId: maskSuffix(existingUser.id) })
+    }
     return { user: existingUser, updated: false, reason: 'missing_twitch_id' }
   }
 
@@ -77,9 +88,16 @@ export async function syncUserFromTwitch(
     broadcasterToken = await getBroadcasterAccessToken()
   } catch (error) {
     console.error('Failed to fetch broadcaster token for Twitch sync', {
-      userId: existingUser.id,
+      userId: maskSuffix(existingUser.id),
       error,
     })
+    if (syncDebugEnabled) {
+      console.error('[twitch-sync] broadcaster_token_missing', {
+        userId: maskSuffix(existingUser.id),
+        trigger,
+        message: error instanceof Error ? error.message : 'unknown_error',
+      })
+    }
     try {
       const cleared = await prisma.user.update({
         where: { id: existingUser.id },

@@ -18,7 +18,13 @@ const MESSAGE_TYPE_REVOCATION = 'revocation'
 
 const HMAC_PREFIX = 'sha256='
 const MAX_EVENT_AGE_MS = 10 * 60 * 1000
-const ALLOWED_EVENT_TYPES = new Set(['channel.follow', 'channel.subscribe', 'channel.subscription.gift', 'channel.cheer'])
+const ALLOWED_EVENT_TYPES = new Set([
+  'channel.follow',
+  'channel.subscribe',
+  'channel.subscription.gift',
+  'channel.subscription.message',
+  'channel.cheer',
+])
 
 type EventSubPayload = {
   challenge?: string
@@ -29,6 +35,15 @@ type EventSubPayload = {
 }
 
 const BROADCASTER_ID = env.TWITCH_BROADCASTER_ID
+// Allow enabling EventSub resync debug even in production; logs are suffix-masked.
+const eventSubDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
+
+const maskSuffix = (value: unknown) => {
+  if (value === null || value === undefined) return 'missing'
+  const str = String(value)
+  if (str.length <= 4) return `...${str}`
+  return `...${str.slice(-4)}`
+}
 
 /**
  * Verify Twitch EventSub payloads, dedupe them, and mark affected users as
@@ -93,7 +108,7 @@ export async function POST(request: NextRequest) {
     const twitchUserId = extractTwitchUserId(event)
 
     if (!twitchUserId) {
-      console.warn('[eventsub] missing twitchUserId for type', subscriptionType, 'payload=', event)
+      console.warn('[eventsub] missing twitchUserId for type', subscriptionType, 'payload keys=', Object.keys(event))
       return new NextResponse(null, { status: 204 })
     }
 
@@ -142,6 +157,14 @@ export async function POST(request: NextRequest) {
         where: { twitchId: twitchUserId },
         data: { needsResync: true },
       })
+
+      if (eventSubDebugEnabled) {
+        console.log('[eventsub][resync]', {
+          type: subscriptionType,
+          userId: maskSuffix(twitchUserId),
+          matched: result.count,
+        })
+      }
 
       if (result.count === 0) {
         console.warn(
