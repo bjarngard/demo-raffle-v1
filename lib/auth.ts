@@ -306,8 +306,8 @@ export const authOptions: NextAuthConfig = {
           provider: account?.provider ?? 'unknown',
           providerAccountIdSuffix: maskSuffix(account?.providerAccountId),
           userIdSuffix: maskSuffix(user?.id ?? token?.sub ?? null),
-          twitchIdSuffix: maskSuffix((user as { twitchId?: string } | undefined)?.twitchId ?? (account?.providerAccountId ?? null)),
-          twitchIdSource: (account?.provider === 'twitch' ? 'account.providerAccountId' : 'token'),
+          twitchIdSuffix: maskSuffix((user as { twitchId?: string } | undefined)?.twitchId ?? null),
+          twitchIdSource: account?.provider === 'twitch' ? 'profile' : 'token',
           emailPresent: Boolean((user as { email?: string | null } | undefined)?.email),
         })
       }
@@ -323,10 +323,17 @@ export const authOptions: NextAuthConfig = {
           expiresAt,
           providerAccountId: account.providerAccountId,
         }
-        // Prefer user.twitchId; if missing, fetch once from DB to preserve twitchId after wipes.
-        let resolvedTwitchId =
-          (user as { twitchId?: string } | undefined)?.twitchId ??
-          (account.providerAccountId ? String(account.providerAccountId) : undefined)
+        // Resolve twitchUserId (no fallback to user.id/providerAccountId).
+        const pickNumeric = (v: unknown) => {
+          if (typeof v === 'string' && /^\d+$/.test(v)) return v
+          if (typeof v === 'number' && Number.isFinite(v)) return String(v)
+          return null
+        }
+        const profileTwitchId =
+          pickNumeric((user as { twitchId?: string } | undefined)?.twitchId) ??
+          pickNumeric(account.providerAccountId)
+        let resolvedTwitchId = profileTwitchId
+
         if (!resolvedTwitchId && user.id) {
           try {
             const fetched = await prisma.user.findUnique({
@@ -345,7 +352,8 @@ export const authOptions: NextAuthConfig = {
             }
           }
         }
-        typedToken.twitchUserId = resolvedTwitchId
+
+        typedToken.twitchUserId = resolvedTwitchId ?? undefined
         typedToken.twitchProviderAccountId = account.providerAccountId
       }
 
@@ -449,28 +457,32 @@ export const authOptions: NextAuthConfig = {
           session.user.id = userId
         }
 
-        if (session.user?.id) {
-          try {
-            const dbUser = await prisma.user.findUnique({
-              where: { id: session.user.id },
-              select: { isFollower: true },
-            })
-            session.isFollower = dbUser?.isFollower ?? false
-          } catch {
-            session.isFollower = false
-          }
-        }
-
         const typedToken = token as typeof token & {
           twitch?: TwitchTokenState
           twitchUserId?: string
           twitchProviderAccountId?: string
         }
-        const twitchUserId =
-          typedToken.twitchUserId ??
-          session.user?.twitchId ??
-          typedToken.twitch?.providerAccountId ??
-          typedToken.twitchProviderAccountId
+        let dbTwitchId: string | null = null
+        let dbIsFollower = false
+        const dbLookupId = session.user?.id ?? (token?.sub as string | null) ?? null
+
+        if (dbLookupId) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: dbLookupId },
+              select: { isFollower: true, twitchId: true },
+            })
+            dbIsFollower = dbUser?.isFollower ?? false
+            dbTwitchId = dbUser?.twitchId ?? null
+          } catch {
+            dbIsFollower = false
+            dbTwitchId = null
+          }
+        }
+
+        session.isFollower = dbIsFollower
+
+        const twitchUserId = dbTwitchId ?? typedToken.twitchUserId ?? null
         if (session.user) {
           session.user.twitchId = twitchUserId ?? session.user.twitchId
         }
@@ -482,12 +494,14 @@ export const authOptions: NextAuthConfig = {
 
         if (authDebugEnabled || authProdDebugEnabled) {
           console.log('[auth][debug][session]', {
-            twitchUserIdSuffix: maskSuffix(twitchUserId),
+            broadcasterIdSuffix: maskSuffix(env.TWITCH_BROADCASTER_ID),
+            tokenTwitchUserIdSuffix: maskSuffix(typedToken.twitchUserId),
+            dbTwitchIdSuffix: maskSuffix(dbTwitchId),
             isBroadcaster,
-            source: typedToken.twitchUserId
-              ? 'token.twitchUserId'
-              : session.user?.twitchId
-                ? 'session.user'
+            source: dbTwitchId
+              ? 'db'
+              : typedToken.twitchUserId
+                ? 'token.twitchUserId'
                 : typedToken.twitch?.providerAccountId || typedToken.twitchProviderAccountId
                   ? 'providerAccountId'
                   : 'unknown',
