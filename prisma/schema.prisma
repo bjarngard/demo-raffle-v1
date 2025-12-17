@@ -23,7 +23,9 @@ model User {
   twitchId          String   @unique
   username          String
   displayName       String
+  name              String?
   email             String?  @unique
+  emailVerified     DateTime?
   image             String?
   accessToken       String?
   refreshToken      String?

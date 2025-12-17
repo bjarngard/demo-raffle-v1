@@ -96,6 +96,7 @@ async function updateUserTwitchData(
         twitchId: twitchUser.id,
         username: twitchUser.login,
         displayName: twitchUser.display_name,
+        name: twitchUser.display_name,
         email: twitchUser.email,
         image: twitchUser.profile_image_url,
         isSubscriber,
@@ -108,6 +109,7 @@ async function updateUserTwitchData(
       update: {
         username: twitchUser.login,
         displayName: twitchUser.display_name,
+        name: twitchUser.display_name,
         email: twitchUser.email,
         image: twitchUser.profile_image_url,
         isSubscriber,
