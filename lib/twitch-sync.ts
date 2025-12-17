@@ -3,6 +3,7 @@ import { prisma } from './prisma'
 import { getBroadcasterAccessToken } from './twitch-oauth'
 import { checkUserFollowsChannel, getUserSubscription } from './twitch-api'
 import { calculateUserWeight } from './weight-settings'
+import { maskSuffix } from './mask'
 
 /**
  * Twitch sync overview (source of truth for user Twitch state → DB → weight engine)
@@ -15,13 +16,6 @@ import { calculateUserWeight } from './weight-settings'
 export const USER_TWITCH_SYNC_COOLDOWN_MS = 60_000
 export const SYNC_STALE_AFTER_MS = 10 * 60 * 1000
 const syncDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
-
-const maskSuffix = (value: unknown) => {
-  if (value === null || value === undefined) return 'missing'
-  const str = String(value)
-  if (str.length <= 4) return `...${str}`
-  return `...${str.slice(-4)}`
-}
 
 export type UserTwitchSyncResult = {
   user: User

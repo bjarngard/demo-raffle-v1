@@ -8,16 +8,11 @@ import { getTwitchSyncTrigger, shouldSyncTwitch, syncUserFromTwitch } from '@/li
 import { getUserDisplayName } from '@/lib/user-display-name'
 import { getCurrentSession } from '@/lib/session'
 import { entryStateExclusion } from '@/lib/submissions-state'
+import { maskSuffix } from '@/lib/mask'
 
 // Allow enabling sync debug even in production via env flag; all logs are PII-masked.
 const weightSyncDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
 
-const maskSuffix = (value: unknown) => {
-  if (value === null || value === undefined) return 'missing'
-  const str = String(value)
-  if (str.length <= 4) return `...${str}`
-  return `...${str.slice(-4)}`
-}
 
 /**
  * Surface the viewer's canonical raffle weight. EventSub flags users via

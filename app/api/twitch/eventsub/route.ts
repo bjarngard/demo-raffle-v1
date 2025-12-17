@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { env } from '@/lib/env'
+import { maskSuffix } from '@/lib/mask'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -38,12 +39,6 @@ const BROADCASTER_ID = env.TWITCH_BROADCASTER_ID
 // Allow enabling EventSub resync debug even in production; logs are suffix-masked.
 const eventSubDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
 
-const maskSuffix = (value: unknown) => {
-  if (value === null || value === undefined) return 'missing'
-  const str = String(value)
-  if (str.length <= 4) return `...${str}`
-  return `...${str.slice(-4)}`
-}
 
 /**
  * Verify Twitch EventSub payloads, dedupe them, and mark affected users as

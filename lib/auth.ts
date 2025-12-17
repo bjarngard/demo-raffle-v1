@@ -6,12 +6,23 @@ import { env } from './env'
 import TwitchProvider from 'next-auth/providers/twitch'
 import { checkUserFollowsChannel, getUserSubscription, getUserInfo } from './twitch-api'
 import { getBroadcasterAccessToken, refreshTwitchAccessToken } from './twitch-oauth'
+import { maskSuffix } from './mask'
 
 const isDevelopment = process.env.NODE_ENV === 'development'
 const authDebugEnabled =
   process.env.NODE_ENV !== 'production' && process.env.AUTH_DEBUG_TWITCH_PROFILE === '1'
+// Email storage is off by default to avoid OAuthAccountNotLinked via email collisions. Enable only with a clear linking policy.
 const storeTwitchEmail = process.env.STORE_TWITCH_EMAIL === '1'
 const authProdDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
+const authLogThrottleMs = 60_000
+const authLogSeen = new Map<string, number>()
+const throttledWarn = (key: string, payload: Record<string, unknown>) => {
+  const now = Date.now()
+  const last = authLogSeen.get(key) ?? 0
+  if (now - last < authLogThrottleMs) return
+  authLogSeen.set(key, now)
+  console.warn('[auth]', payload)
+}
 // One-time init log (PII-safe) for email handling (per process; guard with global).
 const globalAny = globalThis as unknown as { __AUTH_INIT_LOGGED?: boolean }
 if (!globalAny.__AUTH_INIT_LOGGED) {
@@ -23,12 +34,6 @@ if (!globalAny.__AUTH_INIT_LOGGED) {
   })
 }
 
-const maskSuffix = (value: unknown) => {
-  if (value === null || value === undefined) return 'missing'
-  const str = String(value)
-  if (str.length <= 4) return `...${str}`
-  return `...${str.slice(-4)}`
-}
 
 // Base adapter; we wrap createUser below as a final safety net to ensure twitchId/username/displayName are persisted.
 const baseAdapter = PrismaAdapter(prisma)
@@ -472,11 +477,28 @@ export const authOptions: NextAuthConfig = {
               where: { id: dbLookupId },
               select: { isFollower: true, twitchId: true },
             })
+            if (!dbUser) {
+              throttledWarn('session:db_missing', {
+                userIdSuffix: maskSuffix(dbLookupId),
+                reason: 'db_user_missing',
+              })
+            }
             dbIsFollower = dbUser?.isFollower ?? false
             dbTwitchId = dbUser?.twitchId ?? null
-          } catch {
+            if (dbUser && !dbUser.twitchId) {
+              throttledWarn('session:twitchid_missing', {
+                userIdSuffix: maskSuffix(dbLookupId),
+                reason: 'db_twitchId_missing',
+              })
+            }
+          } catch (error) {
             dbIsFollower = false
             dbTwitchId = null
+            throttledWarn('session:db_lookup_error', {
+              userIdSuffix: maskSuffix(dbLookupId),
+              reason: 'db_lookup_error',
+              message: error instanceof Error ? error.message : 'unknown',
+            })
           }
         }
 

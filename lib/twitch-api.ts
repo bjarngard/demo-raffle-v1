@@ -4,6 +4,7 @@
  */
 import { env } from './env'
 import { getBroadcasterAccessToken } from './twitch-oauth'
+import { maskSuffix } from './mask'
 
 const TWITCH_CLIENT_ID = env.TWITCH_CLIENT_ID
 const BROADCASTER_ID = env.TWITCH_BROADCASTER_ID
@@ -11,12 +12,6 @@ const BROADCASTER_ID = env.TWITCH_BROADCASTER_ID
 // Cache broadcaster token to avoid duplicate fetches within a single event loop
 let broadcasterTokenCache: { token: string; expiresAt: number } | null = null
 const apiDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
-const maskSuffix = (value: unknown) => {
-  if (value === null || value === undefined) return 'missing'
-  const str = String(value)
-  if (str.length <= 4) return `...${str}`
-  return `...${str.slice(-4)}`
-}
 const logThrottleMs = 60_000
 const logSeen = new Map<string, number>()
 const throttledError = (key: string, payload: Record<string, unknown>) => {
