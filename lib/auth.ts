@@ -10,6 +10,18 @@ import { getBroadcasterAccessToken, refreshTwitchAccessToken } from './twitch-oa
 const isDevelopment = process.env.NODE_ENV === 'development'
 const authDebugEnabled =
   process.env.NODE_ENV !== 'production' && process.env.AUTH_DEBUG_TWITCH_PROFILE === '1'
+const storeTwitchEmail = process.env.STORE_TWITCH_EMAIL === '1'
+const authProdDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
+// One-time init log (PII-safe) for email handling (per process; guard with global).
+const globalAny = globalThis as unknown as { __AUTH_INIT_LOGGED?: boolean }
+if (!globalAny.__AUTH_INIT_LOGGED) {
+  globalAny.__AUTH_INIT_LOGGED = true
+  console.log('[auth][init]', {
+    storeTwitchEmail,
+    nodeEnv: process.env.NODE_ENV,
+    hasStoreTwitchEmailEnv: typeof process.env.STORE_TWITCH_EMAIL !== 'undefined',
+  })
+}
 
 const maskSuffix = (value: unknown) => {
   if (value === null || value === undefined) return 'missing'
@@ -28,7 +40,25 @@ async function updateUserTwitchData(
 ) {
   try {
     // Fetch user info from Twitch API (using user token)
-    const twitchUser = await getUserInfo(accessToken)
+    let twitchUser
+    try {
+      twitchUser = await getUserInfo(accessToken)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      const isUnauthorized = msg.includes('401') || msg.toLowerCase().includes('unauthorized')
+      if (authDebugEnabled) {
+        console.error('[updateUserTwitchData] user_info_failed', {
+          userId: maskSuffix(userId),
+          hasAccessToken: Boolean(accessToken),
+          isUnauthorized,
+          message: msg,
+        })
+      }
+      if (isUnauthorized) {
+        return
+      }
+      throw error
+    }
 
     if (!twitchUser || !twitchUser.id) {
       throw new Error('Twitch user not found or invalid')
@@ -212,7 +242,7 @@ export const authOptions: NextAuthConfig = {
     }>
 
     // Debug-only; gated to non-production to avoid noisy logs.
-    if (authDebugEnabled) {
+    if (authDebugEnabled || authProdDebugEnabled) {
       console.log('[auth][twitch][profile]', {
         keys: Object.keys(profile ?? {}),
         sub: p.sub,
@@ -227,7 +257,14 @@ export const authOptions: NextAuthConfig = {
       })
     }
 
-    const twitchIdRaw = p.sub ?? p.id
+    const pickNumeric = (v: unknown) => {
+      if (typeof v === 'string' && /^\d+$/.test(v)) return v
+      if (typeof v === 'number' && Number.isFinite(v)) return String(v)
+      return null
+    }
+    const numericSub = pickNumeric(p.sub)
+    const numericId = pickNumeric(p.id)
+    const twitchIdRaw = numericSub ?? numericId ?? (p.sub ?? p.id)
     const twitchId = twitchIdRaw ? String(twitchIdRaw) : ''
 
     if (!twitchId) {
@@ -240,7 +277,7 @@ export const authOptions: NextAuthConfig = {
 
     const image = (p.picture ?? p.profile_image_url ?? null) as string | null
 
-    const email = (p.email ?? null) as string | null
+    const email = storeTwitchEmail ? ((p.email ?? null) as string | null) : null
 
     // Return profile-shaped user with extra fields needed by our Prisma schema; adapter/DB assigns `id`.
     const baseUser = {
@@ -269,6 +306,9 @@ export const authOptions: NextAuthConfig = {
           provider: account?.provider ?? 'unknown',
           providerAccountIdSuffix: maskSuffix(account?.providerAccountId),
           userIdSuffix: maskSuffix(user?.id ?? token?.sub ?? null),
+          twitchIdSuffix: maskSuffix((user as { twitchId?: string } | undefined)?.twitchId ?? (account?.providerAccountId ?? null)),
+          twitchIdSource: (account?.provider === 'twitch' ? 'account.providerAccountId' : 'token'),
+          emailPresent: Boolean((user as { email?: string | null } | undefined)?.email),
         })
       }
 
@@ -283,6 +323,30 @@ export const authOptions: NextAuthConfig = {
           expiresAt,
           providerAccountId: account.providerAccountId,
         }
+        // Prefer user.twitchId; if missing, fetch once from DB to preserve twitchId after wipes.
+        let resolvedTwitchId =
+          (user as { twitchId?: string } | undefined)?.twitchId ??
+          (account.providerAccountId ? String(account.providerAccountId) : undefined)
+        if (!resolvedTwitchId && user.id) {
+          try {
+            const fetched = await prisma.user.findUnique({
+              where: { id: user.id as string },
+              select: { twitchId: true },
+            })
+            if (fetched?.twitchId) {
+              resolvedTwitchId = fetched.twitchId
+            }
+          } catch (error) {
+            if (authDebugEnabled) {
+              console.error('[auth][debug][jwt] failed to fetch twitchId', {
+                userId: maskSuffix(user.id),
+                error: error instanceof Error ? error.message : String(error),
+              })
+            }
+          }
+        }
+        typedToken.twitchUserId = resolvedTwitchId
+        typedToken.twitchProviderAccountId = account.providerAccountId
       }
 
       const twitchState = typedToken.twitch
@@ -351,8 +415,23 @@ export const authOptions: NextAuthConfig = {
         try {
           await updateUserTwitchData(user.id, account.access_token)
         } catch (error) {
-          if (isDevelopment) {
-            console.error('updateUserTwitchData failed during sign-in:', error)
+          const msg = error instanceof Error ? error.message : String(error)
+          const isUnauthorized = msg.includes('401') || msg.toLowerCase().includes('unauthorized')
+          const tokenPresent = Boolean(account.access_token)
+          if (isDevelopment || authDebugEnabled) {
+            console.error('updateUserTwitchData failed during sign-in', {
+              userId: user.id,
+              provider: account.provider,
+              providerAccountIdSuffix: maskSuffix(account.providerAccountId),
+              hasAccessToken: tokenPresent,
+              tokenType: account.token_type,
+              expiresAt: account.expires_at,
+              isUnauthorized,
+              error: msg,
+            })
+          }
+          if (isUnauthorized) {
+            return true
           }
         }
       }
@@ -382,12 +461,37 @@ export const authOptions: NextAuthConfig = {
           }
         }
 
-        const isBroadcaster =
-          !!token &&
-          ((token as typeof token & { twitch?: TwitchTokenState }).twitch?.providerAccountId === env.TWITCH_BROADCASTER_ID)
+        const typedToken = token as typeof token & {
+          twitch?: TwitchTokenState
+          twitchUserId?: string
+          twitchProviderAccountId?: string
+        }
+        const twitchUserId =
+          typedToken.twitchUserId ??
+          session.user?.twitchId ??
+          typedToken.twitch?.providerAccountId ??
+          typedToken.twitchProviderAccountId
+        if (session.user) {
+          session.user.twitchId = twitchUserId ?? session.user.twitchId
+        }
+        const isBroadcaster = twitchUserId === env.TWITCH_BROADCASTER_ID
         session.isBroadcaster = isBroadcaster
         if (session.user) {
           session.user.isBroadcaster = isBroadcaster
+        }
+
+        if (authDebugEnabled || authProdDebugEnabled) {
+          console.log('[auth][debug][session]', {
+            twitchUserIdSuffix: maskSuffix(twitchUserId),
+            isBroadcaster,
+            source: typedToken.twitchUserId
+              ? 'token.twitchUserId'
+              : session.user?.twitchId
+                ? 'session.user'
+                : typedToken.twitch?.providerAccountId || typedToken.twitchProviderAccountId
+                  ? 'providerAccountId'
+                  : 'unknown',
+          })
         }
         
         return {

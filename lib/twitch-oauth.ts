@@ -55,19 +55,64 @@ export async function refreshTwitchAccessToken(refreshToken: string): Promise<{
 }
 
 export async function getBroadcasterAccessToken(): Promise<string> {
-  const account = await prisma.account.findUnique({
+  const weightSyncDebugEnabled = process.env.WEIGHT_SYNC_DEBUG === '1'
+  const maskSuffix = (value: unknown) => {
+    if (value === null || value === undefined) return 'missing'
+    const str = String(value)
+    if (str.length <= 4) return `...${str}`
+    return `...${str.slice(-4)}`
+  }
+
+  const accountByUser = await prisma.account.findFirst({
     where: {
-      provider_providerAccountId: {
-        provider: 'twitch',
-        providerAccountId: env.TWITCH_BROADCASTER_ID,
+      provider: 'twitch',
+      user: {
+        twitchId: env.TWITCH_BROADCASTER_ID,
       },
     },
     select: {
       access_token: true,
       refresh_token: true,
       expires_at: true,
+      providerAccountId: true,
+      user: { select: { id: true, twitchId: true } },
     },
   })
+
+  const accountByProvider = accountByUser
+    ? null
+    : await prisma.account.findFirst({
+        where: {
+          provider: 'twitch',
+          providerAccountId: env.TWITCH_BROADCASTER_ID,
+        },
+        select: {
+          access_token: true,
+          refresh_token: true,
+          expires_at: true,
+          providerAccountId: true,
+          user: { select: { id: true, twitchId: true } },
+        },
+      })
+
+  const account = accountByUser ?? accountByProvider
+
+  if (weightSyncDebugEnabled) {
+    console.log('[twitch-oauth][broadcaster]', {
+      pathUsed: accountByUser ? 'byUserTwitchId' : accountByProvider ? 'byProviderAccountIdFallback' : 'notFound',
+      foundAccount: Boolean(account),
+      hasRefreshToken: Boolean(account?.refresh_token),
+      providerAccountIdSuffix: maskSuffix(account?.providerAccountId),
+      userIdSuffix: maskSuffix(account?.user?.id),
+      userTwitchIdSuffix: maskSuffix(account?.user?.twitchId),
+    })
+  }
+
+  if (!account || !account.refresh_token) {
+    const pathUsed = accountByUser ? 'byUserTwitchId' : accountByProvider ? 'byProviderAccountIdFallback' : 'notFound'
+    const message = pathUsed === 'notFound' ? 'Broadcaster account not found' : 'Broadcaster account missing refresh token'
+    throw new Error(`${message}. Please sign in as the broadcaster.`)
+  }
 
   if (!account || !account.refresh_token) {
     throw new Error('Broadcaster Twitch account is not connected. Please sign in as the broadcaster.')
