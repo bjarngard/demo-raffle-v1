@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { env } from '@/lib/env'
 import { maskSuffix } from '@/lib/mask'
-import { calculateUserWeight } from '@/lib/weight-settings'
+import { processSupportEventWithWeight } from '@/lib/eventsub-support'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -120,12 +120,15 @@ export async function POST(request: NextRequest) {
     // without a separate decision. Keep this isolated to support-only signals to avoid a
     // Franken-route that mixes too many side effects.
     if (immediateSupportWeightEnabled && isSupportEvent) {
-      const handled = await processSupportEventWithWeight({
-        subscriptionType,
-        event,
-        twitchUserId,
-        messageId,
-      })
+      const handled = await processSupportEventWithWeight(
+        {
+          subscriptionType,
+          event,
+          twitchUserId,
+          messageId,
+        },
+        { debug: eventSubDebugEnabled },
+      )
       if (handled) {
         return new NextResponse(null, { status: 204 })
       }
@@ -325,176 +328,6 @@ async function aggregateGift(event: SubscriptionGiftEventPayload, twitchUserId: 
   })
 }
 
-async function processSupportEventWithWeight(params: {
-  subscriptionType: string
-  event: Record<string, unknown>
-  twitchUserId: string
-  messageId: string
-}) {
-  const { subscriptionType, event, twitchUserId, messageId } = params
-
-  if (subscriptionType === 'channel.cheer') {
-    const bitsPayload = event as CheerEventPayload
-    if (bitsPayload.is_anonymous) return false
-  }
-  if (subscriptionType === 'channel.subscription.gift') {
-    const giftPayload = event as SubscriptionGiftEventPayload
-    if (giftPayload.is_anonymous) return false
-  }
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      // Serialize concurrent updates per user to keep weights consistent when multiple support events land.
-      const lockedUser = await tx.$queryRaw<
-        Array<{ id: string }>
-      >`SELECT id FROM "User" WHERE "twitchId" = ${twitchUserId} FOR UPDATE`
-      if (!lockedUser || lockedUser.length === 0) {
-        return
-      }
-
-      // a) dedupe insert
-      await tx.processedWebhookEvent.create({
-        data: {
-          messageId,
-          eventType: subscriptionType,
-          twitchUserId,
-        },
-      })
-
-      // b) increment support + needsResync, fetch updated user
-      const userUpdate = await incrementSupportAndReturnUser({
-        tx,
-        subscriptionType,
-        event,
-        twitchUserId,
-      })
-
-      if (!userUpdate) {
-        return
-      }
-
-      // c) fetch weight settings inside the transaction
-      const settings = await tx.weightSettings.findFirst()
-      if (!settings) {
-        return
-      }
-
-      // d) recompute weight
-      const totalWeight = await calculateUserWeight({
-        isSubscriber: userUpdate.isSubscriber,
-        subMonths: userUpdate.subMonths,
-        resubCount: userUpdate.resubCount,
-        totalCheerBits: userUpdate.totalCheerBits,
-        totalDonations: userUpdate.totalDonations,
-        totalGiftedSubs: userUpdate.totalGiftedSubs,
-        carryOverWeight: userUpdate.carryOverWeight,
-      })
-      const currentWeight = totalWeight - userUpdate.carryOverWeight
-
-      // e) update weights in same transaction
-      await tx.user.update({
-        where: { id: userUpdate.id },
-        data: {
-          totalWeight,
-          currentWeight,
-          lastUpdated: new Date(),
-        },
-      })
-    })
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      console.log('[eventsub] duplicate message ignored', {
-        messageId,
-        subscriptionType,
-        twitchUserId,
-      })
-      return false
-    }
-    if (eventSubDebugEnabled) {
-      console.error('[eventsub][support_weight_error]', {
-        type: subscriptionType,
-        userId: maskSuffix(twitchUserId),
-        error: error instanceof Error ? error.message : 'unknown',
-      })
-    }
-    return false
-  }
-  return true
-}
-
-async function incrementSupportAndReturnUser(params: {
-  tx: Prisma.TransactionClient
-  subscriptionType: string
-  event: Record<string, unknown>
-  twitchUserId: string
-}) {
-  const { tx, subscriptionType, event, twitchUserId } = params
-
-  if (subscriptionType === 'channel.cheer') {
-    const bitsPayload = event as CheerEventPayload
-    const bits =
-      typeof bitsPayload.bits === 'number' && Number.isFinite(bitsPayload.bits)
-        ? Math.max(0, Math.floor(bitsPayload.bits))
-        : 0
-    if (bits <= 0) return null
-
-    return tx.user.update({
-      where: { twitchId: twitchUserId },
-      data: {
-        totalCheerBits: { increment: bits },
-        needsResync: true,
-      },
-      select: {
-        id: true,
-        twitchId: true,
-        isSubscriber: true,
-        subMonths: true,
-        resubCount: true,
-        totalCheerBits: true,
-        totalDonations: true,
-        totalGiftedSubs: true,
-        carryOverWeight: true,
-      },
-    })
-  }
-
-  if (subscriptionType === 'channel.subscription.gift') {
-    const giftPayload = event as SubscriptionGiftEventPayload
-    const total =
-      typeof giftPayload.total === 'number' && Number.isFinite(giftPayload.total)
-        ? Math.max(0, Math.floor(giftPayload.total))
-        : null
-    const giftCount = total ?? 1
-    if (!total || total <= 0) {
-      console.warn('[eventsub] gift_total_invalid', {
-        twitchUserId,
-        subscriptionType: 'channel.subscription.gift',
-        provided: giftPayload.total,
-      })
-    }
-
-    return tx.user.update({
-      where: { twitchId: twitchUserId },
-      data: {
-        totalGiftedSubs: { increment: giftCount },
-        needsResync: true,
-      },
-      select: {
-        id: true,
-        twitchId: true,
-        isSubscriber: true,
-        subMonths: true,
-        resubCount: true,
-        totalCheerBits: true,
-        totalDonations: true,
-        totalGiftedSubs: true,
-        carryOverWeight: true,
-      },
-    })
-  }
-
-  return null
-}
 
 function verifySignature(
   secret: string,

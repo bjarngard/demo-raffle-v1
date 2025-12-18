@@ -4,7 +4,7 @@
  */
 import { prisma } from './prisma'
 
-const DEFAULT_SETTINGS = {
+export const DEFAULT_SETTINGS = {
   baseWeight: 1.0,
   subMonthsMultiplier: 0.5,
   subMonthsCap: 10,
@@ -136,6 +136,17 @@ export async function updateWeightSettings(
  */
 export async function calculateUserWeight(user: WeightUserInput): Promise<number> {
   const settings = await getWeightSettings()
+  const components = computeWeightComponents(user, settings)
+  const totalWeight =
+    components.baseWeight +
+    components.loyaltyWeightCapped +
+    components.supportWeightCapped +
+    user.carryOverWeight
+  return totalWeight
+}
+
+// Test-friendly helper: run weight calculation with provided settings (no DB access).
+export function calculateUserWeightWithSettings(user: WeightUserInput, settings: WeightSettings): number {
   const components = computeWeightComponents(user, settings)
   const totalWeight =
     components.baseWeight +
