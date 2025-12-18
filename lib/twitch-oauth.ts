@@ -75,6 +75,7 @@ export async function getBroadcasterAccessToken(): Promise<string> {
       },
     },
     select: {
+      id: true,
       access_token: true,
       refresh_token: true,
       expires_at: true,
@@ -91,6 +92,7 @@ export async function getBroadcasterAccessToken(): Promise<string> {
           providerAccountId: env.TWITCH_BROADCASTER_ID,
         },
         select: {
+          id: true,
           access_token: true,
           refresh_token: true,
           expires_at: true,
@@ -142,16 +144,13 @@ export async function getBroadcasterAccessToken(): Promise<string> {
   const newExpiresAt = nowSeconds + refreshed.expiresIn
 
   await prisma.account.update({
-    where: {
-      provider_providerAccountId: {
-        provider: 'twitch',
-        providerAccountId: env.TWITCH_BROADCASTER_ID,
-      },
-    },
+    where: { id: account.id },
     data: {
       access_token: refreshed.accessToken,
       refresh_token: refreshed.refreshToken ?? account.refresh_token,
       expires_at: newExpiresAt,
+      // keep providerAccountId consistent if it drifted
+      providerAccountId: env.TWITCH_BROADCASTER_ID,
     },
   })
 
