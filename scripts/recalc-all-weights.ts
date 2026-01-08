@@ -18,11 +18,12 @@ async function main() {
   // using cursor pagination to avoid skip/limit drift.
   // Keeps memory bounded and can be resumed safely if interrupted.
   for (;;) {
-    const users = (await prisma.user.findMany({
-      orderBy: { id: 'asc' },
-      take: BATCH_SIZE,
-      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-    })) satisfies Awaited<ReturnType<typeof prisma.user.findMany>>
+    const users: Awaited<ReturnType<typeof prisma.user.findMany>> =
+      await prisma.user.findMany({
+        orderBy: { id: 'asc' },
+        take: BATCH_SIZE,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      })
 
     if (users.length === 0) break
 
