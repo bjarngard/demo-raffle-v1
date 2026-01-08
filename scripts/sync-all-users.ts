@@ -11,17 +11,18 @@ async function main() {
   console.log('[sync-all-users] starting')
 
   for (;;) {
-    const users = await prisma.user.findMany({
-      orderBy: { id: 'asc' },
-      take: BATCH_SIZE,
-      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-    })
+    const users: Awaited<ReturnType<typeof prisma.user.findMany>> =
+      await prisma.user.findMany({
+        orderBy: { id: 'asc' },
+        take: BATCH_SIZE,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      })
 
     if (users.length === 0) break
 
     for (const user of users) {
       try {
-        await syncUserFromTwitch(user.id, { force: true, trigger: 'manual_all' })
+        await syncUserFromTwitch(user.id, { force: true, trigger: 'manual' })
         processed += 1
         if (processed % 50 === 0) {
           console.log('[sync-all-users] synced', processed)
