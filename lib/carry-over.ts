@@ -54,8 +54,11 @@ export async function applyCarryOverForSession(
     return { updatedCount: 0, users: [] }
   }
 
-  const winnerId =
-    entries.find((entry) => entry.isWinner && entry.userId)?.userId ?? null
+  const winnerIds = new Set(
+    entries
+      .filter((entry) => entry.isWinner && entry.userId)
+      .map((entry) => entry.userId as string)
+  )
 
   const settings = await getWeightSettings()
   // Current behavior: apply carry-over only to non-winners using carryOverMultiplier and cap.
@@ -74,7 +77,7 @@ export async function applyCarryOverForSession(
 
       let newCarry = 0
 
-      if (resetWeights || userId === winnerId) {
+      if (resetWeights || winnerIds.has(userId)) {
         // Either we're doing a hard reset, or this is the winner → no carry-over.
         newCarry = 0
       } else {

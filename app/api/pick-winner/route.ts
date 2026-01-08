@@ -4,6 +4,7 @@ import { requireAdminSession } from '@/lib/admin-auth'
 import { Prisma } from '@prisma/client'
 import { entryStateExclusion } from '@/lib/submissions-state'
 import { getCurrentSession } from '@/lib/session'
+import { calculateUserWeight } from '@/lib/weight-settings'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -66,38 +67,67 @@ export async function POST() {
     const totalWeight = entries.reduce((sum, e) => sum + (e.user?.totalWeight || 1.0), 0)
     const seed = Math.random()
 
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const freshEntry = await tx.entry.findUnique({
-        where: { id: winner.id },
-        include: { user: true },
-      })
-
-      if (!freshEntry || freshEntry.isWinner) {
-        throw new Error('Entry already processed')
-      }
-
-      const updatedEntry = await tx.entry.update({
-        where: { id: winner.id },
-        data: { isWinner: true },
-      })
-
-      if (freshEntry.userId) {
-        await tx.user.update({
-          where: { id: freshEntry.userId },
-          data: {
-            totalCheerBits: 0,
-            totalGiftedSubs: 0,
-            lastUpdated: new Date(),
-          },
+    const result = await prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const freshEntry = await tx.entry.findUnique({
+          where: { id: winner.id },
+          include: { user: true },
         })
-      }
 
-      return updatedEntry
-    }, { timeout: 5000 })
+        if (!freshEntry || freshEntry.isWinner) {
+          throw new Error('Entry already processed')
+        }
 
-    if (winner.userId) {
-      await recalculateUserWeight(winner.userId)
-    }
+        const updatedEntry = await tx.entry.update({
+          where: { id: winner.id },
+          data: { isWinner: true },
+        })
+
+        if (freshEntry.userId) {
+          // Reset support + carry for the winner, then recompute their weight in-transaction
+          const updatedUser = await tx.user.update({
+            where: { id: freshEntry.userId },
+            data: {
+              totalCheerBits: 0,
+              totalGiftedSubs: 0,
+              carryOverWeight: 0,
+            },
+            select: {
+              id: true,
+              isSubscriber: true,
+              subMonths: true,
+              resubCount: true,
+              totalCheerBits: true,
+              totalDonations: true,
+              totalGiftedSubs: true,
+              carryOverWeight: true,
+            },
+          })
+
+          const weight = await calculateUserWeight({
+            isSubscriber: updatedUser.isSubscriber,
+            subMonths: updatedUser.subMonths,
+            resubCount: updatedUser.resubCount,
+            totalCheerBits: updatedUser.totalCheerBits,
+            totalDonations: updatedUser.totalDonations,
+            totalGiftedSubs: updatedUser.totalGiftedSubs,
+            carryOverWeight: updatedUser.carryOverWeight,
+          })
+
+          await tx.user.update({
+            where: { id: updatedUser.id },
+            data: {
+              totalWeight: weight,
+              currentWeight: weight - updatedUser.carryOverWeight,
+              lastUpdated: new Date(),
+            },
+          })
+        }
+
+        return updatedEntry
+      },
+      { timeout: 5000 }
+    )
 
     const spinList = entries
       .filter(e => e.id !== winner.id)
@@ -150,37 +180,5 @@ function selectWeightedWinner(entries: EntryWithUser[]) {
 
   // Fallback to last entry (shouldn't happen, but just in case)
   return entries[entries.length - 1]
-}
-
-/**
- * Recalculate user weight with caps to prevent whales
- */
-async function recalculateUserWeight(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-  })
-
-  if (!user) return
-
-  const { calculateUserWeight } = await import('@/lib/weight-settings')
-  
-  const weight = await calculateUserWeight({
-    isSubscriber: user.isSubscriber,
-    subMonths: user.subMonths,
-    resubCount: user.resubCount,
-    totalCheerBits: user.totalCheerBits,
-    totalDonations: user.totalDonations,
-    totalGiftedSubs: user.totalGiftedSubs,
-    carryOverWeight: user.carryOverWeight,
-  })
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      currentWeight: weight - user.carryOverWeight,
-      totalWeight: weight,
-      lastUpdated: new Date(),
-    },
-  })
 }
 
