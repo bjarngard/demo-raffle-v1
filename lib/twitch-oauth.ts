@@ -67,12 +67,13 @@ export async function getBroadcasterAccessToken(): Promise<string> {
     console.log('[twitch-oauth]', payload)
   }
 
-  const accountByUser = await prisma.account.findFirst({
+  const accounts = await prisma.account.findMany({
     where: {
       provider: 'twitch',
-      user: {
-        twitchId: env.TWITCH_BROADCASTER_ID,
-      },
+      OR: [
+        { providerAccountId: env.TWITCH_BROADCASTER_ID },
+        { user: { twitchId: env.TWITCH_BROADCASTER_ID } },
+      ],
     },
     select: {
       id: true,
@@ -84,48 +85,18 @@ export async function getBroadcasterAccessToken(): Promise<string> {
     },
   })
 
-  const accountByProvider = accountByUser
-    ? null
-    : await prisma.account.findFirst({
-        where: {
-          provider: 'twitch',
-          providerAccountId: env.TWITCH_BROADCASTER_ID,
-        },
-        select: {
-          id: true,
-          access_token: true,
-          refresh_token: true,
-          expires_at: true,
-          providerAccountId: true,
-          user: { select: { id: true, twitchId: true } },
-        },
-      })
-
-  const account = accountByUser ?? accountByProvider
-
-  const pathUsed = accountByUser ? 'byUserTwitchId' : accountByProvider ? 'byProviderAccountIdFallback' : 'notFound'
+  const account =
+    accounts.find((a) => a.providerAccountId === env.TWITCH_BROADCASTER_ID) ??
+    accounts.sort((a, b) => (b.expires_at ?? 0) - (a.expires_at ?? 0))[0]
 
   if (weightSyncDebugEnabled) {
     throttledLog('broadcaster_lookup', {
-      pathUsed,
-      foundAccount: Boolean(account),
-      hasRefreshToken: Boolean(account?.refresh_token),
+      foundAccounts: accounts.length,
+      pickedAccountId: maskSuffix(account?.id),
       providerAccountIdSuffix: maskSuffix(account?.providerAccountId),
       userIdSuffix: maskSuffix(account?.user?.id),
       userTwitchIdSuffix: maskSuffix(account?.user?.twitchId),
     })
-  }
-
-  if (!account || !account.refresh_token) {
-    const message = pathUsed === 'notFound' ? 'Broadcaster account not found' : 'Broadcaster account missing refresh token'
-    if (weightSyncDebugEnabled) {
-      throttledLog('broadcaster_missing', {
-        pathUsed,
-        hasAccount: Boolean(account),
-        hasRefreshToken: Boolean(account?.refresh_token),
-      })
-    }
-    throw new Error(`${message}. Please sign in as the broadcaster.`)
   }
 
   if (!account || !account.refresh_token) {
@@ -149,7 +120,6 @@ export async function getBroadcasterAccessToken(): Promise<string> {
       access_token: refreshed.accessToken,
       refresh_token: refreshed.refreshToken ?? account.refresh_token,
       expires_at: newExpiresAt,
-      // keep providerAccountId consistent if it drifted
       providerAccountId: env.TWITCH_BROADCASTER_ID,
     },
   })

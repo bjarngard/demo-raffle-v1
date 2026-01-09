@@ -170,6 +170,53 @@ type TwitchTokenState = {
 
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000
 
+// Normalize Twitch Account rows for a user: pick a canonical row and update tokens; delete others.
+async function normalizeTwitchAccounts(params: {
+  userId: string
+  twitchId?: string | null
+  accessToken?: string | null
+  refreshToken?: string | null
+  expiresAtSeconds?: number | null
+}) {
+  try {
+    const { userId, twitchId, accessToken, refreshToken, expiresAtSeconds } = params
+    const accounts = await prisma.account.findMany({
+      where: { provider: 'twitch', userId },
+      orderBy: { expires_at: 'desc' },
+    })
+
+    if (accounts.length <= 1) return
+
+    const canonical =
+      accounts.find((a) => twitchId && a.providerAccountId === twitchId) ??
+      accounts[0] // already sorted by expires_at desc
+
+    if (accessToken || refreshToken || expiresAtSeconds) {
+      await prisma.account.update({
+        where: { id: canonical.id },
+        data: {
+          access_token: accessToken ?? canonical.access_token,
+          refresh_token: refreshToken ?? canonical.refresh_token,
+          expires_at: expiresAtSeconds ?? canonical.expires_at,
+          providerAccountId: twitchId ?? canonical.providerAccountId,
+        },
+      })
+    }
+
+    const toDelete = accounts.filter((a) => a.id !== canonical.id).map((a) => a.id)
+    if (toDelete.length > 0) {
+      await prisma.account.deleteMany({
+        where: { id: { in: toDelete } },
+      })
+    }
+  } catch (error) {
+    console.warn('[auth] normalizeTwitchAccounts failed', {
+      userId: maskSuffix(params.userId),
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
 export const authOptions: NextAuthConfig = {
   adapter: {
     ...baseAdapter,
@@ -302,6 +349,28 @@ export const authOptions: NextAuthConfig = {
     
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === 'twitch' && user?.id) {
+        // Ensure we don't accumulate duplicate Twitch accounts per user; consolidate to one canonical row.
+        const pickNumeric = (v: unknown) => {
+          if (typeof v === 'string' && /^\d+$/.test(v)) return v
+          if (typeof v === 'number' && Number.isFinite(v)) return String(v)
+          return null
+        }
+        const twitchId =
+          pickNumeric((user as { twitchId?: string } | undefined)?.twitchId) ??
+          pickNumeric(account.providerAccountId)
+
+        await normalizeTwitchAccounts({
+          userId: user.id as string,
+          twitchId,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          expiresAtSeconds: account.expires_at ?? null,
+        })
+      }
+      return true
+    },
     async jwt({ token, account, user }) {
       const typedToken = token as typeof token & { twitch?: TwitchTokenState }
 

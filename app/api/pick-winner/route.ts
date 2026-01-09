@@ -4,7 +4,10 @@ import { requireAdminSession } from '@/lib/admin-auth'
 import { Prisma } from '@prisma/client'
 import { entryStateExclusion } from '@/lib/submissions-state'
 import { getCurrentSession } from '@/lib/session'
-import { calculateUserWeight } from '@/lib/weight-settings'
+import {
+  calculateUserWeightWithSettings,
+  getWeightSettings,
+} from '@/lib/weight-settings'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -67,7 +70,9 @@ export async function POST() {
     const totalWeight = entries.reduce((sum, e) => sum + (e.user?.totalWeight || 1.0), 0)
     const seed = Math.random()
 
-    const result = await prisma.$transaction(
+    const weightSettings = await getWeightSettings()
+
+    const { entry: updatedEntry, winnerUser } = await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         const freshEntry = await tx.entry.findUnique({
           where: { id: winner.id },
@@ -78,19 +83,32 @@ export async function POST() {
           throw new Error('Entry already processed')
         }
 
-        const updatedEntry = await tx.entry.update({
+        const entry = await tx.entry.update({
           where: { id: winner.id },
           data: { isWinner: true },
         })
 
+        let winnerUser:
+          | {
+              id: string
+              isSubscriber: boolean
+              subMonths: number
+              resubCount: number
+              totalCheerBits: number
+              totalDonations: number
+              totalGiftedSubs: number
+              carryOverWeight: number
+            }
+          | null = null
+
         if (freshEntry.userId) {
-          // Reset support + carry for the winner, then recompute their weight in-transaction
-          const updatedUser = await tx.user.update({
+          winnerUser = await tx.user.update({
             where: { id: freshEntry.userId },
             data: {
               totalCheerBits: 0,
               totalGiftedSubs: 0,
               carryOverWeight: 0,
+              lastUpdated: new Date(),
             },
             select: {
               id: true,
@@ -103,31 +121,36 @@ export async function POST() {
               carryOverWeight: true,
             },
           })
-
-          const weight = await calculateUserWeight({
-            isSubscriber: updatedUser.isSubscriber,
-            subMonths: updatedUser.subMonths,
-            resubCount: updatedUser.resubCount,
-            totalCheerBits: updatedUser.totalCheerBits,
-            totalDonations: updatedUser.totalDonations,
-            totalGiftedSubs: updatedUser.totalGiftedSubs,
-            carryOverWeight: updatedUser.carryOverWeight,
-          })
-
-          await tx.user.update({
-            where: { id: updatedUser.id },
-            data: {
-              totalWeight: weight,
-              currentWeight: weight - updatedUser.carryOverWeight,
-              lastUpdated: new Date(),
-            },
-          })
         }
 
-        return updatedEntry
+        return { entry, winnerUser }
       },
       { timeout: 5000 }
     )
+
+    if (winnerUser) {
+      const weight = calculateUserWeightWithSettings(
+        {
+          isSubscriber: winnerUser.isSubscriber,
+          subMonths: winnerUser.subMonths,
+          resubCount: winnerUser.resubCount,
+          totalCheerBits: winnerUser.totalCheerBits,
+          totalDonations: winnerUser.totalDonations,
+          totalGiftedSubs: winnerUser.totalGiftedSubs,
+          carryOverWeight: winnerUser.carryOverWeight,
+        },
+        weightSettings
+      )
+
+      await prisma.user.update({
+        where: { id: winnerUser.id },
+        data: {
+          totalWeight: weight,
+          currentWeight: weight - winnerUser.carryOverWeight,
+          lastUpdated: new Date(),
+        },
+      })
+    }
 
     const spinList = entries
       .filter(e => e.id !== winner.id)
@@ -138,9 +161,9 @@ export async function POST() {
     return NextResponse.json({
       success: true,
       winner: {
-        id: result.id,
-        name: result.name,
-        email: result.email,
+        id: updatedEntry.id,
+        name: updatedEntry.name,
+        email: updatedEntry.email,
         userId: winner.userId,
         weight: winner.user?.totalWeight || 1.0,
       },

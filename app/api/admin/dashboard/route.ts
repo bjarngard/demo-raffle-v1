@@ -4,6 +4,7 @@ import { getAdminEntries, getCarryOverUsersForSession } from '@/lib/admin-data'
 import { getWeightSettings } from '@/lib/weight-settings'
 import { getSubmissionsOpen } from '@/lib/submissions-state'
 import { getCurrentSession, getLatestEndedSession } from '@/lib/session'
+import { getBroadcasterAuthStatus } from '@/lib/twitch-health'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -21,10 +22,11 @@ export async function GET() {
       )
     }
 
-    const [settings, submissionsOpen, currentSession] = await Promise.all([
+    const [settings, submissionsOpen, currentSession, twitchAuth] = await Promise.all([
       getWeightSettings(),
       getSubmissionsOpen(),
       getCurrentSession(),
+      getBroadcasterAuthStatus(),
     ])
     console.log('[admin/dashboard] step=meta', `${Date.now() - started}ms`)
 
@@ -53,6 +55,7 @@ export async function GET() {
       currentSession,
       lastEndedSession,
       carryOverUsers,
+      twitchAuth,
     })
   } catch (error) {
     console.error('Error fetching admin dashboard data:', error)

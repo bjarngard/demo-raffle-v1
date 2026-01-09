@@ -4,6 +4,7 @@ import { getWeightSettings } from '@/lib/weight-settings'
 import { getSubmissionsOpen } from '@/lib/submissions-state'
 import { getCurrentSession, getLatestEndedSession } from '@/lib/session'
 import AdminDashboardClient from './AdminDashboardClient'
+import { getBroadcasterAuthStatus } from '@/lib/twitch-health'
 
 export default async function DemoAdminPage() {
   const session = await auth()
@@ -23,12 +24,14 @@ export default async function DemoAdminPage() {
     )
   }
 
-  const [weightSettings, submissionsOpen, currentSession, lastEndedSession] = await Promise.all([
-    getWeightSettings(),
-    getSubmissionsOpen(),
-    getCurrentSession(),
-    getLatestEndedSession(),
-  ])
+  const [weightSettings, submissionsOpen, currentSession, lastEndedSession, twitchAuth] =
+    await Promise.all([
+      getWeightSettings(),
+      getSubmissionsOpen(),
+      getCurrentSession(),
+      getLatestEndedSession(),
+      getBroadcasterAuthStatus(),
+    ])
 
   const serializeSession = (session: Awaited<ReturnType<typeof getCurrentSession>>) =>
     session
@@ -51,6 +54,7 @@ export default async function DemoAdminPage() {
       initialSubmissionsOpen={submissionsOpen}
       initialSession={serializeSession(currentSession)}
       lastEndedSession={serializeSession(lastEndedSession)}
+      initialTwitchAuth={twitchAuth}
     />
   )
 }

@@ -28,12 +28,17 @@ type DashboardSession = {
   endedAt?: string | null
 }
 
+type TwitchAuth =
+  | { status: 'ok' }
+  | { status: 'reauth_required'; reason?: string; missingScopes?: string[] }
+
 type AdminDashboardClientProps = {
   initialEntries: AdminEntry[]
   initialSettings: AdminWeightSettings
   initialSubmissionsOpen: boolean
   initialSession: DashboardSession | null
   lastEndedSession: DashboardSession | null
+  initialTwitchAuth: TwitchAuth
 }
 
 export default function AdminDashboardClient({
@@ -42,10 +47,12 @@ export default function AdminDashboardClient({
   initialSubmissionsOpen,
   initialSession,
   lastEndedSession,
+  initialTwitchAuth,
 }: AdminDashboardClientProps) {
   const [entries, setEntries] = useState<AdminEntry[]>(initialEntries)
   const [weightSettings, setWeightSettings] = useState<AdminWeightSettings>(initialSettings)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [twitchAuth, setTwitchAuth] = useState<TwitchAuth>(initialTwitchAuth)
   const [winnerModalEntry, setWinnerModalEntry] = useState<AdminEntry | null>(null)
   const [leaderboardLoading, setLeaderboardLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'users' | 'weights' | 'raffle'>('users')
@@ -59,6 +66,8 @@ export default function AdminDashboardClient({
   const { data: statusData } = useStatus()
   const lastEntryAtRef = useRef<string | null>(null)
   const refreshInFlightRef = useRef(false)
+  const [recalcLoading, setRecalcLoading] = useState(false)
+  const [recalcMessage, setRecalcMessage] = useState<string | null>(null)
 
   const fetchAdminData = useCallback(async () => {
     try {
@@ -84,11 +93,39 @@ export default function AdminDashboardClient({
         if ('carryOverUsers' in data) {
           setCarryOverUsers(data.carryOverUsers ?? [])
         }
+        if ('twitchAuth' in data) {
+          setTwitchAuth(data.twitchAuth ?? { status: 'ok' })
+        }
       }
     } catch (error) {
       console.error('Error fetching admin data:', error)
     }
   }, [])
+
+  const handleForceRecalc = useCallback(async () => {
+    const confirm = window.confirm(
+      'Force recalculation of all user weights? This will recalc using current settings. Avoid running during a live draw.'
+    )
+    if (!confirm) return
+    setRecalcLoading(true)
+    setRecalcMessage(null)
+    try {
+      const response = await fetch('/api/admin/recalc-weights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to recalc weights')
+      }
+      setRecalcMessage(`Recalculated weights for ${data.processed ?? 0} users.`)
+      await fetchAdminData()
+    } catch (error) {
+      setRecalcMessage(error instanceof Error ? error.message : 'Failed to recalc weights')
+    } finally {
+      setRecalcLoading(false)
+    }
+  }, [fetchAdminData])
 
   const fetchLeaderboard = useCallback(async () => {
     setLeaderboardLoading(true)
@@ -291,6 +328,22 @@ export default function AdminDashboardClient({
 
   return (
     <AmbientBackground contentClassName="min-h-screen py-6 px-4">
+      {twitchAuth.status === 'reauth_required' && (
+        <div className="max-w-7xl mx-auto mb-4">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-900 shadow-sm">
+            <p className="font-semibold">Twitch-auth behöver uppdateras (reauth krävs).</p>
+            {twitchAuth.reason && <p className="text-sm text-red-800">Orsak: {twitchAuth.reason}</p>}
+            {twitchAuth.missingScopes && twitchAuth.missingScopes.length > 0 && (
+              <p className="text-sm text-red-800">
+                Saknade scopes: {twitchAuth.missingScopes.join(', ')}
+              </p>
+            )}
+            <p className="text-sm text-red-800">
+              Logga in som broadcastern igen för att återställa follow/sub och kör därefter sync.
+            </p>
+          </div>
+        </div>
+      )}
       <main className="max-w-7xl mx-auto">
         <div className="lg:flex lg:items-start lg:gap-4">
           <section className="flex-1">
@@ -313,10 +366,27 @@ export default function AdminDashboardClient({
 
               {activeTab === 'users' && (
                 sessionInfo ? (
-                  <AdminUserTable
-                    entries={entries}
-                    onRefresh={fetchAdminData}
-                  />
+                  <>
+                    <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        {recalcMessage && (
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{recalcMessage}</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleForceRecalc}
+                        disabled={recalcLoading}
+                        className="inline-flex items-center justify-center rounded-lg border border-[var(--bf-lime)] px-4 py-2 text-sm font-semibold text-[var(--bf-lime)] hover:bg-[var(--bf-lime)] hover:text-black transition disabled:opacity-60"
+                      >
+                        {recalcLoading ? 'Recalculating…' : 'Force recalc weights'}
+                      </button>
+                    </div>
+                    <AdminUserTable
+                      entries={entries}
+                      onRefresh={fetchAdminData}
+                    />
+                  </>
                 ) : (
                   <CarryOverTable
                     users={carryOverUsers}

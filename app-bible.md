@@ -195,6 +195,7 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 - **Lint/build:** `npm run lint`, `npm run build`.
 - **TypeScript:** Config in `tsconfig.json`; App Router conventions apply.
 - **Maintenance scripts:** `scripts/sync-all-users.ts` (force-Twitch-sync alla users, uppdaterar follow/sub) och `scripts/recalc-all-weights.ts` (räknar om total/current weight för alla users med nuvarande WeightSettings; behåller carryOverWeight som är). Kör sync före recalc om du vill ha färska sub/follow-data.
+- **Twitch auth health:** Admin dashboard (`/demo-admin`) visar `twitchAuth`-status (ok/reauth_required) och banner om broadcaster-token/scopes saknas. Backas av validate-call i `getBroadcasterAuthStatus` och returneras från `/api/admin/dashboard`.
 
 ---
 
