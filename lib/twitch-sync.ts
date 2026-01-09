@@ -157,6 +157,7 @@ export async function syncUserFromTwitch(
       totalDonations: existingUser.totalDonations,
       totalGiftedSubs: existingUser.totalGiftedSubs,
       carryOverWeight: existingUser.carryOverWeight,
+      sessionBonus: existingUser.sessionBonus ?? 0,
     })
 
     const updatedUser = await prisma.user.update({

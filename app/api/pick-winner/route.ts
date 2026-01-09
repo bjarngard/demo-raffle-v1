@@ -98,6 +98,7 @@ export async function POST() {
               totalDonations: number
               totalGiftedSubs: number
               carryOverWeight: number
+              sessionBonus: number
             }
           | null = null
 
@@ -119,6 +120,7 @@ export async function POST() {
               totalDonations: true,
               totalGiftedSubs: true,
               carryOverWeight: true,
+              sessionBonus: true,
             },
           })
         }
@@ -138,6 +140,7 @@ export async function POST() {
           totalDonations: winnerUser.totalDonations,
           totalGiftedSubs: winnerUser.totalGiftedSubs,
           carryOverWeight: winnerUser.carryOverWeight,
+          sessionBonus: winnerUser.sessionBonus ?? 0,
         },
         weightSettings
       )

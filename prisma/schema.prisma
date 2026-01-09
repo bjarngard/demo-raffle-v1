@@ -46,6 +46,7 @@ model User {
   // Weight system
   currentWeight     Float    @default(1.0) // Base weight
   carryOverWeight   Float    @default(0.0) // Weight carried over from previous stream
+  sessionBonus      Float    @default(0.0) // Temporary bonus for current session only
   totalWeight       Float    @default(1.0) // Calculated total weight for this stream
   
   // Metadata

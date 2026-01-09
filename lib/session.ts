@@ -111,12 +111,22 @@ export async function endCurrentSession() {
     throw new Error('NO_ACTIVE_SESSION')
   }
 
-  return prisma.raffleSession.update({
-    where: { id: active.id },
-    data: {
-      endedAt: new Date(),
-      status: 'ENDED',
-    },
+  return prisma.$transaction(async (tx) => {
+    const ended = await tx.raffleSession.update({
+      where: { id: active.id },
+      data: {
+        endedAt: new Date(),
+        status: 'ENDED',
+      },
+    })
+
+    await tx.user.updateMany({
+      data: {
+        sessionBonus: 0,
+      },
+    })
+
+    return ended
   })
 }
 

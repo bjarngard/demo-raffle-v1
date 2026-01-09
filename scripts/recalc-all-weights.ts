@@ -37,6 +37,7 @@ async function main() {
           totalDonations: user.totalDonations,
           totalGiftedSubs: user.totalGiftedSubs,
           carryOverWeight: user.carryOverWeight,
+          sessionBonus: user.sessionBonus ?? 0,
         },
         settings
       )

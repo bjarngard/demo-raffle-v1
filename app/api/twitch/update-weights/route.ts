@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
             totalDonations: user.totalDonations,
             totalGiftedSubs: user.totalGiftedSubs,
             carryOverWeight: user.carryOverWeight,
+            sessionBonus: user.sessionBonus ?? 0,
           })
 
           return {

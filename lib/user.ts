@@ -16,6 +16,7 @@ const DEFAULT_WEIGHT_INPUT = {
   totalDonations: 0,
   totalGiftedSubs: 0,
   carryOverWeight: 0,
+  sessionBonus: 0,
 }
 
 /**
@@ -81,6 +82,7 @@ export async function ensureUser(sessionUser: SessionUserLike) {
       currentWeight: baseWeight,
       totalWeight: baseWeight,
       carryOverWeight: 0,
+      sessionBonus: 0,
       lastUpdated: now,
       lastActive: now,
     },

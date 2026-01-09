@@ -31,6 +31,7 @@ type WeightUserInput = {
   totalDonations: number
   totalGiftedSubs: number
   carryOverWeight: number
+  sessionBonus?: number
 }
 
 type WeightComponents = {
@@ -64,6 +65,7 @@ export type WeightBreakdown = {
     cap: number
   }
   carryOverWeight: number
+  sessionBonus?: number
   totalWeight: number
 }
 
@@ -141,6 +143,7 @@ export async function calculateUserWeight(user: WeightUserInput): Promise<number
     components.baseWeight +
     components.loyaltyWeightCapped +
     components.supportWeightCapped +
+    (user.sessionBonus ?? 0) +
     user.carryOverWeight
   return totalWeight
 }
@@ -152,6 +155,7 @@ export function calculateUserWeightWithSettings(user: WeightUserInput, settings:
     components.baseWeight +
     components.loyaltyWeightCapped +
     components.supportWeightCapped +
+    (user.sessionBonus ?? 0) +
     user.carryOverWeight
   return totalWeight
 }
@@ -163,6 +167,7 @@ export async function describeWeightBreakdown(user: WeightUserInput): Promise<We
     components.baseWeight +
     components.loyaltyWeightCapped +
     components.supportWeightCapped +
+    (user.sessionBonus ?? 0) +
     user.carryOverWeight
 
   return {
@@ -183,6 +188,7 @@ export async function describeWeightBreakdown(user: WeightUserInput): Promise<We
       cap: settings.supportMaxBonus,
     },
     carryOverWeight: user.carryOverWeight,
+    sessionBonus: user.sessionBonus ?? 0,
     totalWeight,
   }
 }

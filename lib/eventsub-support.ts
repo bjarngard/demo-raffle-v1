@@ -86,6 +86,7 @@ export async function processSupportEventWithWeight(
         totalDonations: userUpdate.totalDonations,
         totalGiftedSubs: userUpdate.totalGiftedSubs,
         carryOverWeight: userUpdate.carryOverWeight,
+        sessionBonus: userUpdate.sessionBonus ?? 0,
       })
       const currentWeight = totalWeight - userUpdate.carryOverWeight
 
@@ -152,6 +153,7 @@ async function incrementSupportAndReturnUser(params: {
         totalDonations: true,
         totalGiftedSubs: true,
         carryOverWeight: true,
+        sessionBonus: true,
       },
     })
   }
@@ -187,6 +189,7 @@ async function incrementSupportAndReturnUser(params: {
         totalDonations: true,
         totalGiftedSubs: true,
         carryOverWeight: true,
+        sessionBonus: true,
       },
     })
   }

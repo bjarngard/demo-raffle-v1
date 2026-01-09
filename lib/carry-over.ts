@@ -96,6 +96,7 @@ export async function applyCarryOverForSession(
         totalDonations: user.totalDonations,
         totalGiftedSubs: user.totalGiftedSubs,
         carryOverWeight: newCarry,
+        sessionBonus: user.sessionBonus ?? 0,
       })
 
       await prisma.user.update({

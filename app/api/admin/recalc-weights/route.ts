@@ -43,6 +43,7 @@ export async function POST() {
             totalDonations: user.totalDonations,
             totalGiftedSubs: user.totalGiftedSubs,
             carryOverWeight: user.carryOverWeight,
+            sessionBonus: user.sessionBonus ?? 0,
           },
           settings
         )

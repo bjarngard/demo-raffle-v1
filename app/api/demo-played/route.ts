@@ -108,6 +108,7 @@ async function recalculateUserWeight(userId: string) {
       totalDonations: user.totalDonations,
       totalGiftedSubs: user.totalGiftedSubs,
       carryOverWeight: user.carryOverWeight,
+      sessionBonus: user.sessionBonus ?? 0,
     })
 
     await prisma.user.update({
