@@ -24,11 +24,12 @@ export async function POST() {
     let cursor: string | null = null
 
     for (;;) {
-      const users = await prisma.user.findMany({
-        orderBy: { id: 'asc' },
-        take: BATCH_SIZE,
-        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-      })
+      const users: Awaited<ReturnType<typeof prisma.user.findMany>> =
+        await prisma.user.findMany({
+          orderBy: { id: 'asc' },
+          take: BATCH_SIZE,
+          ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        })
 
       if (users.length === 0) break
 

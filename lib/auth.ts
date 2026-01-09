@@ -349,28 +349,6 @@ export const authOptions: NextAuthConfig = {
     
   ],
   callbacks: {
-    async signIn({ user, account }) {
-      if (account?.provider === 'twitch' && user?.id) {
-        // Ensure we don't accumulate duplicate Twitch accounts per user; consolidate to one canonical row.
-        const pickNumeric = (v: unknown) => {
-          if (typeof v === 'string' && /^\d+$/.test(v)) return v
-          if (typeof v === 'number' && Number.isFinite(v)) return String(v)
-          return null
-        }
-        const twitchId =
-          pickNumeric((user as { twitchId?: string } | undefined)?.twitchId) ??
-          pickNumeric(account.providerAccountId)
-
-        await normalizeTwitchAccounts({
-          userId: user.id as string,
-          twitchId,
-          accessToken: account.access_token,
-          refreshToken: account.refresh_token,
-          expiresAtSeconds: account.expires_at ?? null,
-        })
-      }
-      return true
-    },
     async jwt({ token, account, user }) {
       const typedToken = token as typeof token & { twitch?: TwitchTokenState }
 
@@ -482,6 +460,26 @@ export const authOptions: NextAuthConfig = {
           provider: account?.provider ?? 'unknown',
           providerAccountIdSuffix: maskSuffix(account?.providerAccountId),
           userIdSuffix: maskSuffix(user?.id ?? null),
+        })
+      }
+
+      if (account?.provider === 'twitch' && user?.id) {
+        // Normalize / consolidate Twitch accounts to avoid duplicates
+        const pickNumeric = (v: unknown) => {
+          if (typeof v === 'string' && /^\d+$/.test(v)) return v
+          if (typeof v === 'number' && Number.isFinite(v)) return String(v)
+          return null
+        }
+        const twitchId =
+          pickNumeric((user as { twitchId?: string } | undefined)?.twitchId) ??
+          pickNumeric(account.providerAccountId)
+
+        await normalizeTwitchAccounts({
+          userId: user.id as string,
+          twitchId,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          expiresAtSeconds: account.expires_at ?? null,
         })
       }
 
