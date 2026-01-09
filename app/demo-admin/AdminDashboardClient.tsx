@@ -41,6 +41,20 @@ type AdminDashboardClientProps = {
   initialTwitchAuth: TwitchAuth
 }
 
+type UserSearchResult = {
+  id: string
+  username: string
+  displayName: string
+  totalWeight: number
+  currentWeight: number
+  carryOverWeight: number
+  sessionBonus: number
+  isSubscriber: boolean
+  isFollower: boolean
+  subMonths: number
+  lastUpdated: string | null
+}
+
 export default function AdminDashboardClient({
   initialEntries,
   initialSettings,
@@ -68,6 +82,13 @@ export default function AdminDashboardClient({
   const refreshInFlightRef = useRef(false)
   const [recalcLoading, setRecalcLoading] = useState(false)
   const [recalcMessage, setRecalcMessage] = useState<string | null>(null)
+  const [bonusModalOpen, setBonusModalOpen] = useState(false)
+  const [bonusSearch, setBonusSearch] = useState('')
+  const [bonusResults, setBonusResults] = useState<UserSearchResult[]>([])
+  const [bonusLoading, setBonusLoading] = useState(false)
+  const [bonusMessage, setBonusMessage] = useState<string | null>(null)
+  const [bonusError, setBonusError] = useState<string | null>(null)
+  const [bonusInput, setBonusInput] = useState<Record<string, string>>({})
 
   const fetchAdminData = useCallback(async () => {
     try {
@@ -126,6 +147,59 @@ export default function AdminDashboardClient({
       setRecalcLoading(false)
     }
   }, [fetchAdminData])
+
+  const handleBonusSearch = useCallback(async () => {
+    setBonusLoading(true)
+    setBonusError(null)
+    setBonusMessage(null)
+    try {
+      const params = new URLSearchParams()
+      if (bonusSearch.trim()) params.set('search', bonusSearch.trim())
+      const response = await fetch(`/api/admin/users?${params.toString()}`, { cache: 'no-store' })
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to search users')
+      }
+      setBonusResults(data.users ?? [])
+    } catch (error) {
+      setBonusError(error instanceof Error ? error.message : 'Failed to search users')
+    } finally {
+      setBonusLoading(false)
+    }
+  }, [bonusSearch])
+
+  const handleSaveBonus = useCallback(
+    async (userId: string) => {
+      const raw = bonusInput[userId]
+      const value = raw !== undefined ? parseFloat(raw) : NaN
+      if (!Number.isFinite(value) || value < 0) {
+        setBonusError('Ange ett giltigt icke-negativt bonusvärde')
+        return
+      }
+      setBonusLoading(true)
+      setBonusError(null)
+      setBonusMessage(null)
+      try {
+        const response = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, sessionBonus: value }),
+        })
+        const data = await response.json()
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to update bonus')
+        }
+        setBonusMessage(`Bonus uppdaterad för ${data.user?.displayName ?? data.user?.username ?? userId}`)
+        await handleBonusSearch()
+        await fetchAdminData()
+      } catch (error) {
+        setBonusError(error instanceof Error ? error.message : 'Failed to update bonus')
+      } finally {
+        setBonusLoading(false)
+      }
+    },
+    [bonusInput, fetchAdminData, handleBonusSearch]
+  )
 
   const fetchLeaderboard = useCallback(async () => {
     setLeaderboardLoading(true)
@@ -381,6 +455,13 @@ export default function AdminDashboardClient({
                       >
                         {recalcLoading ? 'Recalculating…' : 'Force recalc weights'}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setBonusModalOpen(true)}
+                        className="inline-flex items-center justify-center rounded-lg border border-sky-500 px-4 py-2 text-sm font-semibold text-sky-600 hover:bg-sky-50 dark:border-sky-400 dark:text-sky-300 dark:hover:bg-sky-900/40 transition"
+                      >
+                        Add temp session bonus
+                      </button>
                     </div>
                     <AdminUserTable
                       entries={entries}
@@ -528,6 +609,114 @@ export default function AdminDashboardClient({
       </main>
       {winnerModalEntry && (
         <AdminWinnerModal entry={winnerModalEntry} onClose={() => setWinnerModalEntry(null)} />
+      )}
+
+      {bonusModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-2xl rounded-lg bg-white p-4 shadow-xl dark:bg-gray-900">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Temp session bonus (endast denna session)
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Sök användare, ange bonus (≥ 0), sparar direkt och räknar om vikten. Bonus nollas när sessionen avslutas.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBonusModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={bonusSearch}
+                onChange={(e) => setBonusSearch(e.target.value)}
+                placeholder="Sök username/display name"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={handleBonusSearch}
+                disabled={bonusLoading}
+                className="rounded-lg bg-[var(--bf-lime)] px-3 py-2 text-sm font-semibold text-black hover:bg-[var(--bf-lime)]/80 transition disabled:opacity-60"
+              >
+                {bonusLoading ? 'Söker…' : 'Sök'}
+              </button>
+            </div>
+
+            {bonusError && <p className="text-sm text-red-600 mb-2">{bonusError}</p>}
+            {bonusMessage && <p className="text-sm text-green-700 mb-2">{bonusMessage}</p>}
+
+            <div className="max-h-80 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-800">
+              <table className="min-w-full text-sm text-left text-gray-900 dark:text-gray-100">
+                <thead className="text-xs uppercase text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <th className="py-2 px-3">User</th>
+                    <th className="py-2 px-3 text-right">Current</th>
+                    <th className="py-2 px-3 text-right">Carry</th>
+                    <th className="py-2 px-3 text-right">Bonus</th>
+                    <th className="py-2 px-3 text-right">Set bonus</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bonusResults.length === 0 ? (
+                    <tr>
+                      <td className="py-3 px-3 text-sm text-gray-600 dark:text-gray-400" colSpan={5}>
+                        {bonusLoading ? 'Laddar…' : 'Inga träffar'}
+                      </td>
+                    </tr>
+                  ) : (
+                    bonusResults.map((u) => (
+                      <tr key={u.id} className="border-b border-gray-100 dark:border-gray-800">
+                        <td className="py-2 px-3">
+                          <div className="font-semibold">{u.displayName || u.username}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">{u.username}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            {u.isSubscriber ? 'Sub' : 'Ej sub'} · {u.isFollower ? 'Follow' : 'Ej follow'} · m:{u.subMonths}
+                          </div>
+                        </td>
+                        <td className="py-2 px-3 text-right">{formatNumber(u.currentWeight, 2)}x</td>
+                        <td className="py-2 px-3 text-right">+{formatNumber(u.carryOverWeight, 2)}x</td>
+                        <td className="py-2 px-3 text-right">+{formatNumber(u.sessionBonus ?? 0, 2)}x</td>
+                        <td className="py-2 px-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.1"
+                              value={bonusInput[u.id] ?? ''}
+                              onChange={(e) =>
+                                setBonusInput((prev) => ({
+                                  ...prev,
+                                  [u.id]: e.target.value,
+                                }))
+                              }
+                              className="w-24 rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSaveBonus(u.id)}
+                              disabled={bonusLoading}
+                              className="rounded bg-sky-600 px-3 py-1 text-xs font-semibold text-white hover:bg-sky-500 transition disabled:opacity-60"
+                            >
+                              Spara
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       )}
     </AmbientBackground>
   )
