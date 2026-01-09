@@ -47,62 +47,65 @@ export async function ensureSystemSession() {
 }
 
 export async function startNewSession(name?: string) {
-  return prisma.$transaction(async (tx) => {
-    const active = await tx.raffleSession.findFirst({
-      where: {
-        status: 'ACTIVE',
-        endedAt: null,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
-
-    if (active) {
-      throw new Error('ACTIVE_SESSION_EXISTS')
-    }
-
-    const session = await tx.raffleSession.create({
-      data: {
-        name,
-        status: 'ACTIVE',
-      },
-    })
-
-    const previous = await tx.raffleSession.findFirst({
-      where: {
-        status: 'ENDED',
-        endedAt: {
-          not: null,
-        },
-      },
-      orderBy: {
-        endedAt: 'desc',
-      },
-    })
-
-    if (previous) {
-      await tx.entry.updateMany({
+  return prisma.$transaction(
+    async (tx) => {
+      const active = await tx.raffleSession.findFirst({
         where: {
-          sessionId: previous.id,
-          isWinner: false,
+          status: 'ACTIVE',
+          endedAt: null,
         },
-        data: {
-          sessionId: session.id,
+        orderBy: {
+          createdAt: 'desc',
         },
       })
-    }
 
-    await tx.user.updateMany({
-      data: {
-        totalCheerBits: 0,
-        totalGiftedSubs: 0,
-        totalDonations: 0,
-      },
-    })
+      if (active) {
+        throw new Error('ACTIVE_SESSION_EXISTS')
+      }
 
-    return session
-  })
+      const session = await tx.raffleSession.create({
+        data: {
+          name,
+          status: 'ACTIVE',
+        },
+      })
+
+      const previous = await tx.raffleSession.findFirst({
+        where: {
+          status: 'ENDED',
+          endedAt: {
+            not: null,
+          },
+        },
+        orderBy: {
+          endedAt: 'desc',
+        },
+      })
+
+      if (previous) {
+        await tx.entry.updateMany({
+          where: {
+            sessionId: previous.id,
+            isWinner: false,
+          },
+          data: {
+            sessionId: session.id,
+          },
+        })
+      }
+
+      await tx.user.updateMany({
+        data: {
+          totalCheerBits: 0,
+          totalGiftedSubs: 0,
+          totalDonations: 0,
+        },
+      })
+
+      return session
+    },
+    { timeout: 10_000 }
+  )
 }
 
 export async function endCurrentSession() {

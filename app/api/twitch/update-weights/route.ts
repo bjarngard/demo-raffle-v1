@@ -81,16 +81,21 @@ export async function POST(request: NextRequest) {
       )
 
       await prisma.$transaction(
-        recalculated.map((record) =>
-          prisma.user.update({
-            where: { id: record.id },
-            data: {
-              currentWeight: record.totalWeight - record.carryOver,
-              totalWeight: record.totalWeight,
-              lastUpdated: new Date(),
-            },
-          })
-        )
+        async (tx) => {
+          await Promise.all(
+            recalculated.map((record) =>
+              tx.user.update({
+                where: { id: record.id },
+                data: {
+                  currentWeight: record.totalWeight - record.carryOver,
+                  totalWeight: record.totalWeight,
+                  lastUpdated: new Date(),
+                },
+              })
+            )
+          )
+        },
+        { timeout: 10_000 }
       )
 
       updatedUsers.push(
