@@ -97,10 +97,7 @@ export default function WeightTable({ settings }: WeightTableProps) {
             <tr>
               <td className="py-3 text-gray-900 dark:text-white">Carry-Over</td>
               <td className="py-3 text-gray-600 dark:text-gray-400">
-                Previous weight × {formatNumber(settings.carryOverMultiplier, 2)} (capped at {formatNumber(
-                  settings.carryOverMaxBonus,
-                  2
-                )}x)
+                +1.00x per missed session (capped at {formatNumber(settings.carryOverMaxBonus, 2)}x)
               </td>
               <td className="py-3 font-semibold text-gray-900 dark:text-white">
                 {formatNumber(settings.carryOverMaxBonus, 2)}x max

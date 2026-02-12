@@ -132,7 +132,7 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 - **Weight computation:** Based on `WeightSettings` caps/multipliers; breakdown covers base, loyalty, support, carry-over. `describeWeightBreakdown` enforces caps. Resub and generic donations are currently neutralized (resub component = 0; donationsWeight = 0) while bits and gifted subs remain active.
 - **Chance % (viewer):** `/api/weight/me` computes `chancePercent` as user’s `totalWeight` / sum of participants’ `totalWeight` in active session (only when the user has an entry). Exposed to MyStatusCard/TwitchLogin.
 - **Submission gating:** `resolveRaffleSubmissionState` prevents multiple entries per active session and blocks when no active session. API errors include codes (e.g., NO_ACTIVE_SESSION, SUBMISSIONS_CLOSED, NOT_FOLLOWING).
-- **Carry-over:** Tracked per user; `applyCarryOverForSession` zeroar carry för alla winners i sessionen och ökar carry för övriga pending enligt multiplier/cap. `getCarryOverUsersForSession` visar carry när ingen aktiv session finns (adminvy).
+- **Carry-over:** Tracked per user; `applyCarryOverForSession` zeroar carry för alla winners i sessionen och ökar carry för övriga pending med fast +1 per missad session (cap via `carryOverMaxBonus`). `getCarryOverUsersForSession` visar carry när ingen aktiv session finns (adminvy).
 - **Status/lightweight sync:** `/api/status` minimal payload to speed perceived sync (submissions/session/lastEntryAt); admin/viewer poll frequently.
 - **Winner selection:** `/api/pick-winner` uses weighted random draw over active session entries (weights from users), marks winner and likely updates states; viewers see winner via `/api/winner`.
 - **Twitch sync:** EventSub + on-demand endpoints to update user stats/weights based on Twitch activity (subs, gifted, bits, follows).
@@ -147,7 +147,7 @@ _Flow notes:_ Most write endpoints validate session/activity, use Prisma mutatio
 - **Known gotchas:** resub component is hardcoded to 0 (no extra weight). Donations are currently neutralized (weight 0); if re-enabled, ensure units for `totalDonations` (cents/öre) are correct or you risk 100× skew.
 - **Entry submission:** `/api/enter` checks `resolveRaffleSubmissionState` (active session? existing entry?) and follow/sub constraints; writes `Entry` (unique per session/user), may sync names/demo/notes, then status/leaderboard refetch on client.
 - **Pick winner:** `/api/pick-winner` hämtar aktiva pending entries (exkl. sentinel), drar viktad vinnare, markerar `isWinner` och i samma transaktion nollar support (bits/gifts) + carryOverWeight och räknar om total/current weight. Viewer/admin ser via `/api/winner` och polling.
-- **Carry-over lifecycle:** Vid sessionslut körs `applyCarryOverForSession`: alla winners får carry=0, pending får carry enligt settings/cap. Admin ser `carryOverUsers` när ingen aktiv session finns.
+- **Carry-over lifecycle:** Vid sessionslut körs `applyCarryOverForSession`: alla winners får carry=0, pending får fast +1 carry (upp till cap). Admin ser `carryOverUsers` när ingen aktiv session finns.
 
 ---
 

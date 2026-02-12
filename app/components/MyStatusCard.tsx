@@ -83,7 +83,7 @@ export default function MyStatusCard() {
       </div>
 
       {status === 'error' && error && (
-        <p className="mb-3 text-sm text-gray-900 bg-bf-orange-soft rounded-md px-3 py-2">
+        <p className="mb-3 text-sm text-gray-900 dark:text-gray-100 bg-bf-orange-soft rounded-md px-3 py-2">
           {error.message}
         </p>
       )}
@@ -180,9 +180,9 @@ function StatusBadge({
   const styles =
     variant === 'positive'
       ? 'bg-white/20 text-white border-white/40'
-      : 'bg-bf-orange-soft text-gray-900 border-[#f08e4c]'
-  const labelColor = variant === 'positive' ? 'text-white/70' : 'text-gray-700'
-  const valueColor = variant === 'positive' ? 'text-white' : 'text-gray-900'
+      : 'bg-bf-orange-soft text-gray-900 dark:text-gray-100 border-[#f08e4c]'
+  const labelColor = variant === 'positive' ? 'text-white/70' : 'text-gray-700 dark:text-gray-200'
+  const valueColor = variant === 'positive' ? 'text-white' : 'text-gray-900 dark:text-gray-100'
   return (
     <div className={`rounded-lg border px-3 py-2 ${styles}`}>
       <p className={`text-xs uppercase tracking-wide ${labelColor}`}>{label}</p>

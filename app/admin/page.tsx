@@ -94,7 +94,7 @@ export default function AdminPage() {
                 />
               </div>
               {error && (
-            <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 dark:text-gray-100 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
@@ -157,7 +157,7 @@ export default function AdminPage() {
           ) : (
             <div className="space-y-6">
               <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-4">
-                <p className="text-sm text-gray-900">
+                <p className="text-sm text-gray-900 dark:text-gray-100">
                   <strong>NOTE:</strong> To pick a winner, you need to use your admin token.
                   The token is set in the <code className="bg-bf-lime-soft px-1 rounded">ADMIN_TOKEN</code> environment variable.
                 </p>

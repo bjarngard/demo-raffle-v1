@@ -405,15 +405,16 @@ export default function AdminDashboardClient({
       {twitchAuth.status === 'reauth_required' && (
         <div className="max-w-7xl mx-auto mb-4">
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-900 shadow-sm">
-            <p className="font-semibold">Twitch-auth behöver uppdateras (reauth krävs).</p>
-            {twitchAuth.reason && <p className="text-sm text-red-800">Orsak: {twitchAuth.reason}</p>}
+            <p className="font-semibold">Twitch auth must be refreshed (reauth required).</p>
+            {twitchAuth.reason && <p className="text-sm text-red-800">Reason: {twitchAuth.reason}</p>}
             {twitchAuth.missingScopes && twitchAuth.missingScopes.length > 0 && (
               <p className="text-sm text-red-800">
-                Saknade scopes: {twitchAuth.missingScopes.join(', ')}
+                Missing scopes: {twitchAuth.missingScopes.join(', ')}
               </p>
             )}
             <p className="text-sm text-red-800">
-              Logga in som broadcastern igen för att återställa follow/sub och kör därefter sync.
+              Sign in as the broadcaster again to restore follow/sub checks, then run sync.
+              This notice clears automatically once auth is healthy.
             </p>
           </div>
         </div>

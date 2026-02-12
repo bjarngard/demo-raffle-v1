@@ -181,13 +181,13 @@ export default function DemoSubmissionForm({
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             You have an active submission
           </h3>
         </div>
         {submission.demoLink && (
           <div className="mt-4">
-            <p className="text-sm text-gray-900 mb-2">
+            <p className="text-sm text-gray-900 dark:text-gray-100 mb-2">
               Demo Link:
             </p>
             <a
@@ -207,8 +207,8 @@ export default function DemoSubmissionForm({
   if (!effectiveSessionActive) {
     return (
       <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No active session</h3>
-        <p className="text-sm text-gray-900">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No active session</h3>
+        <p className="text-sm text-gray-900 dark:text-gray-100">
           The broadcaster hasn&apos;t started a new session yet. Please check back during the next stream.
         </p>
       </div>
@@ -218,8 +218,8 @@ export default function DemoSubmissionForm({
   if (!effectiveSubmissionsOpen) {
     return (
       <div className="bg-bf-orange-soft border border-[#f08e4c] rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Submissions are closed</h3>
-        <p className="text-sm text-gray-900">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Submissions are closed</h3>
+        <p className="text-sm text-gray-900 dark:text-gray-100">
           The broadcaster has closed submissions for now. Please check back when the next round opens.
         </p>
       </div>
@@ -249,7 +249,7 @@ export default function DemoSubmissionForm({
       </div>
 
       {error && (
-        <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 px-4 py-3 rounded-lg text-sm">
+        <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 dark:text-gray-100 px-4 py-3 rounded-lg text-sm">
           {error}
         </div>
       )}

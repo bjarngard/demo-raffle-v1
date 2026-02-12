@@ -72,8 +72,8 @@ export default function AdminWeightsForm({
         <div
           className={`mb-4 px-4 py-3 rounded-lg ${
             message.type === 'success'
-              ? 'bg-bf-lime-soft border border-[#c4cf48] text-gray-900'
-              : 'bg-bf-orange-soft border border-[#f08e4c] text-gray-900'
+              ? 'bg-bf-lime-soft border border-[#c4cf48] text-gray-900 dark:text-gray-100'
+              : 'bg-bf-orange-soft border border-[#f08e4c] text-gray-900 dark:text-gray-100'
           }`}
         >
           {message.text}
@@ -205,7 +205,7 @@ export default function AdminWeightsForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Carry-Over Multiplier
+              Carry-Over Multiplier (legacy)
             </label>
             <input
               type="number"
@@ -214,10 +214,11 @@ export default function AdminWeightsForm({
               onChange={(e) =>
                 setSettings({ ...settings, carryOverMultiplier: parseFloat(e.target.value) || 0 })
               }
+              disabled
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Portion of session weight that converts to carry-over if you don&apos;t win.
+              Not used in current logic. Carry-over now increases with a fixed +1.0x per missed session.
             </p>
           </div>
           <div>

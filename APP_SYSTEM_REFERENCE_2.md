@@ -173,9 +173,9 @@ All models live in `prisma/schema.prisma`. Key tables:
 - `lib/carry-over.ts` exports `applyCarryOverForSession(sessionId: string, resetWeights = false)`:
   - Gathers all users with non-winning entries in the target session (excluding the sentinel entry) and the winner (if any).
   - Loads `WeightSettings` once, fetches all participating users once, then uses `Promise.all` (no interactive transaction) to update each user in parallel.
-  - Formula is unchanged:
+  - Formula:
     - Winner or `resetWeights === true` → `newCarry = 0`.
-    - Else: `sessionWeight = max(0, user.totalWeight - user.carryOverWeight)`; `carryFromSession = sessionWeight * settings.carryOverMultiplier`; `newCarry = min(user.carryOverWeight + carryFromSession, settings.carryOverMaxBonus)`.
+    - Else: fixed carry step per missed session → `newCarry = min(user.carryOverWeight + 1, settings.carryOverMaxBonus)`.
     - `totalWeight` = `calculateUserWeight({...user fields..., carryOverWeight: newCarry})`; `currentWeight = totalWeight - newCarry`.
   - Persists `carryOverWeight`, `totalWeight`, `currentWeight`, and `lastUpdated` per user; returns `{ updatedCount, users[] }` with `{ id, username, carryOverWeight }`.
 - `/api/admin/session/end` automatically calls this helper before marking the session as ended.

@@ -347,7 +347,7 @@ function RaffleForm() {
         )}
 
         {(statusData || leaderboard) && !hasActiveSession && (
-          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow p-4 text-gray-900">
+          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow p-4 text-gray-900 dark:text-gray-100">
             The raffle is not currently running. Please check back later.
           </div>
         )}
@@ -386,7 +386,7 @@ function RaffleForm() {
           {/* Warning only (A): uncertain follow state never blocks entry, just informs the user. */}
           {followStatus === 'unknown' && (
             <div className="mt-4 mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] p-4 shadow-md shadow-black/20">
-              <p className="text-sm text-gray-900">
+              <p className="text-sm text-gray-900 dark:text-gray-100">
                 We couldn&apos;t verify your follow status right now
                 {followReason ? ` (${followReason})` : ''}.{' '}
                 You should still be able to enter, but please try again later or let the broadcaster know if this keeps happening.
@@ -525,7 +525,7 @@ function RaffleForm() {
               </div>
 
               {error && (
-                <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 px-4 py-3 rounded-lg shadow-md shadow-black/20">
+                <div className="bg-bf-orange-soft border border-[#f08e4c] text-gray-900 dark:text-gray-100 px-4 py-3 rounded-lg shadow-md shadow-black/20">
                   {error}
                 </div>
               )}

@@ -212,7 +212,7 @@ function StatusChip({
   const styles =
     variant === 'positive'
       ? 'bg-[var(--bf-lime)] text-gray-900'
-      : 'bg-bf-orange-soft text-gray-900'
+      : 'bg-bf-orange-soft text-gray-900 dark:text-gray-100'
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${styles}`}>
       {label}

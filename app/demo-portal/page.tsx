@@ -128,8 +128,8 @@ function DemoPortalContent() {
           <div
             className={`mb-6 rounded-lg shadow-lg p-4 ${
               leaderboard.submissionsOpen
-                ? 'bg-bf-lime-soft text-gray-900 border border-[#c4cf48] shadow-md shadow-black/15'
-                : 'bg-bf-orange-soft text-gray-900 border border-[#f08e4c] shadow-md shadow-black/20'
+                ? 'bg-bf-lime-soft text-gray-900 dark:text-gray-100 border border-[#c4cf48] shadow-md shadow-black/15'
+                : 'bg-bf-orange-soft text-gray-900 dark:text-gray-100 border border-[#f08e4c] shadow-md shadow-black/20'
             }`}
           >
             <div className="flex items-center justify-center gap-3">
@@ -156,13 +156,13 @@ function DemoPortalContent() {
 
         {/* Inline status for session/submissions */}
         {leaderboard && !leaderboard.sessionId && (
-          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow-md shadow-black/20 p-4 text-gray-900">
+          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow-md shadow-black/20 p-4 text-gray-900 dark:text-gray-100">
             No active session is running right now. Please check back later.
           </div>
         )}
 
         {leaderboard && leaderboard.sessionId && !leaderboard.submissionsOpen && (
-          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow-md shadow-black/20 p-4 text-gray-900">
+          <div className="mb-6 rounded-lg bg-bf-orange-soft border border-[#f08e4c] shadow-md shadow-black/20 p-4 text-gray-900 dark:text-gray-100">
             {winner ? (
               <p>
                 Submissions are currently paused. Latest winner:{' '}

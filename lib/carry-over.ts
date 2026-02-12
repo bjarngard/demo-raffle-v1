@@ -61,8 +61,9 @@ export async function applyCarryOverForSession(
   )
 
   const settings = await getWeightSettings()
-  // Current behavior: apply carry-over only to non-winners using carryOverMultiplier and cap.
-  // carryOverWeight is stored and later used directly in weight calculations; no extra multiplier there.
+  const carryStepPerMissedSession = 1
+  // Carry-over policy: each non-winning pending entry gets a fixed +1 step per ended session,
+  // capped by carryOverMaxBonus. Winners and resets still clear carry-over to 0.
 
   const users = await prisma.user.findMany({
     where: { id: { in: participantIds } },
@@ -81,10 +82,8 @@ export async function applyCarryOverForSession(
         // Either we're doing a hard reset, or this is the winner → no carry-over.
         newCarry = 0
       } else {
-        // Normal carry-over behaviour for non-winners.
-        const sessionWeight = Math.max(0, user.totalWeight - user.carryOverWeight) // weight earned this session only
-        const carryFromSession = sessionWeight * settings.carryOverMultiplier
-        const newCarryRaw = user.carryOverWeight + carryFromSession
+        // Fixed carry-over step for non-winners.
+        const newCarryRaw = user.carryOverWeight + carryStepPerMissedSession
         newCarry = Math.min(newCarryRaw, settings.carryOverMaxBonus)
       }
 

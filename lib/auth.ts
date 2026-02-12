@@ -261,6 +261,71 @@ export const authOptions: NextAuthConfig = {
       } as AdapterUser
       return adapterUser
     },
+    async linkAccount(account) {
+      if (account.provider !== 'twitch') {
+        if (!baseAdapter.linkAccount) {
+          await prisma.account.create({
+            data: account,
+          })
+          return
+        }
+        await baseAdapter.linkAccount(account)
+        return
+      }
+
+      const pickNumeric = (v: unknown) => {
+        if (typeof v === 'string' && /^\d+$/.test(v)) return v
+        if (typeof v === 'number' && Number.isFinite(v)) return String(v)
+        return null
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: account.userId },
+        select: { twitchId: true },
+      })
+
+      const canonicalProviderAccountId =
+        pickNumeric(user?.twitchId) ??
+        pickNumeric(account.providerAccountId) ??
+        account.providerAccountId
+
+      const existing = await prisma.account.findFirst({
+        where: {
+          provider: 'twitch',
+          userId: account.userId,
+        },
+      })
+
+      if (existing) {
+        await prisma.account.update({
+          where: { id: existing.id },
+          data: {
+            type: account.type,
+            provider: account.provider,
+            providerAccountId: canonicalProviderAccountId,
+            refresh_token: account.refresh_token,
+            access_token: account.access_token,
+            expires_at: account.expires_at,
+            token_type: account.token_type,
+            scope: account.scope,
+            id_token: account.id_token,
+            session_state:
+              typeof account.session_state === 'string'
+                ? account.session_state
+                : null,
+          },
+        })
+        return
+      }
+
+      await prisma.account.create({
+        data: {
+          ...account,
+          providerAccountId: canonicalProviderAccountId,
+        },
+      })
+      return
+    },
   },
   secret: env.NEXTAUTH_SECRET,
   trustHost: true,

@@ -239,3 +239,10 @@ h6,
   .border-bf-primary { border-color: var(--bf-primary); }
   .border-bf-primary-dark { border-color: var(--bf-primary-dark); }
 }
+
+.dark .bg-bf-lime-soft { background-color: rgba(208, 225, 69, 0.26); }
+.dark .bg-bf-orange-soft { background-color: rgba(250, 152, 87, 0.28); }
+.dark .bg-bf-lime-soft .text-gray-900,
+.dark .bg-bf-orange-soft .text-gray-900 { color: rgb(243 244 246); }
+.dark .bg-bf-lime-soft .text-gray-700,
+.dark .bg-bf-orange-soft .text-gray-700 { color: rgb(229 231 235); }

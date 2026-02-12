@@ -50,7 +50,7 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
     const supportCap = settings.supportMaxBonus
     const giftMultiplier = settings.giftedSubsMultiplier
     const giftCap = settings.giftedSubsCap
-    const carryPercent = Math.round(settings.carryOverMultiplier * 100)
+    const carryStep = 1
     const carryCap = settings.carryOverMaxBonus
 
     return [
@@ -90,9 +90,9 @@ export default function WeightInfoModal({ open, onClose }: WeightInfoModalProps)
       },
       {
         title: 'Carry-over',
-        children: `If your entry doesn't win, ${formatNumber(carryPercent, 0)}% of that session's weight becomes carry-over (capped at +${formatNumber(
+        children: `If your entry doesn't win, you gain +${formatNumber(carryStep, 0)}× carry-over for that session (capped at +${formatNumber(
           carryCap
-        )}×) and is the only bonus that persists into the next session.`,
+        )}×). Carry-over is the only bonus that persists into the next session.`,
       },
     ]
   }, [settings])
